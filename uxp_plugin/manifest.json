@@ -1,0 +1,42 @@
+{
+  "manifestVersion": 5,
+  "id": "com.ecommerce.photoshop.panel",
+  "name": "E-Commerce Auto Editor",
+  "version": "1.0.0",
+  "main": "index.html",
+  "host": [
+    {
+      "app": "PS",
+      "minVersion": "23.0.0"
+    }
+  ],
+  "entrypoints": [
+    {
+      "type": "panel",
+      "id": "ecommercePanel",
+      "name": "E-Commerce Auto Editor",
+      "size": {
+        "width": 340,
+        "height": 600
+      },
+      "minimumSize": {
+        "width": 300,
+        "height": 450
+      },
+      "maximumSize": {
+        "width": 520,
+        "height": 900
+      }
+    }
+  ],
+  "requiredPermissions": {
+    "network": {
+      "domains": [
+        "http://localhost:8000",
+        "http://127.0.0.1:8000"
+      ]
+    },
+    "clipboard": "readAndWrite",
+    "localFileSystem": "fullAccess"
+  }
+}

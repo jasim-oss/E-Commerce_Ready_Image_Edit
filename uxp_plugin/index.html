@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Commerce Auto Editor</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="app-badge">PRO</div>
+        <h1>E-Com Auto Editor</h1>
+      </div>
+      <div class="backend-status" id="aiStatus" title="Local Python AI Backend Status">
+        <span class="status-dot offline"></span>
+        <span class="status-text" id="aiStatusText">AI: Offline</span>
+      </div>
+    </header>
+
+    <!-- Marketplace Tabs -->
+    <nav class="market-tabs">
+      <button class="tab-btn active" data-tab="amazon" id="tabAmazon">
+        <span class="tab-icon">📦</span> Amazon
+      </button>
+      <button class="tab-btn disabled" data-tab="shopify" title="Coming next">
+        <span>🛍️</span> Shopify
+      </button>
+      <button class="tab-btn disabled" data-tab="ebay" title="Coming next">
+        <span>🏷️</span> eBay
+      </button>
+      <button class="tab-btn disabled" data-tab="walmart" title="Coming next">
+        <span>⭐</span> Walmart
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+      <!-- Amazon Section -->
+      <section id="section-amazon" class="market-section active">
+        <!-- Marketplace Rule Badge Bar -->
+        <div class="spec-banner">
+          <div class="spec-chip">Pure White #FFF</div>
+          <div class="spec-chip">85% Fill Rule</div>
+          <div class="spec-chip">2000×2000 px</div>
+          <div class="spec-chip">sRGB</div>
+        </div>
+
+        <!-- Master 1-Click Action -->
+        <div class="master-action-box">
+          <button id="btnRunAmazonFull" class="btn-primary-glow">
+            <span class="btn-icon">⚡</span>
+            <div class="btn-text-group">
+              <span class="btn-title">One-Click Amazon Auto-Fit</span>
+              <span class="btn-subtitle">Select, Mask, Fit 85%, Center & Pure White BG</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Settings / Adjustments Accordion -->
+        <details class="settings-card" open>
+          <summary class="settings-summary">
+            <span>⚙️ Amazon Specifications & Options</span>
+          </summary>
+          <div class="settings-body">
+            <!-- Canvas Resolution -->
+            <div class="control-row">
+              <label for="amazonCanvasSize">Canvas Size:</label>
+              <select id="amazonCanvasSize" class="input-select">
+                <option value="2000" selected>2000 x 2000 px (Recommended)</option>
+                <option value="2500">2500 x 2500 px (High-Res Zoom)</option>
+                <option value="1600">1600 x 1600 px (Standard)</option>
+                <option value="1000">1000 x 1000 px (Minimum)</option>
+              </select>
+            </div>
+
+            <!-- Product Fill Ratio -->
+            <div class="control-row">
+              <label for="amazonFillRatio">Product Fill Ratio:</label>
+              <div class="range-group">
+                <input type="range" id="amazonFillRatio" min="75" max="95" value="85" step="1" />
+                <span id="fillRatioVal" class="range-val">85%</span>
+              </div>
+            </div>
+
+            <!-- Shadow Generation -->
+            <div class="control-row">
+              <label for="amazonShadowType">Shadow Type:</label>
+              <select id="amazonShadowType" class="input-select">
+                <option value="none">None (Pure Clean)</option>
+                <option value="natural" selected>Natural Contact Shadow</option>
+                <option value="soft_drop">Soft Drop Shadow</option>
+                <option value="ai_shadow">AI Ground Shadow (Python)</option>
+              </select>
+            </div>
+
+            <!-- Auto sRGB -->
+            <div class="control-row checkbox-row">
+              <label for="chkAutoSRGB">
+                <input type="checkbox" id="chkAutoSRGB" checked />
+                <span>Auto-convert color space to sRGB</span>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <!-- Step-by-Step Manual Operations -->
+        <div class="step-operations">
+          <div class="section-title">Manual Step-by-Step Actions</div>
+          <div class="btn-grid">
+            <button id="btnSelectSubject" class="btn-secondary" title="Use Photoshop AI to detect & mask subject">
+              <span>🪄</span> 1. Select Subject
+            </button>
+            <button id="btnApplyWhiteBG" class="btn-secondary" title="Add pure white #FFFFFF background">
+              <span>⬜</span> 2. Pure White BG
+            </button>
+            <button id="btnFitAndCenter" class="btn-secondary" title="Scale to 85% and center on canvas">
+              <span>🎯</span> 3. Fit 85% & Center
+            </button>
+            <button id="btnAddShadow" class="btn-secondary" title="Create realistic ground/contact shadow">
+              <span>🌑</span> 4. Apply Shadow
+            </button>
+          </div>
+        </div>
+
+        <!-- Export Section -->
+        <div class="export-box">
+          <button id="btnExportAmazon" class="btn-export">
+            <span>💾</span> Export Amazon Optimized JPEG
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Console / Activity Log -->
+    <footer class="app-footer">
+      <div class="log-header">
+        <span>Activity Log</span>
+        <button id="btnClearLog" class="btn-tiny">Clear</button>
+      </div>
+      <div class="log-terminal" id="logTerminal">
+        <div class="log-entry info">System ready. Select a product image in Photoshop.</div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="modules/ps_automation.js"></script>
+  <script src="modules/ai_bridge.js"></script>
+  <script src="modules/amazon.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
