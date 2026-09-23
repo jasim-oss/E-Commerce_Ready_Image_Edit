@@ -23,6 +23,31 @@ const PSAutomation = {
   },
 
   /**
+   * 1. RESIZE: Resize for specific E-Commerce Marketplace
+   * @param {number} width - Target width in pixels
+   * @param {number} height - Target height in pixels
+   * @param {number} dpi - Target resolution in DPI
+   * @param {boolean} applyToAll - Apply to all open documents
+   */
+  async resizeForMarketplace(width, height, dpi = 72, applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      // 1. Adjust resolution / DPI if needed
+      if (doc.resolution !== dpi) {
+        await batchPlay([
+          {
+            _obj: "imageSize",
+            resolution: { _unit: "densityUnit", _value: dpi },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      }
+
+      // 2. Resize Canvas to exact target dimensions
+      await doc.resizeCanvas(width, height, app.Constants.AnchorPosition.MIDDLECENTER);
+    }, `Resize to ${width}x${height} @ ${dpi}DPI`);
+  },
+
+  /**
    * 1. RESIZE: Fixed Size 2000x2000 px standard
    */
   async fixedSize(targetDim = 2000) {
