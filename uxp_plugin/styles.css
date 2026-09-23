@@ -436,13 +436,130 @@ input:checked + .slider:before {
 /* Dimension Row (Size, Dpi, Just Button) */
 .dimension-row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 8px;
-  background: rgba(22, 19, 44, 0.7);
-  border: 1px solid var(--border-btn);
-  border-radius: 8px;
-  padding: 8px 10px;
+  background: #181533;
+  border: 1px solid #2b2552;
+  border-radius: 9px;
+  padding: 9px 10px;
   margin-top: 6px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.dim-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dim-col-size {
+  flex: 2.3;
+}
+
+.dim-col-dpi {
+  flex: 1.1;
+}
+
+.dim-col-btn {
+  flex: 1;
+}
+
+.dim-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7dd3fc; /* Premium Soft Ice Cyan */
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  height: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.dim-label-spacer {
+  font-size: 10px;
+  height: 14px;
+  user-select: none;
+}
+
+.size-inputs-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.size-inputs-group input,
+.dpi-input-group input {
+  width: 100%;
+  height: 27px;
+  background: #110e26;
+  border: 1px solid #2c2654;
+  border-radius: 6px;
+  color: #f1f0fa;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 0 4px;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.size-inputs-group input:hover,
+.dpi-input-group input:hover {
+  border-color: #43397d;
+}
+
+.size-inputs-group input:focus,
+.dpi-input-group input:focus {
+  border-color: #38bdf8;
+  background: #161333;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
+}
+
+.size-inputs-group input.editable,
+.dpi-input-group input.editable {
+  border-color: #6366f1;
+  background: #191538;
+  color: #38bdf8;
+  box-shadow: 0 0 5px rgba(99, 102, 241, 0.25);
+}
+
+.dim-times {
+  color: #656187;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+  padding: 0 1px;
+}
+
+.btn-edit-just {
+  width: 100%;
+  height: 27px;
+  background: #231e47;
+  border: 1px solid #3c3470;
+  color: #d8d6f5;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+
+.btn-edit-just:hover {
+  background: #312a63;
+  border-color: #818cf8;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(129, 140, 248, 0.25);
+}
+
+.btn-edit-just.active {
+  background: linear-gradient(135deg, #0e3753, #152e4a);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
 }
 
 .dim-col {
