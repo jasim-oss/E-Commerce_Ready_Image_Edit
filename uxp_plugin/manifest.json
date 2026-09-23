@@ -1,7 +1,7 @@
 {
   "manifestVersion": 5,
   "id": "com.ecommerce.photoshop.panel",
-  "name": "E-Commerce Auto Editor",
+  "name": "E-Commerce Ready Edit",
   "version": "1.0.0",
   "main": "index.html",
   "host": [
@@ -14,7 +14,7 @@
     {
       "type": "panel",
       "id": "ecommercePanel",
-      "name": "E-Commerce Auto Editor",
+      "name": "E-Commerce Ready Edit",
       "size": {
         "width": 340,
         "height": 600

@@ -44,16 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.getElementById("btnUpscale").addEventListener("click", async () => {
-    try {
-      setStatus("Upscaling image...", "working");
-      await window.PSAutomation.upscaleImage(1.5);
-      setStatus("Upscaled 1.5x successfully", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
-
+  
   document.getElementById("btnAspectRatio").addEventListener("click", async () => {
     try {
       setStatus("Setting 1:1 square canvas...", "working");
