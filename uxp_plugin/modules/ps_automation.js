@@ -1,197 +1,214 @@
 /**
- * Photoshop Automation Module using UXP batchPlay & DOM API
+ * Core Photoshop Automation Engine via UXP batchPlay & DOM
  */
 const { app, core, action } = require("photoshop");
 const batchPlay = action.batchPlay;
 
 const PSAutomation = {
   /**
-   * Run Photoshop Native "Select Subject" AI
+   * Helper to iterate across either active document or ALL open documents
    */
-  async selectSubject() {
-    return await core.executeAsModal(async () => {
-      const result = await batchPlay(
-        [
-          {
-            _obj: "autoCutout",
-            sampleAllLayers: false,
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ],
-        { synchronousExecution: true }
-      );
-      return result;
-    }, { commandName: "Amazon: Select Subject" });
-  },
-
-  /**
-   * Convert Active Selection into a Layer Mask on Active Layer
-   */
-  async createMaskFromSelection() {
-    return await core.executeAsModal(async () => {
-      return await batchPlay(
-        [
-          {
-            _obj: "make",
-            new: { _class: "channel" },
-            at: { _ref: "channel", _enum: "channel", _value: "mask" },
-            using: { _enum: "userMaskOptions", _value: "revealSelection" },
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ],
-        { synchronousExecution: true }
-      );
-    }, { commandName: "Amazon: Create Mask" });
-  },
-
-  /**
-   * Create Pure White (#FFFFFF) Solid Background Layer behind current layer
-   */
-  async createPureWhiteBackground() {
-    return await core.executeAsModal(async () => {
-      // 1. Create solid color fill layer with RGB(255, 255, 255)
-      await batchPlay(
-        [
-          {
-            _obj: "make",
-            _target: [{ _ref: "contentLayer" }],
-            using: {
-              _obj: "contentLayer",
-              type: {
-                _obj: "solidColorLayer",
-                color: {
-                  _obj: "RGBColor",
-                  red: 255,
-                  grain: 255,
-                  blue: 255
-                }
-              }
-            },
-            _options: { dialogOptions: "dontDisplay" }
-          },
-          // 2. Move background layer to the bottom of the layer stack
-          {
-            _obj: "move",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            to: { _ref: "layer", _enum: "ordinal", _value: "back" },
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ],
-        { synchronousExecution: true }
-      );
-    }, { commandName: "Amazon: Add Pure White BG" });
-  },
-
-  /**
-   * Scale and Center Subject to comply with Amazon's 85% rule
-   * @param {number} fillRatio - Default 0.85 (85%)
-   * @param {number} targetCanvasSize - Default 2000 px
-   */
-  async fitAndCenterSubject(fillRatio = 0.85, targetCanvasSize = 2000) {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document found.");
+  async executeOnTargetDocs(applyToAll, taskFn, commandName = "Batch Task") {
+    const docs = applyToAll ? app.documents : (app.activeDocument ? [app.activeDocument] : []);
+    if (docs.length === 0) {
+      throw new Error("No open document found in Photoshop.");
+    }
 
     return await core.executeAsModal(async () => {
-      // 1. Resize Canvas to square Amazon standard first
-      await doc.resizeCanvas(targetCanvasSize, targetCanvasSize, app.Constants.AnchorPosition.MIDDLECENTER);
-
-      // 2. Select Product Layer
-      const activeLayer = doc.activeLayers[0];
-      if (!activeLayer) throw new Error("Product layer not selected.");
-
-      const bounds = activeLayer.bounds;
-      const layerWidth = bounds.right - bounds.left;
-      const layerHeight = bounds.bottom - bounds.top;
-
-      if (layerWidth <= 0 || layerHeight <= 0) {
-        throw new Error("Invalid layer bounds detected.");
+      for (let i = 0; i < docs.length; i++) {
+        app.activeDocument = docs[i];
+        await taskFn(docs[i], i + 1, docs.length);
       }
-
-      // 3. Compute target dimension based on Amazon 85% rule
-      const maxTargetDimension = targetCanvasSize * fillRatio;
-      const scaleFactor = Math.min(maxTargetDimension / layerWidth, maxTargetDimension / layerHeight) * 100;
-
-      // 4. Scale layer proportionally
-      await activeLayer.scale(scaleFactor, scaleFactor, app.Constants.AnchorPosition.MIDDLECENTER);
-
-      // 5. Re-center layer on canvas (target center = targetCanvasSize / 2)
-      const updatedBounds = activeLayer.bounds;
-      const curCenterX = (updatedBounds.left + updatedBounds.right) / 2;
-      const curCenterY = (updatedBounds.top + updatedBounds.bottom) / 2;
-      const deltaX = (targetCanvasSize / 2) - curCenterX;
-      const deltaY = (targetCanvasSize / 2) - curCenterY;
-
-      await activeLayer.translate(deltaX, deltaY);
-    }, { commandName: "Amazon: 85% Fit & Center" });
+    }, { commandName });
   },
 
   /**
-   * Convert Document Color Profile to standard sRGB IEC61966-2.1
+   * 1. RESIZE: Fixed Size 2000x2000 px standard
    */
-  async convertToSRGB() {
-    return await core.executeAsModal(async () => {
-      await batchPlay(
-        [
-          {
-            _obj: "convertMode",
-            to: {
-              _obj: "RGBColorMode"
-            },
-            _options: { dialogOptions: "dontDisplay" }
-          },
-          {
-            _obj: "convertToProfile",
-            destination: "sRGB IEC61966-2.1",
-            intent: {
-              _enum: "intent",
-              _value: "colorimetric"
-            },
-            blackPointCompensation: true,
-            dither: true,
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ],
-        { synchronousExecution: true }
-      );
-    }, { commandName: "Amazon: Convert to sRGB" });
-  },
-
-  /**
-   * Add a Natural Ground Contact Shadow under product
-   */
-  async addNaturalContactShadow() {
+  async fixedSize(targetDim = 2000) {
     const doc = app.activeDocument;
-    if (!doc) return;
+    if (!doc) throw new Error("No active document.");
 
     return await core.executeAsModal(async () => {
-      // Create subtle drop shadow / contact shadow using layer style
-      await batchPlay(
-        [
-          {
-            _obj: "set",
-            _target: [{ _ref: "property", _property: "layerEffects" }, { _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            to: {
-              _obj: "layerEffects",
-              scale: { _unit: "percentUnit", _value: 100 },
-              dropShadow: {
-                _obj: "dropShadow",
-                enabled: true,
-                mode: { _enum: "blendMode", _value: "multiply" },
-                color: { _obj: "RGBColor", red: 0, grain: 0, blue: 0 },
-                opacity: { _unit: "percentUnit", _value: 20 },
-                useGlobalAngle: false,
-                localLightingAngle: { _unit: "angleUnit", _value: 90 },
-                distance: { _unit: "pixelsUnit", _value: 14 },
-                chokeMatte: { _unit: "pixelsUnit", _value: 0 },
-                blur: { _unit: "pixelsUnit", _value: 28 }
-              }
-            },
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ],
-        { synchronousExecution: true }
-      );
-    }, { commandName: "Amazon: Add Contact Shadow" });
+      await doc.resizeCanvas(targetDim, targetDim, app.Constants.AnchorPosition.MIDDLECENTER);
+    }, { commandName: "Resize: Fixed Size 2000px" });
+  },
+
+  /**
+   * 1. RESIZE: Upscale / Super Resolution (Bicubic Automatic / Preserve Details)
+   */
+  async upscaleImage(scaleMultiplier = 1.5) {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document.");
+
+    return await core.executeAsModal(async () => {
+      const newW = Math.round(doc.width * scaleMultiplier);
+      const newH = Math.round(doc.height * scaleMultiplier);
+      await doc.resizeImage(newW, newH, doc.resolution, app.Constants.InterpolationMethod.PRESERVEDETAILS);
+    }, { commandName: "Resize: Upscale Image" });
+  },
+
+  /**
+   * 1. RESIZE: Set Aspect Ratio (1:1 Square)
+   */
+  async setSquareAspectRatio() {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document.");
+
+    return await core.executeAsModal(async () => {
+      const maxDim = Math.max(doc.width, doc.height);
+      await doc.resizeCanvas(maxDim, maxDim, app.Constants.AnchorPosition.MIDDLECENTER);
+    }, { commandName: "Resize: 1:1 Aspect Ratio" });
+  },
+
+  /**
+   * 2. BG REMOVE: AI Select Subject + Mask
+   */
+  async bgRemove(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      // Run autoCutout (Photoshop Select Subject AI)
+      await batchPlay([
+        {
+          _obj: "autoCutout",
+          sampleAllLayers: false,
+          _options: { dialogOptions: "dontDisplay" }
+        }
+      ], { synchronousExecution: true });
+
+      // Create Layer Mask from current selection
+      await batchPlay([
+        {
+          _obj: "make",
+          new: { _class: "channel" },
+          at: { _ref: "channel", _enum: "channel", _value: "mask" },
+          using: { _enum: "userMaskOptions", _value: "revealSelection" },
+          _options: { dialogOptions: "dontDisplay" }
+        }
+      ], { synchronousExecution: true });
+    }, "BG Remove: AI Cutout");
+  },
+
+  /**
+   * 2. BG REMOVE: Toggle / Restore Original BG
+   */
+  async toggleOriginalBg(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      // Toggle or disable mask on active layer
+      await batchPlay([
+        {
+          _obj: "set",
+          _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+          to: {
+            _obj: "layer",
+            userMaskEnabled: false
+          },
+          _options: { dialogOptions: "dontDisplay" }
+        }
+      ], { synchronousExecution: true });
+    }, "Toggle Original BG");
+  },
+
+  /**
+   * 2. BG REMOVE: Add Pure White (#FFFFFF) Layer
+   */
+  async addPureWhiteBg() {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document.");
+
+    return await core.executeAsModal(async () => {
+      await batchPlay([
+        {
+          _obj: "make",
+          _target: [{ _ref: "contentLayer" }],
+          using: {
+            _obj: "contentLayer",
+            type: {
+              _obj: "solidColorLayer",
+              color: { _obj: "RGBColor", red: 255, grain: 255, blue: 255 }
+            }
+          },
+          _options: { dialogOptions: "dontDisplay" }
+        },
+        {
+          _obj: "move",
+          _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+          to: { _ref: "layer", _enum: "ordinal", _value: "back" },
+          _options: { dialogOptions: "dontDisplay" }
+        }
+      ], { synchronousExecution: true });
+    }, { commandName: "Add Pure White BG" });
+  },
+
+  /**
+   * 3. SCSM: Smart Centering & Sizing Mode (e.g. 85% Amazon rule)
+   */
+  async scsmFitAndCenter(fillRatio = 0.85, canvasSize = 2000) {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document.");
+
+    return await core.executeAsModal(async () => {
+      // Ensure canvas is square 2000px
+      await doc.resizeCanvas(canvasSize, canvasSize, app.Constants.AnchorPosition.MIDDLECENTER);
+
+      const layer = doc.activeLayers[0];
+      if (!layer) throw new Error("No subject layer selected.");
+
+      const b = layer.bounds;
+      const w = b.right - b.left;
+      const h = b.bottom - b.top;
+
+      if (w > 0 && h > 0) {
+        const targetDim = canvasSize * fillRatio;
+        const scalePct = Math.min(targetDim / w, targetDim / h) * 100;
+        await layer.scale(scalePct, scalePct, app.Constants.AnchorPosition.MIDDLECENTER);
+
+        // Center precisely
+        const nb = layer.bounds;
+        const curCenterX = (nb.left + nb.right) / 2;
+        const curCenterY = (nb.top + nb.bottom) / 2;
+        await layer.translate((canvasSize / 2) - curCenterX, (canvasSize / 2) - curCenterY);
+      }
+    }, { commandName: "SCSM: 85% Auto Fit" });
+  },
+
+  /**
+   * 3. SCSM: Auto Center Only
+   */
+  async autoCenter() {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document.");
+
+    return await core.executeAsModal(async () => {
+      const layer = doc.activeLayers[0];
+      if (!layer) throw new Error("No layer selected.");
+
+      const b = layer.bounds;
+      const curCenterX = (b.left + b.right) / 2;
+      const curCenterY = (b.top + b.bottom) / 2;
+      await layer.translate((doc.width / 2) - curCenterX, (doc.height / 2) - curCenterY);
+    }, { commandName: "SCSM: Auto Center" });
+  },
+
+  /**
+   * 5. EXPORT: Ready for Amazon / Delivery / PSD
+   */
+  async exportPreset(type = "amazon") {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document.");
+
+    return await core.executeAsModal(async () => {
+      // Convert to sRGB first
+      await batchPlay([
+        {
+          _obj: "convertToProfile",
+          destination: "sRGB IEC61966-2.1",
+          intent: { _enum: "intent", _value: "colorimetric" },
+          blackPointCompensation: true,
+          dither: true,
+          _options: { dialogOptions: "dontDisplay" }
+        }
+      ], { synchronousExecution: true });
+    }, { commandName: `Export: ${type}` });
   }
 };
 
