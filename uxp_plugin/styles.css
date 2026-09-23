@@ -431,3 +431,100 @@ input:checked + .slider:before {
   border-bottom: 1.5px solid var(--accent-cyan);
   pointer-events: none;
 }
+
+
+/* Dimension Card & Edit Styles */
+.dimension-card {
+  background: rgba(22, 19, 44, 0.7);
+  border: 1px solid var(--border-btn);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dimension-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dim-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-edit-toggle {
+  background: #252147;
+  border: 1px solid #3c356e;
+  color: #c7c5e6;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 9.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-edit-toggle:hover {
+  background: #342e63;
+  color: #fff;
+  border-color: var(--accent-purple);
+}
+
+.btn-edit-toggle.active {
+  background: #1e3a5f;
+  color: #38bdf8;
+  border-color: #38bdf8;
+}
+
+.dimension-inputs-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.dim-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dim-field label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #8b88a8;
+  text-transform: uppercase;
+}
+
+.dim-field input {
+  background: #151329;
+  border: 1px solid #2b264e;
+  border-radius: 4px;
+  color: #e5e5f5;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 6px;
+  text-align: center;
+  outline: none;
+  transition: all 0.15s;
+}
+
+.dim-field input:focus {
+  border-color: var(--accent-cyan);
+  background: #1c1936;
+}
+
+.dim-field input.editable {
+  border-color: #554a99;
+  background: #1e1b38;
+  color: #38bdf8;
+}

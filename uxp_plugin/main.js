@@ -33,32 +33,105 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 1. RESIZE Handlers
+  // 1. RESIZE Handlers (Marketplace, Custom & Edit Box)
   const marketplaceSelect = document.getElementById("selectMarketplaceResize");
-  // toggleResizeAll removed
+  const inputW = document.getElementById("inputResizeW");
+  const inputH = document.getElementById("inputResizeH");
+  const inputDpi = document.getElementById("inputResizeDpi");
+  const dimPresetTitle = document.getElementById("dimPresetTitle");
+  const btnToggleEdit = document.getElementById("btnToggleEdit");
+  const btnEditLabel = document.getElementById("btnEditLabel");
+  const btnApplyResize = document.getElementById("btnApplyResize");
+  const lblApplyResize = document.getElementById("lblApplyResize");
+
+  let isEditMode = false;
+
+  function setEditMode(editable) {
+    isEditMode = editable;
+    [inputW, inputH, inputDpi].forEach(input => {
+      if (input) {
+        input.readOnly = !editable;
+        if (editable) {
+          input.classList.add("editable");
+        } else {
+          input.classList.remove("editable");
+        }
+      }
+    });
+
+    if (btnToggleEdit) {
+      if (editable) {
+        btnToggleEdit.classList.add("active");
+        btnEditLabel.textContent = "Done";
+      } else {
+        btnToggleEdit.classList.remove("active");
+        btnEditLabel.textContent = "Edit";
+      }
+    }
+  }
+
+  function updateDimensionDisplay() {
+    if (!marketplaceSelect) return;
+    const selectedOption = marketplaceSelect.options[marketplaceSelect.selectedIndex];
+    if (!selectedOption) return;
+
+    const name = selectedOption.getAttribute("data-name") || "Custom";
+    const w = selectedOption.getAttribute("data-w") || "2000";
+    const h = selectedOption.getAttribute("data-h") || "2000";
+    const dpi = selectedOption.getAttribute("data-dpi") || "72";
+
+    if (dimPresetTitle) dimPresetTitle.textContent = `Preset: ${name}`;
+    if (inputW) inputW.value = w;
+    if (inputH) inputH.value = h;
+    if (inputDpi) inputDpi.value = dpi;
+    if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}×${h})`;
+
+    if (selectedOption.value === "custom") {
+      setEditMode(true);
+      if (inputW) inputW.focus();
+    } else {
+      setEditMode(false);
+    }
+  }
 
   if (marketplaceSelect) {
-    marketplaceSelect.addEventListener("change", async () => {
-      const selectedOption = marketplaceSelect.options[marketplaceSelect.selectedIndex];
-      if (!selectedOption || !selectedOption.value) return;
+    marketplaceSelect.addEventListener("change", updateDimensionDisplay);
+  }
 
-      const name = selectedOption.getAttribute("data-name");
-      const w = parseInt(selectedOption.getAttribute("data-w"), 10);
-      const h = parseInt(selectedOption.getAttribute("data-h"), 10);
-      const dpi = parseInt(selectedOption.getAttribute("data-dpi"), 10);
-      const applyAll = false;
+  if (btnToggleEdit) {
+    btnToggleEdit.addEventListener("click", () => {
+      setEditMode(!isEditMode);
+      if (isEditMode && inputW) inputW.focus();
+    });
+  }
+
+  [inputW, inputH].forEach(input => {
+    if (input) {
+      input.addEventListener("input", () => {
+        const w = (inputW && inputW.value) || 0;
+        const h = (inputH && inputH.value) || 0;
+        if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}×${h})`;
+      });
+    }
+  });
+
+  if (btnApplyResize) {
+    btnApplyResize.addEventListener("click", async () => {
+      const w = parseInt(inputW.value, 10);
+      const h = parseInt(inputH.value, 10);
+      const dpi = parseInt(inputDpi.value, 10) || 72;
+
+      if (!w || !h || w <= 0 || h <= 0) {
+        setStatus("Please enter valid width and height.", "error");
+        return;
+      }
 
       try {
-        setStatus(`Resizing for ${name} (${w}×${h} @ ${dpi}DPI)${applyAll ? " on ALL docs" : ""}...`, "working");
-        await window.PSAutomation.resizeForMarketplace(w, h, dpi, applyAll);
-        setStatus(`Resized for ${name} (${w}×${h} px, ${dpi} DPI)`, "online");
+        setStatus(`Resizing to ${w}×${h} px @ ${dpi} DPI...`, "working");
+        await window.PSAutomation.resizeForMarketplace(w, h, dpi, false);
+        setStatus(`Resized to ${w}×${h} px (${dpi} DPI)`, "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
-      } finally {
-        // Reset to placeholder so user can select the same marketplace again for next image
-        setTimeout(() => {
-          marketplaceSelect.selectedIndex = 0;
-        }, 1200);
       }
     });
   }
