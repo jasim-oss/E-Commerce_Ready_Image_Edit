@@ -144,6 +144,104 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // 2. BACKGROUNDS Handlers (White, Custom, Upload)
+  const tabBgWhite = document.getElementById("tabBgWhite");
+  const tabBgCustom = document.getElementById("tabBgCustom");
+  const tabBgUpload = document.getElementById("tabBgUpload");
+  const viewBgWhite = document.getElementById("viewBgWhite");
+  const viewBgCustom = document.getElementById("viewBgCustom");
+  const viewBgUpload = document.getElementById("viewBgUpload");
+  const pickerBgCustom = document.getElementById("pickerBgCustom");
+  const hexBgCustom = document.getElementById("hexBgCustom");
+  const btnApplyCustomColor = document.getElementById("btnApplyCustomColor");
+  const btnUploadBgImage = document.getElementById("btnUploadBgImage");
+
+  // Tab switching
+  function switchBgTab(selectedTab) {
+    [tabBgWhite, tabBgCustom, tabBgUpload].forEach(t => { if (t) t.classList.remove("active"); });
+    [viewBgWhite, viewBgCustom, viewBgUpload].forEach(v => { if (v) v.style.display = "none"; });
+
+    if (selectedTab === "white") {
+      if (tabBgWhite) tabBgWhite.classList.add("active");
+      if (viewBgWhite) viewBgWhite.style.display = "flex";
+    } else if (selectedTab === "custom") {
+      if (tabBgCustom) tabBgCustom.classList.add("active");
+      if (viewBgCustom) viewBgCustom.style.display = "flex";
+    } else if (selectedTab === "upload") {
+      if (tabBgUpload) tabBgUpload.classList.add("active");
+      if (viewBgUpload) viewBgUpload.style.display = "flex";
+    }
+  }
+
+  if (tabBgWhite) tabBgWhite.addEventListener("click", () => switchBgTab("white"));
+  if (tabBgCustom) tabBgCustom.addEventListener("click", () => switchBgTab("custom"));
+  if (tabBgUpload) tabBgUpload.addEventListener("click", () => switchBgTab("upload"));
+
+  // Sync color picker and hex text input
+  if (pickerBgCustom && hexBgCustom) {
+    pickerBgCustom.addEventListener("input", (e) => {
+      hexBgCustom.value = e.target.value.toUpperCase();
+    });
+    hexBgCustom.addEventListener("input", (e) => {
+      let val = e.target.value;
+      if (!val.startsWith("#")) val = "#" + val;
+      if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+        pickerBgCustom.value = val;
+      }
+    });
+  }
+
+  // Convert Hex to RGB helper
+  function hexToRgb(hex) {
+    hex = hex.replace(/^#/, "");
+    if (hex.length === 3) {
+      hex = hex.split("").map(c => c + c).join("");
+    }
+    const num = parseInt(hex, 16);
+    return {
+      r: (num >> 16) & 255,
+      g: (num >> 8) & 255,
+      b: num & 255
+    };
+  }
+
+  // Apply Custom Color BG
+  if (btnApplyCustomColor) {
+    btnApplyCustomColor.addEventListener("click", async () => {
+      let hex = hexBgCustom ? hexBgCustom.value : "#FFFFFF";
+      if (!hex.startsWith("#")) hex = "#" + hex;
+      if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        setStatus("Please enter a valid 6-char hex color (e.g. #F4F4F4)", "error");
+        return;
+      }
+      const { r, g, b } = hexToRgb(hex);
+      try {
+        setStatus(`Adding Custom BG (${hex})...`, "working");
+        await window.PSAutomation.addSolidColorBg(r, g, b);
+        setStatus(`Custom BG ${hex} added`, "online");
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
+  }
+
+  // Upload & Place Background Image
+  if (btnUploadBgImage) {
+    btnUploadBgImage.addEventListener("click", async () => {
+      try {
+        setStatus("Opening file browser for background image...", "working");
+        const res = await window.PSAutomation.placeBackgroundImage();
+        if (res !== false) {
+          setStatus("Background image placed successfully", "online");
+        } else {
+          setStatus("Background upload canceled", "online");
+        }
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
+  }
+
   // 2. BG REMOVE Handlers
   document.getElementById("btnBgRemove").addEventListener("click", async () => {
     const applyAll = document.getElementById("toggleBgRemoveAll").checked;

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Core Photoshop Automation Engine via UXP batchPlay & DOM
  */
 const { app, core, action } = require("photoshop");
@@ -133,6 +133,71 @@ const PSAutomation = {
     }, "Toggle Original BG");
   },
 
+  /**
+   * 2. BG: Add Solid Color Layer (Pure White or Custom HEX)
+   */
+  async addSolidColorBg(r = 255, g = 255, b = 255) {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document.");
+
+    return await core.executeAsModal(async () => {
+      await batchPlay([
+        {
+          _obj: "make",
+          _target: [{ _ref: "contentLayer" }],
+          using: {
+            _obj: "contentLayer",
+            type: {
+              _obj: "solidColorLayer",
+              color: { _obj: "RGBColor", red: r, grain: g, blue: b }
+            }
+          },
+          _options: { dialogOptions: "dontDisplay" }
+        },
+        {
+          _obj: "move",
+          _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+          to: { _ref: "layer", _enum: "ordinal", _value: "back" },
+          _options: { dialogOptions: "dontDisplay" }
+        }
+      ], { synchronousExecution: true });
+    }, { commandName: "Add Solid BG Color" });
+  },
+
+  /**
+   * 2. BG: Import/Place Background Image from Disk behind subject
+   */
+  async placeBackgroundImage() {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document.");
+
+    const uxp = require("uxp");
+    const fs = uxp.storage.localFileSystem;
+
+    const file = await fs.getFileForOpening({
+      types: ["jpg", "jpeg", "png", "tif", "tiff", "psd"],
+      allowMultiple: false
+    });
+
+    if (!file) return false;
+
+    return await core.executeAsModal(async () => {
+      const token = fs.createSessionToken(file);
+      await batchPlay([
+        {
+          _obj: "placeEvent",
+          target: { _path: token, _kind: "local" },
+          _options: { dialogOptions: "dontDisplay" }
+        },
+        {
+          _obj: "move",
+          _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+          to: { _ref: "layer", _enum: "ordinal", _value: "back" },
+          _options: { dialogOptions: "dontDisplay" }
+        }
+      ], { synchronousExecution: true });
+    }, { commandName: "Place Background Image" });
+  },
   /**
    * 2. BG REMOVE: Add Pure White (#FFFFFF) Layer
    */
