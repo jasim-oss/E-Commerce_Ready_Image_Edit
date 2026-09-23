@@ -35,26 +35,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 1. RESIZE Handlers
   const marketplaceSelect = document.getElementById("selectMarketplaceResize");
-  const btnApplyResize = document.getElementById("btnApplyMarketplaceResize");
-  const lblApplyResize = document.getElementById("lblApplyResize");
   const toggleResizeAll = document.getElementById("toggleResizeAll");
 
-  // Sync button label with selected preset
-  function updateResizeBtnLabel() {
-    const selectedOption = marketplaceSelect.options[marketplaceSelect.selectedIndex];
-    const name = selectedOption.getAttribute("data-name");
-    const w = selectedOption.getAttribute("data-w");
-    const h = selectedOption.getAttribute("data-h");
-    lblApplyResize.textContent = `Resize for ${name} (${w}×${h})`;
-  }
-
   if (marketplaceSelect) {
-    marketplaceSelect.addEventListener("change", updateResizeBtnLabel);
-  }
-
-  if (btnApplyResize) {
-    btnApplyResize.addEventListener("click", async () => {
+    marketplaceSelect.addEventListener("change", async () => {
       const selectedOption = marketplaceSelect.options[marketplaceSelect.selectedIndex];
+      if (!selectedOption || !selectedOption.value) return;
+
       const name = selectedOption.getAttribute("data-name");
       const w = parseInt(selectedOption.getAttribute("data-w"), 10);
       const h = parseInt(selectedOption.getAttribute("data-h"), 10);
@@ -67,19 +54,14 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus(`Resized for ${name} (${w}×${h} px, ${dpi} DPI)`, "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
+      } finally {
+        // Reset to placeholder so user can select the same marketplace again for next image
+        setTimeout(() => {
+          marketplaceSelect.selectedIndex = 0;
+        }, 1200);
       }
     });
   }
-
-  document.getElementById("btnAspectRatio").addEventListener("click", async () => {
-    try {
-      setStatus("Setting 1:1 square canvas...", "working");
-      await window.PSAutomation.setSquareAspectRatio();
-      setStatus("1:1 Aspect ratio set", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
 
   // 2. BG REMOVE Handlers
   document.getElementById("btnBgRemove").addEventListener("click", async () => {
