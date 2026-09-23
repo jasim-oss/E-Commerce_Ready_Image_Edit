@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Panel Controller: Accordion & Event Dispatcher
  */
 document.addEventListener("DOMContentLoaded", () => {
@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 1. RESIZE Handlers (Marketplace, Custom & Edit Box)
   const marketplaceSelect = document.getElementById("selectMarketplaceResize");
+  const resizeControlsGroup = document.getElementById("resizeControlsGroup");
   const inputW = document.getElementById("inputResizeW");
   const inputH = document.getElementById("inputResizeH");
   const inputDpi = document.getElementById("inputResizeDpi");
@@ -71,7 +72,17 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateDimensionDisplay() {
     if (!marketplaceSelect) return;
     const selectedOption = marketplaceSelect.options[marketplaceSelect.selectedIndex];
-    if (!selectedOption || !selectedOption.value) return;
+    
+    // Hide controls if on placeholder
+    if (!selectedOption || !selectedOption.value) {
+      if (resizeControlsGroup) resizeControlsGroup.style.display = "none";
+      return;
+    }
+
+    // Show controls when a valid marketplace or custom is selected
+    if (resizeControlsGroup) {
+      resizeControlsGroup.style.display = "flex";
+    }
 
     const name = selectedOption.getAttribute("data-name") || "Custom";
     const w = selectedOption.getAttribute("data-w") || "2000";

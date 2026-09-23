@@ -599,3 +599,17 @@ input:checked + .slider:before {
   background: #f87171;
   box-shadow: 0 0 6px #f87171;
 }
+
+
+/* Dynamic Resize Controls Group */
+.resize-controls-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

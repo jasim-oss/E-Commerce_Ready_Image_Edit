@@ -47,35 +47,38 @@
               </select>
             </div>
 
-            <!-- Single Row: Size | Dpi | Just Button -->
-            <div class="dimension-row" id="dimensionRow">
-              <div class="dim-col dim-col-size">
-                <label class="dim-label">Size</label>
-                <div class="size-inputs-group">
-                  <input type="number" id="inputResizeW" value="2000" readonly />
-                  <span class="dim-times">×</span>
-                  <input type="number" id="inputResizeH" value="2000" readonly />
+                        <!-- Dynamic Controls: Only visible after selecting a marketplace or custom -->
+            <div id="resizeControlsGroup" class="resize-controls-group" style="display: none;">
+              <!-- Single Row: Size | Dpi | Just Button -->
+              <div class="dimension-row" id="dimensionRow">
+                <div class="dim-col dim-col-size">
+                  <span class="dim-label">Size</span>
+                  <div class="size-inputs-group">
+                    <input type="number" id="inputResizeW" value="2000" readonly />
+                    <span class="dim-times">×</span>
+                    <input type="number" id="inputResizeH" value="2000" readonly />
+                  </div>
+                </div>
+
+                <div class="dim-col dim-col-dpi">
+                  <span class="dim-label">Dpi</span>
+                  <input type="number" id="inputResizeDpi" value="72" readonly />
+                </div>
+
+                <div class="dim-col dim-col-btn">
+                  <span class="dim-label-spacer">&nbsp;</span>
+                  <button type="button" class="btn-edit-just" id="btnToggleEdit">Edit</button>
                 </div>
               </div>
 
-              <div class="dim-col dim-col-dpi">
-                <label class="dim-label">Dpi</label>
-                <input type="number" id="inputResizeDpi" value="72" readonly />
-              </div>
-
-              <div class="dim-col dim-col-btn">
-                <label class="dim-label-spacer">&nbsp;</label>
-                <button type="button" class="btn-edit-just" id="btnToggleEdit">Edit</button>
-              </div>
+              <!-- Apply Resize Button -->
+              <button class="action-btn highlight-btn" id="btnApplyResize">
+                <span class="btn-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                </span>
+                <span class="btn-label" id="lblApplyResize">Apply Resize</span>
+              </button>
             </div>
-
-            <!-- Apply Resize Button -->
-            <button class="action-btn highlight-btn" id="btnApplyResize">
-              <span class="btn-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-              </span>
-              <span class="btn-label" id="lblApplyResize">Apply Resize</span>
-            </button>
           </div>
         </div>
       </section>
