@@ -32,13 +32,7 @@
           <div class="resize-selector-box">
             <div class="selector-header">
               <label for="selectMarketplaceResize" class="selector-label">Marketplace Preset:</label>
-              <div class="toggle-group" title="Apply resize to all open documents">
-                <span class="toggle-text">ALL</span>
-                <label class="switch">
-                  <input type="checkbox" id="toggleResizeAll" />
-                  <span class="slider"></span>
-                </label>
-              </div>
+              
             </div>
             <div class="select-wrapper">
               <select id="selectMarketplaceResize" class="marketplace-select">
@@ -80,22 +74,6 @@
             </div>
           </div>
 
-          <div class="action-row">
-            <button class="action-btn flex-1" id="btnOriginalBg">
-              <span class="btn-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-              </span>
-              <span class="btn-label">Original BG</span>
-            </button>
-            <div class="toggle-group" title="Apply to all open documents">
-              <span class="toggle-text">ALL</span>
-              <label class="switch">
-                <input type="checkbox" id="toggleOriginalBgAll" />
-                <span class="slider"></span>
-              </label>
-            </div>
-          </div>
-
           <button class="action-btn" id="btnWhiteBg">
             <span class="btn-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
@@ -127,13 +105,6 @@
             </div>
             <input type="range" id="scsmRatioSlider" min="70" max="95" value="85" step="1" />
           </div>
-
-          <button class="action-btn" id="btnAutoCenter">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
-            </span>
-            <span class="btn-label">Auto Center Subject</span>
-          </button>
         </div>
       </section>
 
@@ -179,12 +150,6 @@
           <span class="chevron down"></span>
         </div>
         <div class="accordion-body" id="body-export">
-          <button class="action-btn" id="btnReadyAmazon">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            </span>
-            <span class="btn-label">Ready For Amazon</span>
-          </button>
 
           <button class="action-btn" id="btnReadyDelivery">
             <span class="btn-icon">

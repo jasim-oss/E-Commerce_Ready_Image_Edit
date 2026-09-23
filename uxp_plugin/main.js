@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 1. RESIZE Handlers
   const marketplaceSelect = document.getElementById("selectMarketplaceResize");
-  const toggleResizeAll = document.getElementById("toggleResizeAll");
+  // toggleResizeAll removed
 
   if (marketplaceSelect) {
     marketplaceSelect.addEventListener("change", async () => {
@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const w = parseInt(selectedOption.getAttribute("data-w"), 10);
       const h = parseInt(selectedOption.getAttribute("data-h"), 10);
       const dpi = parseInt(selectedOption.getAttribute("data-dpi"), 10);
-      const applyAll = toggleResizeAll ? toggleResizeAll.checked : false;
+      const applyAll = false;
 
       try {
         setStatus(`Resizing for ${name} (${w}×${h} @ ${dpi}DPI)${applyAll ? " on ALL docs" : ""}...`, "working");
@@ -75,17 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.getElementById("btnOriginalBg").addEventListener("click", async () => {
-    const applyAll = document.getElementById("toggleOriginalBgAll").checked;
-    try {
-      setStatus("Toggling original BG...", "working");
-      await window.PSAutomation.toggleOriginalBg(applyAll);
-      setStatus("Original background toggled", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
-
+  
   document.getElementById("btnWhiteBg").addEventListener("click", async () => {
     try {
       setStatus("Adding pure white #FFF BG...", "working");
@@ -108,16 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.getElementById("btnAutoCenter").addEventListener("click", async () => {
-    try {
-      setStatus("Centering subject...", "working");
-      await window.PSAutomation.autoCenter();
-      setStatus("Subject centered", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
-
+  
   // 4. EDITING ADJUSTMENT Handlers
   document.getElementById("btnWrinkleClothing").addEventListener("click", async () => {
     try {
@@ -150,16 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 5. EXPORT Handlers
-  document.getElementById("btnReadyAmazon").addEventListener("click", async () => {
-    try {
-      setStatus("Preparing for Amazon...", "working");
-      await window.PSAutomation.exportPreset("Amazon");
-      setStatus("Document ready for Amazon export (sRGB)", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
-
+  
   document.getElementById("btnReadyDelivery").addEventListener("click", async () => {
     try {
       setStatus("Preparing for Delivery...", "working");
