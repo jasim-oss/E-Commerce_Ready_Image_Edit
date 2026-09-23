@@ -433,16 +433,115 @@ input:checked + .slider:before {
 }
 
 
-/* Dimension Card & Edit Styles */
-.dimension-card {
+/* Dimension Row (Size, Dpi, Just Button) */
+.dimension-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
   background: rgba(22, 19, 44, 0.7);
   border: 1px solid var(--border-btn);
   border-radius: 8px;
-  padding: 8px;
+  padding: 8px 10px;
+  margin-top: 6px;
+}
+
+.dim-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 4px;
+}
+
+.dim-col-size {
+  flex: 2.2;
+}
+
+.dim-col-dpi {
+  flex: 1.1;
+}
+
+.dim-col-btn {
+  flex: 1;
+}
+
+.dim-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffb703;
+  letter-spacing: 0.4px;
+}
+
+.dim-label-spacer {
+  font-size: 11px;
+  user-select: none;
+}
+
+.size-inputs-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.size-inputs-group input,
+.dim-col-dpi input {
+  width: 100%;
+  background: #151329;
+  border: 1px solid #2b264e;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 3px;
+  text-align: center;
+  outline: none;
+  transition: all 0.15s;
+}
+
+.size-inputs-group input:focus,
+.dim-col-dpi input:focus {
+  border-color: var(--accent-cyan);
+  background: #1c1936;
+}
+
+.size-inputs-group input.editable,
+.dim-col-dpi input.editable {
+  border-color: #5d53a8;
+  background: #1e1b38;
+  color: #38bdf8;
+}
+
+.dim-times {
+  color: #7b7899;
+  font-weight: bold;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.btn-edit-just {
+  width: 100%;
+  height: 29px;
+  background: #252147;
+  border: 1px solid #3c356e;
+  color: #d1cfee;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.btn-edit-just:hover {
+  background: #342e63;
+  border-color: var(--accent-purple);
+  color: #ffffff;
+}
+
+.btn-edit-just.active {
+  background: #1e3a5f;
+  border-color: #38bdf8;
+  color: #38bdf8;
 }
 
 .dimension-header {

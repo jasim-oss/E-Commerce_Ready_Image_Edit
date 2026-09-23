@@ -38,9 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const inputW = document.getElementById("inputResizeW");
   const inputH = document.getElementById("inputResizeH");
   const inputDpi = document.getElementById("inputResizeDpi");
-  const dimPresetTitle = document.getElementById("dimPresetTitle");
   const btnToggleEdit = document.getElementById("btnToggleEdit");
-  const btnEditLabel = document.getElementById("btnEditLabel");
   const btnApplyResize = document.getElementById("btnApplyResize");
   const lblApplyResize = document.getElementById("lblApplyResize");
 
@@ -62,10 +60,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnToggleEdit) {
       if (editable) {
         btnToggleEdit.classList.add("active");
-        btnEditLabel.textContent = "Done";
+        btnToggleEdit.textContent = "Done";
       } else {
         btnToggleEdit.classList.remove("active");
-        btnEditLabel.textContent = "Edit";
+        btnToggleEdit.textContent = "Edit";
       }
     }
   }
@@ -73,14 +71,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateDimensionDisplay() {
     if (!marketplaceSelect) return;
     const selectedOption = marketplaceSelect.options[marketplaceSelect.selectedIndex];
-    if (!selectedOption) return;
+    if (!selectedOption || !selectedOption.value) return;
 
     const name = selectedOption.getAttribute("data-name") || "Custom";
     const w = selectedOption.getAttribute("data-w") || "2000";
     const h = selectedOption.getAttribute("data-h") || "2000";
     const dpi = selectedOption.getAttribute("data-dpi") || "72";
 
-    if (dimPresetTitle) dimPresetTitle.textContent = `Preset: ${name}`;
     if (inputW) inputW.value = w;
     if (inputH) inputH.value = h;
     if (inputDpi) inputDpi.value = dpi;
