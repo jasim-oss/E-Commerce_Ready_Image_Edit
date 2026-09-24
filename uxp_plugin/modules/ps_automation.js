@@ -1,8 +1,10 @@
 ﻿/**
  * Core Photoshop Automation Engine via UXP batchPlay & DOM
  */
-const { app, core, action } = require("photoshop");
+const { app, core, action, constants } = require("photoshop");
 const batchPlay = action.batchPlay;
+const AnchorPosition = (constants && constants.AnchorPosition) || (app.Constants && app.Constants.AnchorPosition) || {};
+const InterpolationMethod = (constants && constants.InterpolationMethod) || (app.Constants && app.Constants.InterpolationMethod) || {};
 
 const PSAutomation = {
   /**
@@ -68,7 +70,7 @@ const PSAutomation = {
           } catch (e1) {}
         }
         if (doc.resizeCanvas) {
-          await doc.resizeCanvas(width, height, app.Constants.AnchorPosition.MIDDLECENTER);
+          await doc.resizeCanvas(width, height, AnchorPosition.MIDDLECENTER);
         }
       }
     }, `Resize to ${width}x${height} @ ${dpi}DPI`);
@@ -82,7 +84,7 @@ const PSAutomation = {
     if (!doc) throw new Error("No active document.");
 
     return await core.executeAsModal(async () => {
-      await doc.resizeCanvas(targetDim, targetDim, app.Constants.AnchorPosition.MIDDLECENTER);
+      await doc.resizeCanvas(targetDim, targetDim, AnchorPosition.MIDDLECENTER);
     }, { commandName: "Resize: Fixed Size 2000px" });
   },
 
@@ -96,7 +98,7 @@ const PSAutomation = {
     return await core.executeAsModal(async () => {
       const newW = Math.round(doc.width * scaleMultiplier);
       const newH = Math.round(doc.height * scaleMultiplier);
-      await doc.resizeImage(newW, newH, doc.resolution, app.Constants.InterpolationMethod.PRESERVEDETAILS);
+      await doc.resizeImage(newW, newH, doc.resolution, InterpolationMethod.PRESERVEDETAILS);
     }, { commandName: "Resize: Upscale Image" });
   },
 
@@ -109,7 +111,7 @@ const PSAutomation = {
 
     return await core.executeAsModal(async () => {
       const maxDim = Math.max(doc.width, doc.height);
-      await doc.resizeCanvas(maxDim, maxDim, app.Constants.AnchorPosition.MIDDLECENTER);
+      await doc.resizeCanvas(maxDim, maxDim, AnchorPosition.MIDDLECENTER);
     }, { commandName: "Resize: 1:1 Aspect Ratio" });
   },
 
@@ -349,7 +351,7 @@ const PSAutomation = {
             if (w > 0 && h > 0 && canvasW > 0 && canvasH > 0) {
               // Proportional Cover scale so the background covers the canvas from edge to edge
               const scalePct = Math.max(canvasW / w, canvasH / h) * 100;
-              const anchor = (app.Constants && app.Constants.AnchorPosition) ? app.Constants.AnchorPosition.MIDDLECENTER : undefined;
+              const anchor = (app.Constants && app.Constants.AnchorPosition) ? AnchorPosition.MIDDLECENTER : undefined;
               if (anchor) {
                 await activeL.scale(scalePct, scalePct, anchor);
               } else {
@@ -410,27 +412,83 @@ const PSAutomation = {
   /**
    * 3. SCSM: Smart Centering & Sizing by Margin %
    * @param {number} marginPercent - Margin from canvas edge (e.g. 10 for 10% edge margin, 5 for 5%)
+   * @param {boolean} applyToAll - Apply to all open documents
    */
-  async scsmByMargin(marginPercent = 10) {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document in Photoshop.");
-
-    return await core.executeAsModal(async () => {
-      let layer = doc.activeLayers[0];
-      if (!layer) {
-        const nonBg = doc.layers.filter(l => !l.isBackgroundLayer);
-        layer = nonBg.length > 0 ? nonBg[0] : doc.layers[0];
+  async scsmByMargin(marginPercent = 10, applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      // 1. Identify Subject Layer
+      let layer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+      if (!layer || layer.isBackgroundLayer || layer.name === "BG Color" || layer.name === "BG Image") {
+        const nonBg = (doc.layers || []).filter(l => !l.isBackgroundLayer && l.name !== "BG Color" && l.name !== "BG Image");
+        layer = nonBg.length > 0 ? nonBg[0] : (doc.layers ? doc.layers[0] : null);
       }
-      if (!layer) throw new Error("No subject layer found.");
+      if (!layer) throw new Error("No subject layer found to size.");
 
-      if (layer.isBackgroundLayer) {
-        layer.name = "Subject";
+      // Ensure layer is selected
+      doc.activeLayers = [layer];
+
+      // 2. Measure Exact Subject Bounds (via Layer Mask selection or Transparency)
+      let b = null;
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _ref: "channel", _enum: "channel", _value: "mask" },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+
+        if (doc.selection && doc.selection.bounds) {
+          const sb = doc.selection.bounds;
+          if (sb.right > sb.left && sb.bottom > sb.top) {
+            b = sb;
+          }
+        }
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _enum: "ordinal", _value: "none" },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      if (!b) {
+        try {
+          await batchPlay([
+            {
+              _obj: "set",
+              _target: [{ _ref: "channel", _property: "selection" }],
+              to: { _ref: "channel", _enum: "channel", _value: "transparencyEnum" },
+              _options: { dialogOptions: "dontDisplay" }
+            }
+          ], { synchronousExecution: true });
+
+          if (doc.selection && doc.selection.bounds) {
+            const sb = doc.selection.bounds;
+            if (sb.right > sb.left && sb.bottom > sb.top) {
+              b = sb;
+            }
+          }
+          await batchPlay([
+            {
+              _obj: "set",
+              _target: [{ _ref: "channel", _property: "selection" }],
+              to: { _enum: "ordinal", _value: "none" },
+              _options: { dialogOptions: "dontDisplay" }
+            }
+          ], { synchronousExecution: true });
+        } catch (e) {}
       }
 
-      const b = layer.bounds;
+      if (!b) {
+        b = layer.bounds;
+      }
+
       const w = b.right - b.left;
       const h = b.bottom - b.top;
-
       if (w <= 0 || h <= 0) throw new Error("Selected layer has no visible content.");
 
       const canvasW = doc.width;
@@ -441,17 +499,79 @@ const PSAutomation = {
       const targetH = canvasH * (1 - 2 * (m / 100));
 
       const scalePct = Math.min(targetW / w, targetH / h) * 100;
-      await layer.scale(scalePct, scalePct, app.Constants.AnchorPosition.MIDDLECENTER);
 
-      // Re-fetch bounds after scale and center precisely
-      const nb = layer.bounds;
-      const curCenterX = (nb.left + nb.right) / 2;
-      const curCenterY = (nb.top + nb.bottom) / 2;
-      const dx = (canvasW / 2) - curCenterX;
-      const dy = (canvasH / 2) - curCenterY;
+      // 3. Proportional Scale
+      try {
+        if (AnchorPosition && AnchorPosition.MIDDLECENTER) {
+          await layer.scale(scalePct, scalePct, AnchorPosition.MIDDLECENTER);
+        } else {
+          await layer.scale(scalePct, scalePct);
+        }
+      } catch (scaleErr) {
+        await batchPlay([
+          {
+            _obj: "transform",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            width: { _unit: "percentUnit", _value: scalePct },
+            height: { _unit: "percentUnit", _value: scalePct },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      }
 
-      await layer.translate(dx, dy);
-    }, { commandName: `SCSM: ${marginPercent}% Margin Fit` });
+      // 4. Center Subject in Canvas
+      let newCenter = null;
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _ref: "channel", _enum: "channel", _value: "mask" },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+
+        if (doc.selection && doc.selection.bounds) {
+          const sb = doc.selection.bounds;
+          if (sb.right > sb.left && sb.bottom > sb.top) {
+            newCenter = { x: (sb.left + sb.right) / 2, y: (sb.top + sb.bottom) / 2 };
+          }
+        }
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _enum: "ordinal", _value: "none" },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      if (!newCenter) {
+        const nb = layer.bounds;
+        newCenter = { x: (nb.left + nb.right) / 2, y: (nb.top + nb.bottom) / 2 };
+      }
+
+      const dx = (canvasW / 2) - newCenter.x;
+      const dy = (canvasH / 2) - newCenter.y;
+
+      try {
+        await layer.translate(dx, dy);
+      } catch (transErr) {
+        await batchPlay([
+          {
+            _obj: "move",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            to: {
+              _obj: "offset",
+              horizontal: { _unit: "pixelsUnit", _value: dx },
+              vertical: { _unit: "pixelsUnit", _value: dy }
+            },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      }
+    }, `SCSM: ${marginPercent}% Margin Fit`);
   },
 
   async scsmFitAndCenter(fillRatio = 0.85) {
