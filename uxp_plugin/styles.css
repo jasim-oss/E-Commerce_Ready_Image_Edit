@@ -49,54 +49,73 @@ body {
 
 /* Header */
 .panel-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line-color);
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid var(--line-color) !important;
+  width: 100% !important;
 }
 
 .brand-badge {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle, rgba(155, 147, 238, 0.28) 0%, rgba(33, 25, 84, 0.6) 100%);
-  border: 1.5px solid var(--brand-accent);
-  box-shadow: 0 2px 12px rgba(155, 147, 238, 0.35);
-  padding: 4px;
-  overflow: hidden;
-  flex-shrink: 0;
+  width: 36px !important;
+  height: 36px !important;
+  flex-shrink: 0 !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: radial-gradient(circle, rgba(155, 147, 238, 0.28) 0%, rgba(33, 25, 84, 0.6) 100%) !important;
+  border: 1.5px solid var(--brand-accent) !important;
+  box-shadow: 0 2px 12px rgba(155, 147, 238, 0.35) !important;
+  padding: 4px !important;
+  overflow: hidden !important;
 }
 
 .brand-logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
 }
 
 .brand-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  gap: 2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
 }
 
 .brand-title {
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.8px;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.6px !important;
   color: #ffffff !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  text-align: left !important;
 }
 
-/* Only marked subtitle retains brand accent */
 .brand-subtitle {
-  font-size: 9.5px;
-  font-weight: 600;
+  font-size: 9.5px !important;
+  font-weight: 600 !important;
   color: var(--text-subtitle) !important;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  text-align: left !important;
 }
 
 /* Scroll Area */
