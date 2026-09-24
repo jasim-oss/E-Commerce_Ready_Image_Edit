@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (inputW) inputW.value = w;
     if (inputH) inputH.value = h;
     if (inputDpi) inputDpi.value = dpi;
-    if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}×${h})`;
+    if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}x${h})`;
 
     if (selectedOption.value === "custom") {
       setEditMode(true);
@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
       input.addEventListener("input", () => {
         const w = (inputW && inputW.value) || 0;
         const h = (inputH && inputH.value) || 0;
-        if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}×${h})`;
+        if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}x${h})`;
       });
     }
   });
@@ -125,47 +125,89 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        setStatus(`Resizing to ${w}×${h} px @ ${dpi} DPI...`, "working");
+        setStatus(`Resizing to ${w}x${h} px @ ${dpi} DPI...`, "working");
         await window.PSAutomation.resizeForMarketplace(w, h, dpi, false);
-        setStatus(`Resized to ${w}×${h} px (${dpi} DPI)`, "online");
+        setStatus(`Resized to ${w}x${h} px (${dpi} DPI)`, "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
       }
     });
   }
 
-  // 2. BACKGROUNDS Handlers (White, Custom, Upload)
-  const tabBgWhite = document.getElementById("tabBgWhite");
-  const tabBgCustom = document.getElementById("tabBgCustom");
-  const tabBgUpload = document.getElementById("tabBgUpload");
-  const viewBgWhite = document.getElementById("viewBgWhite");
-  const viewBgCustom = document.getElementById("viewBgCustom");
-  const viewBgUpload = document.getElementById("viewBgUpload");
+  // 2. BACKGROUNDS Handlers (BG Remove, White, Custom, Upload)
+  const btnBgRemove = document.getElementById("btnBgRemove");
+  const toggleBgRemoveAll = document.getElementById("toggleBgRemoveAll");
+  const btnBgWhite = document.getElementById("btnBgWhite");
+  const btnBgCustom = document.getElementById("btnBgCustom");
+  const btnBgUpload = document.getElementById("btnBgUpload");
+  const customColorBox = document.getElementById("customColorBox");
   const pickerBgCustom = document.getElementById("pickerBgCustom");
   const hexBgCustom = document.getElementById("hexBgCustom");
   const btnApplyCustomColor = document.getElementById("btnApplyCustomColor");
-  const btnUploadBgImage = document.getElementById("btnUploadBgImage");
 
-  // Tab switching
-  function switchBgTab(selectedTab) {
-    [tabBgWhite, tabBgCustom, tabBgUpload].forEach(t => { if (t) t.classList.remove("active"); });
-    [viewBgWhite, viewBgCustom, viewBgUpload].forEach(v => { if (v) v.style.display = "none"; });
-
-    if (selectedTab === "white") {
-      if (tabBgWhite) tabBgWhite.classList.add("active");
-      if (viewBgWhite) viewBgWhite.style.display = "flex";
-    } else if (selectedTab === "custom") {
-      if (tabBgCustom) tabBgCustom.classList.add("active");
-      if (viewBgCustom) viewBgCustom.style.display = "flex";
-    } else if (selectedTab === "upload") {
-      if (tabBgUpload) tabBgUpload.classList.add("active");
-      if (viewBgUpload) viewBgUpload.style.display = "flex";
-    }
+  // BG Remove
+  if (btnBgRemove) {
+    btnBgRemove.addEventListener("click", async () => {
+      const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
+      try {
+        setStatus(`Removing background ${applyAll ? "(ALL docs)" : ""}...`, "working");
+        await window.PSAutomation.bgRemove(applyAll);
+        setStatus("Background removed cleanly", "online");
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
   }
 
-  if (tabBgWhite) tabBgWhite.addEventListener("click", () => switchBgTab("white"));
-  if (tabBgCustom) tabBgCustom.addEventListener("click", () => switchBgTab("custom"));
-  if (tabBgUpload) tabBgUpload.addEventListener("click", () => switchBgTab("upload"));
+  // 1) White BG
+  if (btnBgWhite) {
+    btnBgWhite.addEventListener("click", async () => {
+      if (customColorBox) customColorBox.style.display = "none";
+      if (btnBgCustom) btnBgCustom.classList.remove("active");
+      try {
+        setStatus("Adding pure white #FFF BG...", "working");
+        await window.PSAutomation.addSolidColorBg(255, 255, 255);
+        setStatus("Pure white BG added", "online");
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
+  }
+
+  // 2) Custom Color Toggle Drawer
+  if (btnBgCustom) {
+    btnBgCustom.addEventListener("click", () => {
+      if (!customColorBox) return;
+      const isOpen = customColorBox.style.display !== "none";
+      if (isOpen) {
+        customColorBox.style.display = "none";
+        btnBgCustom.classList.remove("active");
+      } else {
+        customColorBox.style.display = "block";
+        btnBgCustom.classList.add("active");
+        if (hexBgCustom) hexBgCustom.focus();
+      }
+    });
+  }
+
+  // 3) Upload Background Image
+  if (btnBgUpload) {
+    btnBgUpload.addEventListener("click", async () => {
+      if (customColorBox) customColorBox.style.display = "none";
+      if (btnBgCustom) btnBgCustom.classList.remove("active");
+      try {
+        setStatus("Opening file browser for background image...", "working");
+        const res = await window.PSAutomation.placeBackgroundImage();
+        if (res !== false) {
+          setStatus("Background image placed successfully", "online");
+        } else {
+          setStatus("Background upload canceled", "online");
+        }
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
+  }
 
   // Sync color picker and hex text input
   if (pickerBgCustom && hexBgCustom) {
@@ -215,47 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Upload & Place Background Image
-  if (btnUploadBgImage) {
-    btnUploadBgImage.addEventListener("click", async () => {
-      try {
-        setStatus("Opening file browser for background image...", "working");
-        const res = await window.PSAutomation.placeBackgroundImage();
-        if (res !== false) {
-          setStatus("Background image placed successfully", "online");
-        } else {
-          setStatus("Background upload canceled", "online");
-        }
-      } catch (err) {
-        setStatus(`Error: ${err.message}`, "error");
-      }
-    });
-  }
-
-  // 2. BG REMOVE Handlers
-  document.getElementById("btnBgRemove").addEventListener("click", async () => {
-    const applyAll = document.getElementById("toggleBgRemoveAll").checked;
-    try {
-      setStatus(`Removing background ${applyAll ? "(ALL docs)" : ""}...`, "working");
-      await window.PSAutomation.bgRemove(applyAll);
-      setStatus("Background removed cleanly", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
-
-  
-  document.getElementById("btnWhiteBg").addEventListener("click", async () => {
-    try {
-      setStatus("Adding pure white #FFF BG...", "working");
-      await window.PSAutomation.addPureWhiteBg();
-      setStatus("Pure white BG added", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
-
-  // 3. SCSM Handlers
+    // 3. SCSM Handlers
   document.getElementById("btnScsmAmazon").addEventListener("click", async () => {
     try {
       setStatus("Applying SCSM (Amazon 85% fit)...", "working");
