@@ -264,30 +264,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputScsmCustomPercent = document.getElementById('inputScsmCustomPercent');
     const btnApplyCustomScsm = document.getElementById('btnApplyCustomScsm');
 
-    // 1) Product
+    // 1) Product (10% Margin)
     if (btnScsmProduct) {
       btnScsmProduct.addEventListener('click', async () => {
         if (customScsmBox) customScsmBox.style.display = 'none';
         if (btnScsmCustom) btnScsmCustom.classList.remove('active');
         try {
-          setStatus('Applying SCSM for Product (85% Fit)...', 'working');
-          await window.PSAutomation.scsmFitAndCenter(0.85);
-          setStatus('SCSM Product fit (85%) applied', 'online');
+          setStatus('Applying Product SCSM (10% Margin)...', 'working');
+          await window.PSAutomation.scsmByMargin(10);
+          setStatus('Product SCSM (10% Margin) applied', 'online');
         } catch (err) {
           setStatus(`Error: ${err.message}`, 'error');
         }
       });
     }
 
-    // 2) Model
+    // 2) Model (5% Margin)
     if (btnScsmModel) {
       btnScsmModel.addEventListener('click', async () => {
         if (customScsmBox) customScsmBox.style.display = 'none';
         if (btnScsmCustom) btnScsmCustom.classList.remove('active');
         try {
-          setStatus('Applying SCSM for Model (80% Fit)...', 'working');
-          await window.PSAutomation.scsmFitAndCenter(0.80);
-          setStatus('SCSM Model fit applied', 'online');
+          setStatus('Applying Model SCSM (5% Margin)...', 'working');
+          await window.PSAutomation.scsmByMargin(5);
+          setStatus('Model SCSM (5% Margin) applied', 'online');
         } catch (err) {
           setStatus(`Error: ${err.message}`, 'error');
         }
@@ -310,18 +310,18 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Apply Custom SCSM
+    // Apply Custom SCSM Margin
     if (btnApplyCustomScsm) {
       btnApplyCustomScsm.addEventListener('click', async () => {
-        const val = parseInt((inputScsmCustomPercent && inputScsmCustomPercent.value) || '85', 10);
-        if (isNaN(val) || val < 10 || val > 100) {
-          setStatus('Please enter a valid percentage (10-100%)', 'error');
+        const val = parseInt((inputScsmCustomPercent && inputScsmCustomPercent.value) || '10', 10);
+        if (isNaN(val) || val < 1 || val > 45) {
+          setStatus('Please enter a margin between 1% and 45%', 'error');
           return;
         }
         try {
-          setStatus(`Applying SCSM (${val}% Fit)...`, 'working');
-          await window.PSAutomation.scsmFitAndCenter(val / 100);
-          setStatus(`SCSM ${val}% fit applied`, 'online');
+          setStatus(`Applying Custom SCSM (${val}% Margin)...`, 'working');
+          await window.PSAutomation.scsmByMargin(val);
+          setStatus(`Custom SCSM (${val}% Margin) applied`, 'online');
         } catch (err) {
           setStatus(`Error: ${err.message}`, 'error');
         }

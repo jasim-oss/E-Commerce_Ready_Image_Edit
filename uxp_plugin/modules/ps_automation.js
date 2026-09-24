@@ -230,35 +230,55 @@ const PSAutomation = {
   },
 
   /**
-   * 3. SCSM: Smart Centering & Sizing Mode (e.g. 85% Amazon rule)
+   * 3. SCSM: Smart Centering & Sizing by Margin %
+   * @param {number} marginPercent - Margin from canvas edge (e.g. 10 for 10% edge margin, 5 for 5%)
    */
-  async scsmFitAndCenter(fillRatio = 0.85, canvasSize = 2000) {
+  async scsmByMargin(marginPercent = 10) {
     const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document.");
+    if (!doc) throw new Error("No active document in Photoshop.");
 
     return await core.executeAsModal(async () => {
-      // Ensure canvas is square 2000px
-      await doc.resizeCanvas(canvasSize, canvasSize, app.Constants.AnchorPosition.MIDDLECENTER);
+      let layer = doc.activeLayers[0];
+      if (!layer) {
+        const nonBg = doc.layers.filter(l => !l.isBackgroundLayer);
+        layer = nonBg.length > 0 ? nonBg[0] : doc.layers[0];
+      }
+      if (!layer) throw new Error("No subject layer found.");
 
-      const layer = doc.activeLayers[0];
-      if (!layer) throw new Error("No subject layer selected.");
+      if (layer.isBackgroundLayer) {
+        layer.name = "Subject";
+      }
 
       const b = layer.bounds;
       const w = b.right - b.left;
       const h = b.bottom - b.top;
 
-      if (w > 0 && h > 0) {
-        const targetDim = canvasSize * fillRatio;
-        const scalePct = Math.min(targetDim / w, targetDim / h) * 100;
-        await layer.scale(scalePct, scalePct, app.Constants.AnchorPosition.MIDDLECENTER);
+      if (w <= 0 || h <= 0) throw new Error("Selected layer has no visible content.");
 
-        // Center precisely
-        const nb = layer.bounds;
-        const curCenterX = (nb.left + nb.right) / 2;
-        const curCenterY = (nb.top + nb.bottom) / 2;
-        await layer.translate((canvasSize / 2) - curCenterX, (canvasSize / 2) - curCenterY);
-      }
-    }, { commandName: "SCSM: 85% Auto Fit" });
+      const canvasW = doc.width;
+      const canvasH = doc.height;
+
+      const m = Math.max(1, Math.min(marginPercent, 45));
+      const targetW = canvasW * (1 - 2 * (m / 100));
+      const targetH = canvasH * (1 - 2 * (m / 100));
+
+      const scalePct = Math.min(targetW / w, targetH / h) * 100;
+      await layer.scale(scalePct, scalePct, app.Constants.AnchorPosition.MIDDLECENTER);
+
+      // Re-fetch bounds after scale and center precisely
+      const nb = layer.bounds;
+      const curCenterX = (nb.left + nb.right) / 2;
+      const curCenterY = (nb.top + nb.bottom) / 2;
+      const dx = (canvasW / 2) - curCenterX;
+      const dy = (canvasH / 2) - curCenterY;
+
+      await layer.translate(dx, dy);
+    }, { commandName: `SCSM: ${marginPercent}% Margin Fit` });
+  },
+
+  async scsmFitAndCenter(fillRatio = 0.85) {
+    const margin = Math.round(((1 - fillRatio) / 2) * 100);
+    return await this.scsmByMargin(margin > 0 ? margin : 10);
   },
 
   /**

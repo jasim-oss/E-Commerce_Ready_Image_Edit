@@ -1,4 +1,4 @@
-* {
+﻿* {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -821,7 +821,7 @@ input:checked + .slider:before {
   background: #100b2b !important;
   border: 1px solid #362970 !important;
   border-radius: 6px !important;
-  width: 90px !important;
+  width: 106px !important;
   height: 30px !important;
   margin-right: 10px !important;
   padding: 0 6px !important;
