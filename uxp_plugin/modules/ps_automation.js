@@ -410,7 +410,7 @@ const PSAutomation = {
   },
 
   /**
-   * 3. SCSM: Smart Centering & Sizing by Margin %
+   * 3. SCSM: Smart Centering & Sizing by Margin % + Display 4 Margin Guides
    * @param {number} marginPercent - Margin from canvas edge (e.g. 10 for 10% edge margin, 5 for 5%)
    * @param {boolean} applyToAll - Apply to all open documents
    */
@@ -571,6 +571,88 @@ const PSAutomation = {
           }
         ], { synchronousExecution: true });
       }
+
+      // 5. Draw 4 Margin Guides (Top, Bottom, Left, Right)
+      const leftGuide = Math.round(canvasW * (m / 100));
+      const rightGuide = Math.round(canvasW * (1 - m / 100));
+      const topGuide = Math.round(canvasH * (m / 100));
+      const bottomGuide = Math.round(canvasH * (1 - m / 100));
+
+      // Clear previous guides so we don't accumulate multiple guide lines
+      try {
+        await batchPlay([
+          {
+            _obj: "clearGuides",
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      } catch (cgErr) {}
+
+      // Add the 4 framing guides
+      try {
+        await batchPlay([
+          // Top Horizontal Guide
+          {
+            _obj: "make",
+            new: {
+              _class: "guide",
+              position: { _unit: "pixelsUnit", _value: topGuide },
+              orientation: { _enum: "orientation", _value: "horizontal" }
+            },
+            _options: { dialogOptions: "dontDisplay" }
+          },
+          // Bottom Horizontal Guide
+          {
+            _obj: "make",
+            new: {
+              _class: "guide",
+              position: { _unit: "pixelsUnit", _value: bottomGuide },
+              orientation: { _enum: "orientation", _value: "horizontal" }
+            },
+            _options: { dialogOptions: "dontDisplay" }
+          },
+          // Left Vertical Guide
+          {
+            _obj: "make",
+            new: {
+              _class: "guide",
+              position: { _unit: "pixelsUnit", _value: leftGuide },
+              orientation: { _enum: "orientation", _value: "vertical" }
+            },
+            _options: { dialogOptions: "dontDisplay" }
+          },
+          // Right Vertical Guide
+          {
+            _obj: "make",
+            new: {
+              _class: "guide",
+              position: { _unit: "pixelsUnit", _value: rightGuide },
+              orientation: { _enum: "orientation", _value: "vertical" }
+            },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      } catch (gErr) {
+        try {
+          if (doc.guides && doc.guides.add) {
+            doc.guides.add("horizontal", topGuide);
+            doc.guides.add("horizontal", bottomGuide);
+            doc.guides.add("vertical", leftGuide);
+            doc.guides.add("vertical", rightGuide);
+          }
+        } catch (domErr) {}
+      }
+
+      // Ensure guides visibility is active
+      try {
+        await batchPlay([
+          {
+            _obj: "show",
+            null: [{ _ref: "guide" }],
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      } catch (shErr) {}
     }, `SCSM: ${marginPercent}% Margin Fit`);
   },
 
