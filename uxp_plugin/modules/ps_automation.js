@@ -116,7 +116,7 @@ const PSAutomation = {
   /**
      * 2. BG REMOVE: AI Select Subject + Mask on Layer 1 from main layer
      * If document has a single layer (e.g. Background), duplicate to Layer 1,
-     * preserve main layer below, and mask Layer 1.
+     * lock and hide original main layer below, and mask Layer 1.
      */
     async bgRemove(applyToAll = false) {
       return await this.executeOnTargetDocs(applyToAll, async (doc) => {
@@ -153,52 +153,69 @@ const PSAutomation = {
             }
           ], { synchronousExecution: true });
 
-          // 3. Hide and re-lock the original main layer so it remains locked with [🔒]
+          // 3. Explicitly select bottom layer, hide it, and LOCK it
           try {
-            if (doc.layers && doc.layers.length > 1) {
-              for (const l of doc.layers) {
-                if (l.name !== "Layer 1") {
-                  l.visible = false;
-                  try { l.allLocked = true; } catch (err) {}
-                  try {
-                    await batchPlay([
-                      {
-                        _obj: "applyLocking",
-                        _target: [{ _ref: "layer", _id: l.id }],
-                        allLocked: true,
-                        _options: { dialogOptions: "dontDisplay" }
-                      }
-                    ], { synchronousExecution: true });
-                  } catch (err) {}
-                }
+            await batchPlay([
+              // Select the bottom layer
+              {
+                _obj: "select",
+                _target: [{ _ref: "layer", _enum: "ordinal", _value: "back" }],
+                makeVisible: false,
+                _options: { dialogOptions: "dontDisplay" }
+              },
+              // Hide bottom layer
+              {
+                _obj: "hide",
+                null: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                _options: { dialogOptions: "dontDisplay" }
+              },
+              // Apply Lock to bottom layer so it shows the padlock [🔒]
+              {
+                _obj: "applyLocking",
+                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                allLocked: true,
+                _options: { dialogOptions: "dontDisplay" }
               }
-            } else {
-              await batchPlay([
-                {
-                  _obj: "hide",
-                  null: [{ _ref: "layer", _name: "Background" }],
-                  _options: { dialogOptions: "dontDisplay" }
-                },
-                {
-                  _obj: "applyLocking",
-                  _target: [{ _ref: "layer", _name: "Background" }],
-                  allLocked: true,
-                  _options: { dialogOptions: "dontDisplay" }
-                }
-              ], { synchronousExecution: true });
-            }
-          } catch (e) {}
+            ], { synchronousExecution: true });
+          } catch (e) {
+            // Fallback via DOM if available
+            try {
+              if (doc.layers && doc.layers.length > 1) {
+                const bLayer = doc.layers[doc.layers.length - 1];
+                bLayer.visible = false;
+                bLayer.allLocked = true;
+              }
+            } catch (err) {}
+          }
 
-          // 4. Ensure "Layer 1" is the active layer
+          // 4. Explicitly select "Layer 1" and ensure it is UNLOCKED
           try {
-            const l1 = doc.layers ? doc.layers.find(l => l.name === "Layer 1") : null;
-            if (l1) {
-              doc.activeLayers = [l1];
-            }
-          } catch (e) {}
+            await batchPlay([
+              {
+                _obj: "select",
+                _target: [{ _ref: "layer", _name: "Layer 1" }],
+                makeVisible: true,
+                _options: { dialogOptions: "dontDisplay" }
+              },
+              {
+                _obj: "applyLocking",
+                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                allLocked: false,
+                _options: { dialogOptions: "dontDisplay" }
+              }
+            ], { synchronousExecution: true });
+          } catch (e) {
+            try {
+              const l1 = doc.layers ? doc.layers.find(l => l.name === "Layer 1") : null;
+              if (l1) {
+                doc.activeLayers = [l1];
+                l1.allLocked = false;
+              }
+            } catch (err) {}
+          }
         }
 
-        // Run autoCutout (Photoshop AI Select Subject)
+        // 5. Run autoCutout (Photoshop AI Select Subject) on Layer 1
         await batchPlay([
           {
             _obj: "autoCutout",
@@ -207,7 +224,7 @@ const PSAutomation = {
           }
         ], { synchronousExecution: true });
 
-        // Create Layer Mask from current selection onto Layer 1
+        // 6. Create Layer Mask from current selection onto Layer 1
         try {
           await batchPlay([
             {
