@@ -153,12 +153,23 @@ const PSAutomation = {
             }
           ], { synchronousExecution: true });
 
-          // 3. Hide the original main layer so the cutout transparency on Layer 1 is immediately visible
+          // 3. Hide and re-lock the original main layer so it remains locked with [🔒]
           try {
             if (doc.layers && doc.layers.length > 1) {
               for (const l of doc.layers) {
                 if (l.name !== "Layer 1") {
                   l.visible = false;
+                  try { l.allLocked = true; } catch (err) {}
+                  try {
+                    await batchPlay([
+                      {
+                        _obj: "applyLocking",
+                        _target: [{ _ref: "layer", _id: l.id }],
+                        allLocked: true,
+                        _options: { dialogOptions: "dontDisplay" }
+                      }
+                    ], { synchronousExecution: true });
+                  } catch (err) {}
                 }
               }
             } else {
@@ -166,6 +177,12 @@ const PSAutomation = {
                 {
                   _obj: "hide",
                   null: [{ _ref: "layer", _name: "Background" }],
+                  _options: { dialogOptions: "dontDisplay" }
+                },
+                {
+                  _obj: "applyLocking",
+                  _target: [{ _ref: "layer", _name: "Background" }],
+                  allLocked: true,
                   _options: { dialogOptions: "dontDisplay" }
                 }
               ], { synchronousExecution: true });
