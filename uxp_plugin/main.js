@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Panel Controller: Accordion & Event Dispatcher
  */
 document.addEventListener("DOMContentLoaded", () => {
@@ -141,7 +141,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnBgCustom = document.getElementById("btnBgCustom");
   const btnBgUpload = document.getElementById("btnBgUpload");
   const customColorBox = document.getElementById("customColorBox");
-  const pickerBgCustom = document.getElementById("pickerBgCustom");
   const hexBgCustom = document.getElementById("hexBgCustom");
   const btnApplyCustomColor = document.getElementById("btnApplyCustomColor");
 
@@ -209,16 +208,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Sync color picker and hex text input
-  if (pickerBgCustom && hexBgCustom) {
-    pickerBgCustom.addEventListener("input", (e) => {
-      hexBgCustom.value = e.target.value.toUpperCase();
-    });
-    hexBgCustom.addEventListener("input", (e) => {
+  // Auto uppercase hex input & enter key support
+  if (hexBgCustom) {
+    hexBgCustom.addEventListener('input', (e) => {
       let val = e.target.value;
-      if (!val.startsWith("#")) val = "#" + val;
-      if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-        pickerBgCustom.value = val;
+      if (val && !val.startsWith('#')) val = '#' + val;
+      hexBgCustom.value = val.toUpperCase();
+    });
+    hexBgCustom.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && btnApplyCustomColor) {
+        btnApplyCustomColor.click();
       }
     });
   }

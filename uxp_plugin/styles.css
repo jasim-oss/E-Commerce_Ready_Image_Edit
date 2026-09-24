@@ -699,73 +699,57 @@ input:checked + .slider:before {
 }
 
 .custom-color-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-
-.color-picker-swatch {
-  width: 34px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid #3c3088;
-  border-radius: 6px;
-  background: #17113d;
-  cursor: pointer;
-  outline: none;
-  -webkit-appearance: none !important;
-}
-
-.color-picker-swatch::-webkit-color-swatch-wrapper {
-  padding: 2px;
-}
-
-.color-picker-swatch::-webkit-color-swatch {
-  border-radius: 4px;
-  border: none;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
 }
 
 .hex-color-input {
-  flex: 1;
-  height: 30px;
-  background: #100b2b;
-  border: 1px solid #362970;
-  border-radius: 6px;
+  width: 90px !important;
+  min-width: 82px !important;
+  max-width: 100px !important;
+  height: 30px !important;
+  background: #100b2b !important;
+  border: 1px solid #362970 !important;
+  border-radius: 6px !important;
   color: #ffffff !important;
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 0 8px;
-  text-align: center;
-  outline: none;
-  font-family: inherit;
-  transition: all 0.2s;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 0 8px !important;
+  text-align: center !important;
+  outline: none !important;
+  font-family: inherit !important;
+  margin-right: 10px !important;
+  transition: all 0.2s !important;
 }
 
 .hex-color-input:focus {
-  border-color: #9b93ee;
-  box-shadow: 0 0 6px rgba(155, 147, 238, 0.35);
+  border-color: #9b93ee !important;
+  box-shadow: 0 0 6px rgba(155, 147, 238, 0.35) !important;
 }
 
 .btn-apply-color {
-  height: 30px;
-  padding: 0 12px;
+  height: 30px !important;
+  padding: 0 16px !important;
+  min-width: 72px !important;
   background: #251d5c !important;
   border: 1px solid #9b93ee !important;
   color: #ffffff !important;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-  transition: all 0.18s;
+  border-radius: 6px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  transition: all 0.18s !important;
   -webkit-appearance: none !important;
 }
 
 .btn-apply-color:hover {
   background: #37288a !important;
-  box-shadow: 0 0 8px rgba(155, 147, 238, 0.4);
+  box-shadow: 0 0 8px rgba(155, 147, 238, 0.4) !important;
 }
