@@ -114,31 +114,107 @@ const PSAutomation = {
   },
 
   /**
-   * 2. BG REMOVE: AI Select Subject + Mask
-   */
-  async bgRemove(applyToAll = false) {
-    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
-      // Run autoCutout (Photoshop Select Subject AI)
-      await batchPlay([
-        {
-          _obj: "autoCutout",
-          sampleAllLayers: false,
-          _options: { dialogOptions: "dontDisplay" }
-        }
-      ], { synchronousExecution: true });
+     * 2. BG REMOVE: AI Select Subject + Mask on Layer 1 from main layer
+     * If document has a single layer (e.g. Background), duplicate to Layer 1,
+     * preserve main layer below, and mask Layer 1.
+     */
+    async bgRemove(applyToAll = false) {
+      return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+        const layers = doc.layers || [];
+        const layerCount = layers.length;
+        const activeLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : (layers[0] || null);
 
-      // Create Layer Mask from current selection
-      await batchPlay([
-        {
-          _obj: "make",
-          new: { _class: "channel" },
-          at: { _ref: "channel", _enum: "channel", _value: "mask" },
-          using: { _enum: "userMaskOptions", _value: "revealSelection" },
-          _options: { dialogOptions: "dontDisplay" }
+        // When document has only 1 layer (like default Background), or active layer is Background
+        if (layerCount === 1 || (activeLayer && activeLayer.isBackgroundLayer)) {
+          // 1. If single layer is locked Background, convert to normal layer so it can be unhidden/hidden cleanly
+          try {
+            await batchPlay([
+              {
+                _obj: "set",
+                _target: [{ _ref: "layer", _property: "background" }],
+                to: {
+                  _obj: "layer",
+                  name: "Background"
+                },
+                _options: { dialogOptions: "dontDisplay" }
+              }
+            ], { synchronousExecution: true });
+          } catch (e) {
+            // Already unlocked or regular layer, continue
+          }
+
+          // 2. Duplicate main layer to create "Layer 1"
+          await batchPlay([
+            {
+              _obj: "duplicate",
+              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+              name: "Layer 1",
+              _options: { dialogOptions: "dontDisplay" }
+            }
+          ], { synchronousExecution: true });
+
+          // 3. Hide the original main layer so the cutout transparency on Layer 1 is immediately visible
+          try {
+            if (doc.layers && doc.layers.length > 1) {
+              for (const l of doc.layers) {
+                if (l.name !== "Layer 1") {
+                  l.visible = false;
+                }
+              }
+            } else {
+              await batchPlay([
+                {
+                  _obj: "hide",
+                  null: [{ _ref: "layer", _name: "Background" }],
+                  _options: { dialogOptions: "dontDisplay" }
+                }
+              ], { synchronousExecution: true });
+            }
+          } catch (e) {}
+
+          // 4. Ensure "Layer 1" is the active layer
+          try {
+            const l1 = doc.layers ? doc.layers.find(l => l.name === "Layer 1") : null;
+            if (l1) {
+              doc.activeLayers = [l1];
+            }
+          } catch (e) {}
         }
-      ], { synchronousExecution: true });
-    }, "BG Remove: AI Cutout");
-  },
+
+        // Run autoCutout (Photoshop AI Select Subject)
+        await batchPlay([
+          {
+            _obj: "autoCutout",
+            sampleAllLayers: false,
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+
+        // Create Layer Mask from current selection onto Layer 1
+        try {
+          await batchPlay([
+            {
+              _obj: "make",
+              new: { _class: "channel" },
+              at: { _ref: "channel", _enum: "channel", _value: "mask" },
+              using: { _enum: "userMaskOptions", _value: "revealSelection" },
+              _options: { dialogOptions: "dontDisplay" }
+            }
+          ], { synchronousExecution: true });
+        } catch (maskErr) {
+          // Fallback: If no selection was detected, create revealAll mask
+          await batchPlay([
+            {
+              _obj: "make",
+              new: { _class: "channel" },
+              at: { _ref: "channel", _enum: "channel", _value: "mask" },
+              using: { _enum: "userMaskOptions", _value: "revealAll" },
+              _options: { dialogOptions: "dontDisplay" }
+            }
+          ], { synchronousExecution: true });
+        }
+      }, "BG Remove: AI Cutout (Layer 1 Mask)");
+    },
 
   /**
    * 2. BG REMOVE: Toggle / Restore Original BG
