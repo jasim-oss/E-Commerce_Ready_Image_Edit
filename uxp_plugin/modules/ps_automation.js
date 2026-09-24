@@ -643,16 +643,7 @@ const PSAutomation = {
         } catch (domErr) {}
       }
 
-      // Ensure guides visibility is active
-      try {
-        await batchPlay([
-          {
-            _obj: "show",
-            null: [{ _ref: "guide" }],
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ], { synchronousExecution: true });
-      } catch (shErr) {}
+
     }, `SCSM: ${marginPercent}% Margin Fit`);
   },
 
