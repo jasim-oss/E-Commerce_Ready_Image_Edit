@@ -887,44 +887,42 @@ input:checked + .slider:before {
   box-shadow: 0 0 8px rgba(155, 147, 238, 0.4) !important;
 }
 
-/* Footer History Icons (Undo / Redo User Icons) */
-.history-icons-group {
+/* Footer History Text Buttons (Compact Undo / Redo) */
+.history-btns-group {
   display: flex !important;
   align-items: center !important;
   gap: 6px !important;
 }
 
-.history-icon-btn {
-  width: 26px !important;
-  height: 26px !important;
-  border-radius: 6px !important;
+.history-text-btn {
+  font-family: inherit !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  color: #c9c3f5 !important;
   background: #211954 !important;
   border: 1px solid var(--border-btn) !important;
-  display: flex !important;
+  border-radius: 4px !important;
+  padding: 3px 8px !important;
+  line-height: 1.2 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  cursor: pointer !important;
-  padding: 3px !important;
   transition: all 0.18s ease-in-out !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
   -webkit-appearance: none !important;
 }
 
-.history-icon-btn:hover {
-  background: rgba(33, 150, 243, 0.22) !important;
-  border-color: rgba(33, 150, 243, 0.6) !important;
-  box-shadow: 0 0 8px rgba(33, 150, 243, 0.4) !important;
+.history-text-btn:hover {
+  background: #2e2270 !important;
+  border-color: var(--brand-accent) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 6px var(--brand-glow) !important;
   transform: translateY(-1px) !important;
 }
 
-.history-icon-btn:active {
-  transform: scale(0.90) !important;
-}
-
-.history-img-icon {
-  width: 17px !important;
-  height: 17px !important;
-  object-fit: contain !important;
-  display: block !important;
-  pointer-events: none !important;
+.history-text-btn:active {
+  transform: scale(0.93) !important;
+  background: #1b1348 !important;
 }
