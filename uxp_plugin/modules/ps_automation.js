@@ -115,8 +115,8 @@ const PSAutomation = {
 
   /**
      * 2. BG REMOVE: AI Select Subject + Mask on Layer 1 from main layer
-     * If document has a single layer (e.g. Background), duplicate to Layer 1,
-     * lock and hide original main layer below, and mask Layer 1.
+     * User workflow: First copy layer from background -> Remove background -> Mask Layer 1.
+     * Leaves Background layer natively locked with [🔒].
      */
     async bgRemove(applyToAll = false) {
       return await this.executeOnTargetDocs(applyToAll, async (doc) => {
@@ -126,24 +126,8 @@ const PSAutomation = {
 
         // When document has only 1 layer (like default Background), or active layer is Background
         if (layerCount === 1 || (activeLayer && activeLayer.isBackgroundLayer)) {
-          // 1. If single layer is locked Background, convert to normal layer so it can be unhidden/hidden cleanly
-          try {
-            await batchPlay([
-              {
-                _obj: "set",
-                _target: [{ _ref: "layer", _property: "background" }],
-                to: {
-                  _obj: "layer",
-                  name: "Background"
-                },
-                _options: { dialogOptions: "dontDisplay" }
-              }
-            ], { synchronousExecution: true });
-          } catch (e) {
-            // Already unlocked or regular layer, continue
-          }
-
-          // 2. Duplicate main layer to create "Layer 1"
+          // 1. শুরুতে ব্যাকগ্রাউন্ড থেকে নতুন লেয়ার কপি করা (Duplicate main layer to Layer 1)
+          // We do NOT convert or touch Background, so it remains 100% natively locked with [🔒]
           await batchPlay([
             {
               _obj: "duplicate",
@@ -153,69 +137,50 @@ const PSAutomation = {
             }
           ], { synchronousExecution: true });
 
-          // 3. Explicitly select bottom layer, hide it, and LOCK it
+          // Ensure Layer 1 is selected and active
+          try {
+            const l1 = doc.layers ? doc.layers.find(l => l.name === "Layer 1") : null;
+            if (l1) {
+              doc.activeLayers = [l1];
+            }
+          } catch (e) {}
+
+          // 2. তারপর ব্যাকগ্রাউন্ড রিমুভ (AI Select Subject on Layer 1)
+          await batchPlay([
+            {
+              _obj: "autoCutout",
+              sampleAllLayers: false,
+              _options: { dialogOptions: "dontDisplay" }
+            }
+          ], { synchronousExecution: true });
+
+          // 3. লেয়ার ১ মাস্ক করা (Apply Layer Mask onto Layer 1)
           try {
             await batchPlay([
-              // Select the bottom layer
               {
-                _obj: "select",
-                _target: [{ _ref: "layer", _enum: "ordinal", _value: "back" }],
-                makeVisible: false,
-                _options: { dialogOptions: "dontDisplay" }
-              },
-              // Hide bottom layer
-              {
-                _obj: "hide",
-                null: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                _options: { dialogOptions: "dontDisplay" }
-              },
-              // Apply Lock to bottom layer so it shows the padlock [🔒]
-              {
-                _obj: "applyLocking",
-                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                allLocked: true,
+                _obj: "make",
+                new: { _class: "channel" },
+                at: { _ref: "channel", _enum: "channel", _value: "mask" },
+                using: { _enum: "userMaskOptions", _value: "revealSelection" },
                 _options: { dialogOptions: "dontDisplay" }
               }
             ], { synchronousExecution: true });
-          } catch (e) {
-            // Fallback via DOM if available
-            try {
-              if (doc.layers && doc.layers.length > 1) {
-                const bLayer = doc.layers[doc.layers.length - 1];
-                bLayer.visible = false;
-                bLayer.allLocked = true;
+          } catch (maskErr) {
+            await batchPlay([
+              {
+                _obj: "make",
+                new: { _class: "channel" },
+                at: { _ref: "channel", _enum: "channel", _value: "mask" },
+                using: { _enum: "userMaskOptions", _value: "revealAll" },
+                _options: { dialogOptions: "dontDisplay" }
               }
-            } catch (err) {}
+            ], { synchronousExecution: true });
           }
 
-          // 4. Explicitly select "Layer 1" and ensure it is UNLOCKED
-          try {
-            await batchPlay([
-              {
-                _obj: "select",
-                _target: [{ _ref: "layer", _name: "Layer 1" }],
-                makeVisible: true,
-                _options: { dialogOptions: "dontDisplay" }
-              },
-              {
-                _obj: "applyLocking",
-                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                allLocked: false,
-                _options: { dialogOptions: "dontDisplay" }
-              }
-            ], { synchronousExecution: true });
-          } catch (e) {
-            try {
-              const l1 = doc.layers ? doc.layers.find(l => l.name === "Layer 1") : null;
-              if (l1) {
-                doc.activeLayers = [l1];
-                l1.allLocked = false;
-              }
-            } catch (err) {}
-          }
+          return;
         }
 
-        // 5. Run autoCutout (Photoshop AI Select Subject) on Layer 1
+        // Multiple layers case: Run Select Subject AI + mask on active layer
         await batchPlay([
           {
             _obj: "autoCutout",
@@ -224,7 +189,6 @@ const PSAutomation = {
           }
         ], { synchronousExecution: true });
 
-        // 6. Create Layer Mask from current selection onto Layer 1
         try {
           await batchPlay([
             {
@@ -236,7 +200,6 @@ const PSAutomation = {
             }
           ], { synchronousExecution: true });
         } catch (maskErr) {
-          // Fallback: If no selection was detected, create revealAll mask
           await batchPlay([
             {
               _obj: "make",
