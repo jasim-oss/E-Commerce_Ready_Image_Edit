@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Panel Controller: Accordion & Event Dispatcher
  */
 document.addEventListener("DOMContentLoaded", () => {
@@ -256,18 +256,86 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-    // 3. SCSM Handlers
-  document.getElementById("btnScsmAmazon").addEventListener("click", async () => {
-    try {
-      setStatus("Applying SCSM (Amazon 85% fit)...", "working");
-      await window.PSAutomation.scsmFitAndCenter(0.85, 2000);
-      setStatus("SCSM 85% completed", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
+    // 3. SCSM Handlers (Product, Model, Custom)
+    const btnScsmProduct = document.getElementById('btnScsmProduct');
+    const btnScsmModel = document.getElementById('btnScsmModel');
+    const btnScsmCustom = document.getElementById('btnScsmCustom');
+    const customScsmBox = document.getElementById('customScsmBox');
+    const inputScsmCustomPercent = document.getElementById('inputScsmCustomPercent');
+    const btnApplyCustomScsm = document.getElementById('btnApplyCustomScsm');
 
-  
+    // 1) Product
+    if (btnScsmProduct) {
+      btnScsmProduct.addEventListener('click', async () => {
+        if (customScsmBox) customScsmBox.style.display = 'none';
+        if (btnScsmCustom) btnScsmCustom.classList.remove('active');
+        try {
+          setStatus('Applying SCSM for Product (85% Fit)...', 'working');
+          await window.PSAutomation.scsmFitAndCenter(0.85);
+          setStatus('SCSM Product fit (85%) applied', 'online');
+        } catch (err) {
+          setStatus(`Error: ${err.message}`, 'error');
+        }
+      });
+    }
+
+    // 2) Model
+    if (btnScsmModel) {
+      btnScsmModel.addEventListener('click', async () => {
+        if (customScsmBox) customScsmBox.style.display = 'none';
+        if (btnScsmCustom) btnScsmCustom.classList.remove('active');
+        try {
+          setStatus('Applying SCSM for Model (80% Fit)...', 'working');
+          await window.PSAutomation.scsmFitAndCenter(0.80);
+          setStatus('SCSM Model fit applied', 'online');
+        } catch (err) {
+          setStatus(`Error: ${err.message}`, 'error');
+        }
+      });
+    }
+
+    // 3) Custom Drawer Toggle
+    if (btnScsmCustom) {
+      btnScsmCustom.addEventListener('click', () => {
+        if (!customScsmBox) return;
+        const isOpen = customScsmBox.style.display !== 'none';
+        if (isOpen) {
+          customScsmBox.style.display = 'none';
+          btnScsmCustom.classList.remove('active');
+        } else {
+          customScsmBox.style.display = 'block';
+          btnScsmCustom.classList.add('active');
+          if (inputScsmCustomPercent) inputScsmCustomPercent.focus();
+        }
+      });
+    }
+
+    // Apply Custom SCSM
+    if (btnApplyCustomScsm) {
+      btnApplyCustomScsm.addEventListener('click', async () => {
+        const val = parseInt((inputScsmCustomPercent && inputScsmCustomPercent.value) || '85', 10);
+        if (isNaN(val) || val < 10 || val > 100) {
+          setStatus('Please enter a valid percentage (10-100%)', 'error');
+          return;
+        }
+        try {
+          setStatus(`Applying SCSM (${val}% Fit)...`, 'working');
+          await window.PSAutomation.scsmFitAndCenter(val / 100);
+          setStatus(`SCSM ${val}% fit applied`, 'online');
+        } catch (err) {
+          setStatus(`Error: ${err.message}`, 'error');
+        }
+      });
+    }
+
+    if (inputScsmCustomPercent) {
+      inputScsmCustomPercent.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && btnApplyCustomScsm) {
+          btnApplyCustomScsm.click();
+        }
+      });
+    }
+
   // 4. EDITING ADJUSTMENT Handlers
   document.getElementById("btnWrinkleClothing").addEventListener("click", async () => {
     try {

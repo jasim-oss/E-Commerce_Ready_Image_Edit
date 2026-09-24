@@ -138,12 +138,28 @@
           <span class="chevron down"></span>
         </div>
         <div class="accordion-body" id="body-scsm">
-          <button class="action-btn highlight-btn" id="btnScsmAmazon">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="2" r="2"></circle></svg>
-            </span>
-            <span class="btn-label">SCSM (Amazon 85% Fit)</span>
-          </button>
+          <div class="scsm-options-row">
+            <button type="button" class="action-btn scsm-choice-btn" id="btnScsmProduct">
+              <span class="btn-label-center">Product</span>
+            </button>
+            <button type="button" class="action-btn scsm-choice-btn" id="btnScsmModel">
+              <span class="btn-label-center">Model</span>
+            </button>
+            <button type="button" class="action-btn scsm-choice-btn" id="btnScsmCustom">
+              <span class="btn-label-center">Custom</span>
+            </button>
+          </div>
+
+          <!-- Custom SCSM Drawer (Expands when Custom is clicked) -->
+          <div id="customScsmBox" class="custom-scsm-box" style="display: none;">
+            <div class="custom-scsm-row">
+              <div class="scsm-input-wrap">
+                <input type="number" id="inputScsmCustomPercent" value="85" min="10" max="100" placeholder="85" class="scsm-percent-input" />
+                <span class="scsm-input-unit">%</span>
+              </div>
+              <button type="button" class="btn-apply-scsm" id="btnApplyCustomScsm">Apply</button>
+            </div>
+          </div>
         </div>
       </section>
 
