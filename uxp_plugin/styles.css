@@ -389,6 +389,7 @@ input:checked + .slider:before {
 }
 
 .select-wrapper::after {
+  display: none !important;
   content: "";
   position: absolute;
   right: 12px;

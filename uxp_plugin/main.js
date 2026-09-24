@@ -61,9 +61,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateDimensionDisplay() {
     if (!marketplaceSelect) return;
-    const selectedOption = marketplaceSelect.options[marketplaceSelect.selectedIndex];
+    const val = marketplaceSelect.value;
     
-    // Hide controls if on placeholder
+    // Hide controls if on placeholder or empty
+    if (!val) {
+      if (resizeControlsGroup) resizeControlsGroup.style.display = "none";
+      return;
+    }
+
+    let selectedOption = null;
+    if (marketplaceSelect.selectedIndex >= 0 && marketplaceSelect.options) {
+      selectedOption = marketplaceSelect.options[marketplaceSelect.selectedIndex];
+    }
+    if (!selectedOption || selectedOption.value !== val) {
+      selectedOption = Array.from(marketplaceSelect.options || []).find(opt => opt.value === val);
+    }
+
     if (!selectedOption || !selectedOption.value) {
       if (resizeControlsGroup) resizeControlsGroup.style.display = "none";
       return;
@@ -82,9 +95,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (inputW) inputW.value = w;
     if (inputH) inputH.value = h;
     if (inputDpi) inputDpi.value = dpi;
-    if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}x${h})`;
+    if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}×${h})`;
 
-    if (selectedOption.value === "custom") {
+    if (val === "custom") {
       setEditMode(true);
       if (inputW) inputW.focus();
     } else {
@@ -94,6 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (marketplaceSelect) {
     marketplaceSelect.addEventListener("change", updateDimensionDisplay);
+    marketplaceSelect.addEventListener("input", updateDimensionDisplay);
   }
 
   if (btnToggleEdit) {

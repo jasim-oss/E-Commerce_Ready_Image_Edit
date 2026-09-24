@@ -31,19 +31,46 @@ const PSAutomation = {
    */
   async resizeForMarketplace(width, height, dpi = 72, applyToAll = false) {
     return await this.executeOnTargetDocs(applyToAll, async (doc) => {
-      // 1. Adjust resolution / DPI if needed
-      if (doc.resolution !== dpi) {
+      const docW = doc.width;
+      const docH = doc.height;
+      const scale = Math.min(width / docW, height / docH);
+      const fitW = Math.max(1, Math.round(docW * scale));
+      const fitH = Math.max(1, Math.round(docH * scale));
+
+      try {
         await batchPlay([
           {
             _obj: "imageSize",
+            width: { _unit: "pixelsUnit", _value: fitW },
+            height: { _unit: "pixelsUnit", _value: fitH },
             resolution: { _unit: "densityUnit", _value: dpi },
+            scaleStyles: true,
+            constrainProportions: true,
+            interfaceIconFrameDimmed: {
+              _enum: "interpolationType",
+              _value: "bicubicAutomatic"
+            },
+            _options: { dialogOptions: "dontDisplay" }
+          },
+          {
+            _obj: "canvasSize",
+            width: { _unit: "pixelsUnit", _value: width },
+            height: { _unit: "pixelsUnit", _value: height },
+            horizontal: { _enum: "horizontalLocation", _value: "center" },
+            vertical: { _enum: "verticalLocation", _value: "center" },
             _options: { dialogOptions: "dontDisplay" }
           }
         ], { synchronousExecution: true });
+      } catch (bpErr) {
+        if (doc.resizeImage) {
+          try {
+            await doc.resizeImage(fitW, fitH, dpi);
+          } catch (e1) {}
+        }
+        if (doc.resizeCanvas) {
+          await doc.resizeCanvas(width, height, app.Constants.AnchorPosition.MIDDLECENTER);
+        }
       }
-
-      // 2. Resize Canvas to exact target dimensions
-      await doc.resizeCanvas(width, height, app.Constants.AnchorPosition.MIDDLECENTER);
     }, `Resize to ${width}x${height} @ ${dpi}DPI`);
   },
 
