@@ -887,45 +887,33 @@ input:checked + .slider:before {
   box-shadow: 0 0 8px rgba(155, 147, 238, 0.4) !important;
 }
 
-/* Footer History Icons (Undo / Redo Circular Badges) */
+/* Footer History Icons (Undo / Redo User Icons) */
 .history-icons-group {
   display: flex !important;
   align-items: center !important;
-  gap: 7px !important;
+  gap: 6px !important;
 }
 
 .history-icon-btn {
-  width: 25px !important;
-  height: 25px !important;
-  border-radius: 50% !important;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 6px !important;
+  background: #211954 !important;
+  border: 1px solid var(--border-btn) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  padding: 0 !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  padding: 3px !important;
   transition: all 0.18s ease-in-out !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
   -webkit-appearance: none !important;
 }
 
-.history-icon-btn.btn-undo {
-  background: linear-gradient(135deg, #4ec5eb, #269ecf) !important;
-}
-
-.history-icon-btn.btn-undo:hover {
-  background: linear-gradient(135deg, #66d5fa, #34b3e3) !important;
-  box-shadow: 0 0 8px rgba(78, 197, 235, 0.7) !important;
-  transform: translateY(-1px) !important;
-}
-
-.history-icon-btn.btn-redo {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-}
-
-.history-icon-btn.btn-redo:hover {
-  background: linear-gradient(135deg, #60a5fa, #2563eb) !important;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.7) !important;
+.history-icon-btn:hover {
+  background: rgba(33, 150, 243, 0.22) !important;
+  border-color: rgba(33, 150, 243, 0.6) !important;
+  box-shadow: 0 0 8px rgba(33, 150, 243, 0.4) !important;
   transform: translateY(-1px) !important;
 }
 
@@ -933,9 +921,10 @@ input:checked + .slider:before {
   transform: scale(0.90) !important;
 }
 
-.history-icon-btn svg {
-  width: 14px !important;
-  height: 14px !important;
+.history-img-icon {
+  width: 17px !important;
+  height: 17px !important;
+  object-fit: contain !important;
   display: block !important;
   pointer-events: none !important;
 }
