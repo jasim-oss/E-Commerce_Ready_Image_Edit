@@ -235,6 +235,7 @@ const PSAutomation = {
 
   /**
      * 2. BG: Add Solid Color Layer (Pure White or Custom HEX)
+     * Automatically placed/replaced directly above the bottom-most layer.
      * @param {number} r - Red (0-255)
      * @param {number} g - Green (0-255)
      * @param {number} b - Blue (0-255)
@@ -242,31 +243,54 @@ const PSAutomation = {
      */
     async addSolidColorBg(r = 255, g = 255, b = 255, applyToAll = false) {
       return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+        // 1. Remove previous BG fill layer if any, so it cleanly replaces
+        try {
+          const existing = (doc.layers || []).find(l => l.name === "BG Color" || l.name === "BG Image" || l.name.startsWith("Color Fill"));
+          if (existing && doc.layers.length > 1) {
+            await existing.delete();
+          }
+        } catch (e) {}
+
+        // 2. Select bottom-most layer so Photoshop naturally inserts the new layer directly above it
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "back" }],
+            makeVisible: false,
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+
+        // 3. Create Solid Color Layer directly above the bottom-most layer
         await batchPlay([
           {
             _obj: "make",
             _target: [{ _ref: "contentLayer" }],
             using: {
               _obj: "contentLayer",
+              name: "BG Color",
               type: {
                 _obj: "solidColorLayer",
                 color: { _obj: "RGBColor", red: r, grain: g, blue: b }
               }
             },
             _options: { dialogOptions: "dontDisplay" }
-          },
-          {
-            _obj: "move",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            to: { _ref: "layer", _enum: "ordinal", _value: "back" },
-            _options: { dialogOptions: "dontDisplay" }
           }
         ], { synchronousExecution: true });
+
+        // 4. Ensure Layer 1 / top subject layer remains selected
+        try {
+          const l1 = doc.layers ? (doc.layers.find(l => l.name === "Layer 1") || doc.layers[0]) : null;
+          if (l1) {
+            doc.activeLayers = [l1];
+          }
+        } catch (e) {}
       }, "Add Solid BG Color");
     },
 
     /**
      * 2. BG: Import/Place Background Image from Disk behind subject
+     * Automatically placed/replaced directly above the bottom-most layer.
      * @param {boolean} applyToAll - Apply to all open documents
      */
     async placeBackgroundImage(applyToAll = false) {
@@ -283,19 +307,48 @@ const PSAutomation = {
       const token = fs.createSessionToken(file);
 
       return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+        // 1. Remove previous placed BG layer if any, so it cleanly replaces
+        try {
+          const existing = (doc.layers || []).find(l => l.name === "BG Image" || l.name === "BG Color" || l.name.startsWith("Color Fill"));
+          if (existing && doc.layers.length > 1) {
+            await existing.delete();
+          }
+        } catch (e) {}
+
+        // 2. Select bottom-most layer so Photoshop places the new image directly above it
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "back" }],
+            makeVisible: false,
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+
+        // 3. Place background image directly above bottom-most layer
         await batchPlay([
           {
             _obj: "placeEvent",
             target: { _path: token, _kind: "local" },
             _options: { dialogOptions: "dontDisplay" }
-          },
-          {
-            _obj: "move",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            to: { _ref: "layer", _enum: "ordinal", _value: "back" },
-            _options: { dialogOptions: "dontDisplay" }
           }
         ], { synchronousExecution: true });
+
+        // 4. Name the placed layer "BG Image" for clean management
+        try {
+          const activeL = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+          if (activeL) {
+            activeL.name = "BG Image";
+          }
+        } catch (e) {}
+
+        // 5. Ensure Layer 1 / top subject layer remains selected
+        try {
+          const l1 = doc.layers ? (doc.layers.find(l => l.name === "Layer 1") || doc.layers[0]) : null;
+          if (l1) {
+            doc.activeLayers = [l1];
+          }
+        } catch (e) {}
       }, "Place Background Image");
     },
   /**
