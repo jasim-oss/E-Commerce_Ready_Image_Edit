@@ -230,34 +230,27 @@
       </section>
     </div>
 
-    <!-- History Controls (Undo / Redo) -->
-    <div class="history-row">
-      <button type="button" class="history-btn" id="btnUndo" title="Undo (Step Backward)">
-        <span class="btn-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7v6h6"></path>
-            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
-          </svg>
-        </span>
-        <span>Undo</span>
-      </button>
-
-      <button type="button" class="history-btn" id="btnRedo" title="Redo (Step Forward)">
-        <span>Redo</span>
-        <span class="btn-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 7v6h-6"></path>
-            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path>
-          </svg>
-        </span>
-      </button>
-    </div>
-
-    <!-- Activity Status Footer -->
+    <!-- Activity Status Footer with Compact Undo/Redo Icons -->
     <footer class="panel-footer">
       <div class="status-indicator">
         <span class="status-dot online"></span>
         <span class="status-msg" id="statusMsg">Ready</span>
+      </div>
+
+      <div class="history-icons-group">
+        <button type="button" class="history-icon-btn" id="btnUndo" title="Undo (Step Backward)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+          </svg>
+        </button>
+
+        <button type="button" class="history-icon-btn" id="btnRedo" title="Redo (Step Forward)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 7v6h-6"></path>
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path>
+          </svg>
+        </button>
       </div>
     </footer>
   </div>

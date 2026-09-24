@@ -881,59 +881,46 @@ input:checked + .slider:before {
   box-shadow: 0 0 8px rgba(155, 147, 238, 0.4) !important;
 }
 
-/* History Actions (Undo / Redo) */
-.history-row {
+/* Footer History Icons (Compact Undo / Redo) */
+.history-icons-group {
   display: flex !important;
-  flex-direction: row !important;
   align-items: center !important;
-  gap: 8px !important;
-  width: 100% !important;
-  margin-top: 6px !important;
-  padding: 6px 12px 2px 12px !important;
-  border-top: 1px solid var(--line-color) !important;
-  background: var(--bg-card) !important;
+  gap: 5px !important;
 }
 
-.history-btn {
-  flex: 1 !important;
-  height: 32px !important;
+.history-icon-btn {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 6px !important;
   background: #211954 !important;
   border: 1px solid var(--border-btn) !important;
-  border-radius: var(--radius) !important;
-  color: #ffffff !important;
-  font-size: 11.5px !important;
-  font-weight: 700 !important;
-  cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 6px !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  color: #ffffff !important;
   transition: all 0.18s ease-in-out !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2) !important;
   -webkit-appearance: none !important;
 }
 
-.history-btn:hover {
+.history-icon-btn:hover {
   background: #2d2273 !important;
   border-color: var(--brand-accent) !important;
-  box-shadow: 0 0 8px var(--brand-glow) !important;
+  box-shadow: 0 0 6px var(--brand-glow) !important;
 }
 
-.history-btn:active {
-  transform: scale(0.98);
+.history-icon-btn:active {
+  transform: scale(0.92) !important;
 }
 
-.history-btn .btn-icon {
-  width: 14px !important;
-  height: 14px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: #ffffff !important;
-}
-
-.history-btn .btn-icon svg {
-  width: 14px !important;
-  height: 14px !important;
+.history-icon-btn svg {
+  width: 13px !important;
+  height: 13px !important;
   stroke: #ffffff !important;
+}
+
+.history-icon-btn:hover svg {
+  stroke: #9b93ee !important;
 }
