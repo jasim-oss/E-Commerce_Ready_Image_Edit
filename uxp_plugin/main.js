@@ -4,9 +4,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   const statusMsg = document.getElementById("statusMsg");
   const statusDot = document.querySelector(".status-dot");
-  const scsmRatioSlider = document.getElementById("scsmRatioSlider");
-  const scsmRatioLabel = document.getElementById("scsmRatioLabel");
-
   function setStatus(msg, state = "online") {
     statusMsg.textContent = msg;
     statusDot.className = `status-dot ${state}`;
@@ -25,13 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
-
-  // Slider Ratio Sync
-  if (scsmRatioSlider) {
-    scsmRatioSlider.addEventListener("input", (e) => {
-      scsmRatioLabel.textContent = `${e.target.value}%`;
-    });
-  }
 
   // 1. RESIZE Handlers (Marketplace, Custom & Edit Box)
   const marketplaceSelect = document.getElementById("selectMarketplaceResize");
@@ -267,10 +257,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 3. SCSM Handlers
   document.getElementById("btnScsmAmazon").addEventListener("click", async () => {
-    const ratio = parseInt(scsmRatioSlider.value, 10) / 100;
     try {
-      setStatus(`Applying SCSM (${Math.round(ratio * 100)}% fit)...`, "working");
-      await window.PSAutomation.scsmFitAndCenter(ratio, 2000);
+      setStatus("Applying SCSM (Amazon 85% fit)...", "working");
+      await window.PSAutomation.scsmFitAndCenter(0.85, 2000);
       setStatus("SCSM 85% completed", "online");
     } catch (err) {
       setStatus(`Error: ${err.message}`, "error");
