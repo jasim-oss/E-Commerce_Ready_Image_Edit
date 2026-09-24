@@ -347,6 +347,65 @@ const PSAutomation = {
       ], { synchronousExecution: true });
     }, { commandName: `Export: ${type}` });
   }
+,
+
+  /**
+   * History: Undo (Step Backward)
+   */
+  async undo() {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document in Photoshop.");
+
+    return await core.executeAsModal(async () => {
+      try {
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "historyState", _offset: -1 }],
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {
+        const states = doc.historyStates;
+        const current = doc.activeHistoryState;
+        const idx = states.indexOf(current);
+        if (idx > 0) {
+          doc.activeHistoryState = states[idx - 1];
+        } else {
+          throw new Error("No further history to undo.");
+        }
+      }
+    }, { commandName: "Undo" });
+  },
+
+  /**
+   * History: Redo (Step Forward)
+   */
+  async redo() {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document in Photoshop.");
+
+    return await core.executeAsModal(async () => {
+      try {
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "historyState", _offset: 1 }],
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {
+        const states = doc.historyStates;
+        const current = doc.activeHistoryState;
+        const idx = states.indexOf(current);
+        if (idx >= 0 && idx < states.length - 1) {
+          doc.activeHistoryState = states[idx + 1];
+        } else {
+          throw new Error("No further history to redo.");
+        }
+      }
+    }, { commandName: "Redo" });
+  }
 };
 
 window.PSAutomation = PSAutomation;

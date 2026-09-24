@@ -32,6 +32,13 @@
           <div class="resize-selector-box">
             <div class="selector-header">
               <label for="selectMarketplaceResize" class="selector-label">Marketplace Preset:</label>
+              <div class="toggle-group" title="Process all open documents in Photoshop">
+                <span class="toggle-text">ALL</span>
+                <label class="switch">
+                  <input type="checkbox" id="toggleResizeAll" />
+                  <span class="slider"></span>
+                </label>
+              </div>
             </div>
             <div class="select-wrapper">
               <select id="selectMarketplaceResize" class="marketplace-select">
@@ -221,6 +228,29 @@
           </button>
         </div>
       </section>
+    </div>
+
+    <!-- History Controls (Undo / Redo) -->
+    <div class="history-row">
+      <button type="button" class="history-btn" id="btnUndo" title="Undo (Step Backward)">
+        <span class="btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+          </svg>
+        </span>
+        <span>Undo</span>
+      </button>
+
+      <button type="button" class="history-btn" id="btnRedo" title="Redo (Step Forward)">
+        <span>Redo</span>
+        <span class="btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 7v6h-6"></path>
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path>
+          </svg>
+        </span>
+      </button>
     </div>
 
     <!-- Activity Status Footer -->

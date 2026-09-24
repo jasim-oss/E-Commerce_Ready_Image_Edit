@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. RESIZE Handlers (Marketplace, Custom & Edit Box)
   const marketplaceSelect = document.getElementById("selectMarketplaceResize");
   const resizeControlsGroup = document.getElementById("resizeControlsGroup");
+  const toggleResizeAll = document.getElementById("toggleResizeAll");
   const inputW = document.getElementById("inputResizeW");
   const inputH = document.getElementById("inputResizeH");
   const inputDpi = document.getElementById("inputResizeDpi");
@@ -129,9 +130,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (btnApplyResize) {
     btnApplyResize.addEventListener("click", async () => {
-      const w = parseInt(inputW.value, 10);
-      const h = parseInt(inputH.value, 10);
-      const dpi = parseInt(inputDpi.value, 10) || 72;
+      const w = parseInt((inputW && inputW.value) || "2000", 10);
+      const h = parseInt((inputH && inputH.value) || "2000", 10);
+      const dpi = parseInt((inputDpi && inputDpi.value) || "72", 10);
+      const applyAll = toggleResizeAll ? toggleResizeAll.checked : false;
 
       if (!w || !h || w <= 0 || h <= 0) {
         setStatus("Please enter valid width and height.", "error");
@@ -139,9 +141,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        setStatus(`Resizing to ${w}x${h} px @ ${dpi} DPI...`, "working");
-        await window.PSAutomation.resizeForMarketplace(w, h, dpi, false);
-        setStatus(`Resized to ${w}x${h} px (${dpi} DPI)`, "online");
+        setStatus(`Resizing to ${w}×${h} px @ ${dpi} DPI ${applyAll ? "(ALL docs)" : ""}...`, "working");
+        await window.PSAutomation.resizeForMarketplace(w, h, dpi, applyAll);
+        setStatus(`Resized to ${w}×${h} px (${dpi} DPI) ${applyAll ? "(ALL docs)" : ""}`, "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
       }
@@ -396,4 +398,32 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnWorkingFile").addEventListener("click", async () => {
     setStatus("Use Photoshop File > Save As to save .PSD working file", "online");
   });
+
+  // 6. HISTORY Handlers (Undo / Redo)
+  const btnUndo = document.getElementById("btnUndo");
+  const btnRedo = document.getElementById("btnRedo");
+
+  if (btnUndo) {
+    btnUndo.addEventListener("click", async () => {
+      try {
+        setStatus("Undoing last action...", "working");
+        await window.PSAutomation.undo();
+        setStatus("Undo completed", "online");
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
+  }
+
+  if (btnRedo) {
+    btnRedo.addEventListener("click", async () => {
+      try {
+        setStatus("Redoing last action...", "working");
+        await window.PSAutomation.redo();
+        setStatus("Redo completed", "online");
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
+  }
 });
