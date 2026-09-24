@@ -175,102 +175,105 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 1) White BG
-  if (btnBgWhite) {
-    btnBgWhite.addEventListener("click", async () => {
-      if (customColorBox) customColorBox.style.display = "none";
-      if (btnBgCustom) btnBgCustom.classList.remove("active");
-      try {
-        setStatus("Adding pure white #FFF BG...", "working");
-        await window.PSAutomation.addSolidColorBg(255, 255, 255);
-        setStatus("Pure white BG added", "online");
-      } catch (err) {
-        setStatus(`Error: ${err.message}`, "error");
-      }
-    });
-  }
-
-  // 2) Custom Color Toggle Drawer
-  if (btnBgCustom) {
-    btnBgCustom.addEventListener("click", () => {
-      if (!customColorBox) return;
-      const isOpen = customColorBox.style.display !== "none";
-      if (isOpen) {
-        customColorBox.style.display = "none";
-        btnBgCustom.classList.remove("active");
-      } else {
-        customColorBox.style.display = "block";
-        btnBgCustom.classList.add("active");
-        if (hexBgCustom) hexBgCustom.focus();
-      }
-    });
-  }
-
-  // 3) Upload Background Image
-  if (btnBgUpload) {
-    btnBgUpload.addEventListener("click", async () => {
-      if (customColorBox) customColorBox.style.display = "none";
-      if (btnBgCustom) btnBgCustom.classList.remove("active");
-      try {
-        setStatus("Opening file browser for background image...", "working");
-        const res = await window.PSAutomation.placeBackgroundImage();
-        if (res !== false) {
-          setStatus("Background image placed successfully", "online");
-        } else {
-          setStatus("Background upload canceled", "online");
+    if (btnBgWhite) {
+      btnBgWhite.addEventListener("click", async () => {
+        if (customColorBox) customColorBox.style.display = "none";
+        if (btnBgCustom) btnBgCustom.classList.remove("active");
+        const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
+        try {
+          setStatus(`Adding pure white #FFF BG ${applyAll ? "(ALL docs)" : ""}...`, "working");
+          await window.PSAutomation.addSolidColorBg(255, 255, 255, applyAll);
+          setStatus(`Pure white BG added ${applyAll ? "(ALL docs)" : ""}`, "online");
+        } catch (err) {
+          setStatus(`Error: ${err.message}`, "error");
         }
-      } catch (err) {
-        setStatus(`Error: ${err.message}`, "error");
-      }
-    });
-  }
-
-  // Auto uppercase hex input & enter key support
-  if (hexBgCustom) {
-    hexBgCustom.addEventListener('input', (e) => {
-      let val = e.target.value;
-      if (val && !val.startsWith('#')) val = '#' + val;
-      hexBgCustom.value = val.toUpperCase();
-    });
-    hexBgCustom.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && btnApplyCustomColor) {
-        btnApplyCustomColor.click();
-      }
-    });
-  }
-
-  // Convert Hex to RGB helper
-  function hexToRgb(hex) {
-    hex = hex.replace(/^#/, "");
-    if (hex.length === 3) {
-      hex = hex.split("").map(c => c + c).join("");
+      });
     }
-    const num = parseInt(hex, 16);
-    return {
-      r: (num >> 16) & 255,
-      g: (num >> 8) & 255,
-      b: num & 255
-    };
-  }
 
-  // Apply Custom Color BG
-  if (btnApplyCustomColor) {
-    btnApplyCustomColor.addEventListener("click", async () => {
-      let hex = hexBgCustom ? hexBgCustom.value : "#FFFFFF";
-      if (!hex.startsWith("#")) hex = "#" + hex;
-      if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-        setStatus("Please enter a valid 6-char hex color (e.g. #F4F4F4)", "error");
-        return;
+    // 2) Custom Color Toggle Drawer
+    if (btnBgCustom) {
+      btnBgCustom.addEventListener("click", () => {
+        if (!customColorBox) return;
+        const isOpen = customColorBox.style.display !== "none";
+        if (isOpen) {
+          customColorBox.style.display = "none";
+          btnBgCustom.classList.remove("active");
+        } else {
+          customColorBox.style.display = "block";
+          btnBgCustom.classList.add("active");
+          if (hexBgCustom) hexBgCustom.focus();
+        }
+      });
+    }
+
+    // 3) Upload Background Image
+    if (btnBgUpload) {
+      btnBgUpload.addEventListener("click", async () => {
+        if (customColorBox) customColorBox.style.display = "none";
+        if (btnBgCustom) btnBgCustom.classList.remove("active");
+        const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
+        try {
+          setStatus(`Opening file browser for background image ${applyAll ? "(ALL docs)" : ""}...`, "working");
+          const res = await window.PSAutomation.placeBackgroundImage(applyAll);
+          if (res !== false) {
+            setStatus(`Background image placed successfully ${applyAll ? "(ALL docs)" : ""}`, "online");
+          } else {
+            setStatus("Background upload canceled", "online");
+          }
+        } catch (err) {
+          setStatus(`Error: ${err.message}`, "error");
+        }
+      });
+    }
+
+    // Auto uppercase hex input & enter key support
+    if (hexBgCustom) {
+      hexBgCustom.addEventListener('input', (e) => {
+        let val = e.target.value;
+        if (val && !val.startsWith('#')) val = '#' + val;
+        hexBgCustom.value = val.toUpperCase();
+      });
+      hexBgCustom.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && btnApplyCustomColor) {
+          btnApplyCustomColor.click();
+        }
+      });
+    }
+
+    // Convert Hex to RGB helper
+    function hexToRgb(hex) {
+      hex = hex.replace(/^#/, "");
+      if (hex.length === 3) {
+        hex = hex.split("").map(c => c + c).join("");
       }
-      const { r, g, b } = hexToRgb(hex);
-      try {
-        setStatus(`Adding Custom BG (${hex})...`, "working");
-        await window.PSAutomation.addSolidColorBg(r, g, b);
-        setStatus(`Custom BG ${hex} added`, "online");
-      } catch (err) {
-        setStatus(`Error: ${err.message}`, "error");
-      }
-    });
-  }
+      const num = parseInt(hex, 16);
+      return {
+        r: (num >> 16) & 255,
+        g: (num >> 8) & 255,
+        b: num & 255
+      };
+    }
+
+    // Apply Custom Color BG
+    if (btnApplyCustomColor) {
+      btnApplyCustomColor.addEventListener("click", async () => {
+        let hex = hexBgCustom ? hexBgCustom.value : "#FFFFFF";
+        if (!hex.startsWith("#")) hex = "#" + hex;
+        if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+          setStatus("Please enter a valid 6-char hex color (e.g. #F4F4F4)", "error");
+          return;
+        }
+        const { r, g, b } = hexToRgb(hex);
+        const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
+        try {
+          setStatus(`Adding Custom BG (${hex}) ${applyAll ? "(ALL docs)" : ""}...`, "working");
+          await window.PSAutomation.addSolidColorBg(r, g, b, applyAll);
+          setStatus(`Custom BG ${hex} added ${applyAll ? "(ALL docs)" : ""}`, "online");
+        } catch (err) {
+          setStatus(`Error: ${err.message}`, "error");
+        }
+      });
+    }
 
     // 3. SCSM Handlers (Product, Model, Custom)
     const btnScsmProduct = document.getElementById('btnScsmProduct');

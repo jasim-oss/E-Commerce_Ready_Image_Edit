@@ -234,70 +234,70 @@ const PSAutomation = {
   },
 
   /**
-   * 2. BG: Add Solid Color Layer (Pure White or Custom HEX)
-   */
-  async addSolidColorBg(r = 255, g = 255, b = 255) {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document.");
-
-    return await core.executeAsModal(async () => {
-      await batchPlay([
-        {
-          _obj: "make",
-          _target: [{ _ref: "contentLayer" }],
-          using: {
-            _obj: "contentLayer",
-            type: {
-              _obj: "solidColorLayer",
-              color: { _obj: "RGBColor", red: r, grain: g, blue: b }
-            }
+     * 2. BG: Add Solid Color Layer (Pure White or Custom HEX)
+     * @param {number} r - Red (0-255)
+     * @param {number} g - Green (0-255)
+     * @param {number} b - Blue (0-255)
+     * @param {boolean} applyToAll - Apply to all open documents
+     */
+    async addSolidColorBg(r = 255, g = 255, b = 255, applyToAll = false) {
+      return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+        await batchPlay([
+          {
+            _obj: "make",
+            _target: [{ _ref: "contentLayer" }],
+            using: {
+              _obj: "contentLayer",
+              type: {
+                _obj: "solidColorLayer",
+                color: { _obj: "RGBColor", red: r, grain: g, blue: b }
+              }
+            },
+            _options: { dialogOptions: "dontDisplay" }
           },
-          _options: { dialogOptions: "dontDisplay" }
-        },
-        {
-          _obj: "move",
-          _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-          to: { _ref: "layer", _enum: "ordinal", _value: "back" },
-          _options: { dialogOptions: "dontDisplay" }
-        }
-      ], { synchronousExecution: true });
-    }, { commandName: "Add Solid BG Color" });
-  },
+          {
+            _obj: "move",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            to: { _ref: "layer", _enum: "ordinal", _value: "back" },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      }, "Add Solid BG Color");
+    },
 
-  /**
-   * 2. BG: Import/Place Background Image from Disk behind subject
-   */
-  async placeBackgroundImage() {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document.");
+    /**
+     * 2. BG: Import/Place Background Image from Disk behind subject
+     * @param {boolean} applyToAll - Apply to all open documents
+     */
+    async placeBackgroundImage(applyToAll = false) {
+      const uxp = require("uxp");
+      const fs = uxp.storage.localFileSystem;
 
-    const uxp = require("uxp");
-    const fs = uxp.storage.localFileSystem;
+      const file = await fs.getFileForOpening({
+        types: ["jpg", "jpeg", "png", "tif", "tiff", "psd"],
+        allowMultiple: false
+      });
 
-    const file = await fs.getFileForOpening({
-      types: ["jpg", "jpeg", "png", "tif", "tiff", "psd"],
-      allowMultiple: false
-    });
+      if (!file) return false;
 
-    if (!file) return false;
-
-    return await core.executeAsModal(async () => {
       const token = fs.createSessionToken(file);
-      await batchPlay([
-        {
-          _obj: "placeEvent",
-          target: { _path: token, _kind: "local" },
-          _options: { dialogOptions: "dontDisplay" }
-        },
-        {
-          _obj: "move",
-          _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-          to: { _ref: "layer", _enum: "ordinal", _value: "back" },
-          _options: { dialogOptions: "dontDisplay" }
-        }
-      ], { synchronousExecution: true });
-    }, { commandName: "Place Background Image" });
-  },
+
+      return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+        await batchPlay([
+          {
+            _obj: "placeEvent",
+            target: { _path: token, _kind: "local" },
+            _options: { dialogOptions: "dontDisplay" }
+          },
+          {
+            _obj: "move",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            to: { _ref: "layer", _enum: "ordinal", _value: "back" },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      }, "Place Background Image");
+    },
   /**
    * 2. BG REMOVE: Add Pure White (#FFFFFF) Layer
    */
