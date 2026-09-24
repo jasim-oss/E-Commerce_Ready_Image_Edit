@@ -334,11 +334,36 @@ const PSAutomation = {
           }
         ], { synchronousExecution: true });
 
-        // 4. Name the placed layer "BG Image" for clean management
+        // 4. Name the placed layer "BG Image" and Auto-Fit/Cover canvas
         try {
           const activeL = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
           if (activeL) {
             activeL.name = "BG Image";
+
+            const b = activeL.bounds;
+            const w = b.right - b.left;
+            const h = b.bottom - b.top;
+            const canvasW = doc.width;
+            const canvasH = doc.height;
+
+            if (w > 0 && h > 0 && canvasW > 0 && canvasH > 0) {
+              // Proportional Cover scale so the background covers the canvas from edge to edge
+              const scalePct = Math.max(canvasW / w, canvasH / h) * 100;
+              const anchor = (app.Constants && app.Constants.AnchorPosition) ? app.Constants.AnchorPosition.MIDDLECENTER : undefined;
+              if (anchor) {
+                await activeL.scale(scalePct, scalePct, anchor);
+              } else {
+                await activeL.scale(scalePct, scalePct);
+              }
+
+              // Re-center on canvas
+              const nb = activeL.bounds;
+              const curCenterX = (nb.left + nb.right) / 2;
+              const curCenterY = (nb.top + nb.bottom) / 2;
+              const dx = (canvasW / 2) - curCenterX;
+              const dy = (canvasH / 2) - curCenterY;
+              await activeL.translate(dx, dy);
+            }
           }
         } catch (e) {}
 
