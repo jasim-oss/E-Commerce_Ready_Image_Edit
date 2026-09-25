@@ -26,6 +26,9 @@ const PSAutomation = {
 
   /**
    * 1. RESIZE: Resize for specific E-Commerce Marketplace
+   * Edge-Aware Smart Anchoring:
+   * Keeps subject/model anchored to canvas edges (e.g. bottom-touching waist/pants)
+   * while expanding canvas into free space.
    * @param {number} width - Target width in pixels
    * @param {number} height - Target height in pixels
    * @param {number} dpi - Target resolution in DPI
@@ -35,6 +38,142 @@ const PSAutomation = {
     return await this.executeOnTargetDocs(applyToAll, async (doc) => {
       const docW = doc.width;
       const docH = doc.height;
+      const edgeThreshold = Math.max(4, Math.round(Math.min(docW, docH) * 0.005));
+
+      let touchBottom = false;
+      let touchTop = false;
+      let touchLeft = false;
+      let touchRight = false;
+
+      // 1. Detect edge contact from subject layer or mask
+      let layer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+      if (!layer || layer.isBackgroundLayer || layer.name === "BG Color" || layer.name === "BG Image") {
+        const nonBg = (doc.layers || []).filter(l => !l.isBackgroundLayer && l.name !== "BG Color" && l.name !== "BG Image");
+        layer = nonBg.length > 0 ? nonBg[0] : null;
+      }
+
+      if (layer) {
+        let b = null;
+        try {
+          const res = await batchPlay([
+            {
+              _obj: "get",
+              _target: [
+                { _ref: "property", _property: "hasUserMask" },
+                { _ref: "layer", _id: layer.id }
+              ],
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+          if (res && res[0] && res[0].hasUserMask) {
+            await batchPlay([
+              {
+                _obj: "set",
+                _target: [{ _ref: "channel", _property: "selection" }],
+                to: { _ref: "channel", _enum: "channel", _value: "mask" },
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+            if (doc.selection && doc.selection.bounds) {
+              const sb = doc.selection.bounds;
+              if (sb.right > sb.left && sb.bottom > sb.top) {
+                b = sb;
+              }
+            }
+            await batchPlay([
+              {
+                _obj: "set",
+                _target: [{ _ref: "channel", _property: "selection" }],
+                to: { _enum: "ordinal", _value: "none" },
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          }
+        } catch (mErr) {}
+
+        if (!b) {
+          b = layer.bounds;
+        }
+
+        if (b) {
+          const fillsCanvas = (b.left <= edgeThreshold && b.right >= docW - edgeThreshold && b.top <= edgeThreshold && b.bottom >= docH - edgeThreshold);
+          if (!fillsCanvas) {
+            if (b.bottom >= docH - edgeThreshold) touchBottom = true;
+            if (b.top <= edgeThreshold) touchTop = true;
+            if (b.left <= edgeThreshold) touchLeft = true;
+            if (b.right >= docW - edgeThreshold) touchRight = true;
+          }
+        }
+      }
+
+      // 2. If touches not found (e.g. flat background photo like raw camera exports), run autoCutout (Select Subject)
+      if (!touchBottom && !touchTop && !touchLeft && !touchRight) {
+        try {
+          await batchPlay([
+            {
+              _obj: "autoCutout",
+              sampleAllLayers: false,
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+
+          if (doc.selection && doc.selection.bounds) {
+            const sb = doc.selection.bounds;
+            if (sb.right > sb.left && sb.bottom > sb.top) {
+              if (sb.bottom >= docH - edgeThreshold) touchBottom = true;
+              if (sb.top <= edgeThreshold) touchTop = true;
+              if (sb.left <= edgeThreshold) touchLeft = true;
+              if (sb.right >= docW - edgeThreshold) touchRight = true;
+            }
+          }
+
+          await batchPlay([
+            {
+              _obj: "set",
+              _target: [{ _ref: "channel", _property: "selection" }],
+              to: { _enum: "ordinal", _value: "none" },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (acErr) {}
+      }
+
+      // 3. Determine Canvas Expansion Anchor
+      let vLoc = "center";
+      let vAnchor = "MIDDLE";
+      if (touchBottom && !touchTop) {
+        vLoc = "bottom";
+        vAnchor = "BOTTOM";
+      } else if (touchTop && !touchBottom) {
+        vLoc = "top";
+        vAnchor = "TOP";
+      }
+
+      let hLoc = "center";
+      let hAnchor = "CENTER";
+      if (touchLeft && !touchRight) {
+        hLoc = "left";
+        hAnchor = "LEFT";
+      } else if (touchRight && !touchLeft) {
+        hLoc = "right";
+        hAnchor = "RIGHT";
+      }
+
+      const anchorMap = {
+        "TOPLEFT": AnchorPosition.TOPLEFT,
+        "TOPCENTER": AnchorPosition.TOPCENTER,
+        "TOPRIGHT": AnchorPosition.TOPRIGHT,
+        "MIDDLELEFT": AnchorPosition.MIDDLELEFT,
+        "MIDDLECENTER": AnchorPosition.MIDDLECENTER,
+        "MIDDLERIGHT": AnchorPosition.MIDDLERIGHT,
+        "BOTTOMLEFT": AnchorPosition.BOTTOMLEFT,
+        "BOTTOMCENTER": AnchorPosition.BOTTOMCENTER,
+        "BOTTOMRIGHT": AnchorPosition.BOTTOMRIGHT
+      };
+      const anchorKey = `${vAnchor}${hAnchor}`;
+      const targetAnchor = anchorMap[anchorKey] || AnchorPosition.MIDDLECENTER;
+
+      // 4. Proportional Scale to fit inside width x height
       const scale = Math.min(width / docW, height / docH);
       const fitW = Math.max(1, Math.round(docW * scale));
       const fitH = Math.max(1, Math.round(docH * scale));
@@ -58,8 +197,8 @@ const PSAutomation = {
             _obj: "canvasSize",
             width: { _unit: "pixelsUnit", _value: width },
             height: { _unit: "pixelsUnit", _value: height },
-            horizontal: { _enum: "horizontalLocation", _value: "center" },
-            vertical: { _enum: "verticalLocation", _value: "center" },
+            horizontal: { _enum: "horizontalLocation", _value: hLoc },
+            vertical: { _enum: "verticalLocation", _value: vLoc },
             _options: { dialogOptions: "dontDisplay" }
           }
         ], { synchronousExecution: true });
@@ -70,7 +209,7 @@ const PSAutomation = {
           } catch (e1) {}
         }
         if (doc.resizeCanvas) {
-          await doc.resizeCanvas(width, height, AnchorPosition.MIDDLECENTER);
+          await doc.resizeCanvas(width, height, targetAnchor);
         }
       }
     }, `Resize to ${width}x${height} @ ${dpi}DPI`);
