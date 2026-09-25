@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Core Photoshop Automation Engine via UXP batchPlay & DOM
  */
 const { app, core, action, constants } = require("photoshop");
@@ -824,4 +824,12 @@ const PSAutomation = {
   }
 };
 
-window.PSAutomation = PSAutomation;
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = PSAutomation;
+}
+if (typeof window !== "undefined") {
+  window.PSAutomation = PSAutomation;
+}
+if (typeof globalThis !== "undefined") {
+  globalThis.PSAutomation = PSAutomation;
+}

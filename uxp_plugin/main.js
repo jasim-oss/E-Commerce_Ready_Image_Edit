@@ -1,6 +1,25 @@
-﻿/**
+/**
  * Panel Controller: Accordion & Event Dispatcher
  */
+let PSAutomation;
+try {
+  PSAutomation = require("./modules/ps_automation.js");
+} catch (e) {
+  PSAutomation = (typeof window !== "undefined" && window.PSAutomation) ? window.PSAutomation : null;
+}
+
+let AdjustmentModule;
+try {
+  AdjustmentModule = require("./modules/adjustment.js");
+} catch (e) {
+  AdjustmentModule = (typeof window !== "undefined" && window.AdjustmentModule) ? window.AdjustmentModule : null;
+}
+
+if (typeof window !== "undefined") {
+  if (PSAutomation) window.PSAutomation = PSAutomation;
+  if (AdjustmentModule) window.AdjustmentModule = AdjustmentModule;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const statusMsg = document.getElementById("statusMsg");
   const statusDot = document.querySelector(".status-dot");
@@ -142,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         setStatus(`Resizing to ${w}×${h} px @ ${dpi} DPI ${applyAll ? "(ALL docs)" : ""}...`, "working");
-        await window.PSAutomation.resizeForMarketplace(w, h, dpi, applyAll);
+        await PSAutomation.resizeForMarketplace(w, h, dpi, applyAll);
         setStatus(`Resized to ${w}×${h} px (${dpi} DPI) ${applyAll ? "(ALL docs)" : ""}`, "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
@@ -166,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
       try {
         setStatus(`Removing background ${applyAll ? "(ALL docs)" : ""}...`, "working");
-        await window.PSAutomation.bgRemove(applyAll);
+        await PSAutomation.bgRemove(applyAll);
         setStatus("Background removed cleanly", "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
@@ -182,7 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
         try {
           setStatus(`Adding pure white #FFF BG ${applyAll ? "(ALL docs)" : ""}...`, "working");
-          await window.PSAutomation.addSolidColorBg(255, 255, 255, applyAll);
+          await PSAutomation.addSolidColorBg(255, 255, 255, applyAll);
           setStatus(`Pure white BG added ${applyAll ? "(ALL docs)" : ""}`, "online");
         } catch (err) {
           setStatus(`Error: ${err.message}`, "error");
@@ -214,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
         try {
           setStatus(`Opening file browser for background image ${applyAll ? "(ALL docs)" : ""}...`, "working");
-          const res = await window.PSAutomation.placeBackgroundImage(applyAll);
+          const res = await PSAutomation.placeBackgroundImage(applyAll);
           if (res !== false) {
             setStatus(`Background image placed successfully ${applyAll ? "(ALL docs)" : ""}`, "online");
           } else {
@@ -267,7 +286,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
         try {
           setStatus(`Adding Custom BG (${hex}) ${applyAll ? "(ALL docs)" : ""}...`, "working");
-          await window.PSAutomation.addSolidColorBg(r, g, b, applyAll);
+          await PSAutomation.addSolidColorBg(r, g, b, applyAll);
           setStatus(`Custom BG ${hex} added ${applyAll ? "(ALL docs)" : ""}`, "online");
         } catch (err) {
           setStatus(`Error: ${err.message}`, "error");
@@ -304,7 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const val = getCustomScsmMargin();
       try {
         setStatus(`Applying Custom SCSM (${val}% Margin)...`, 'working');
-        await window.PSAutomation.scsmByMargin(val);
+        await PSAutomation.scsmByMargin(val);
         setStatus(`Custom SCSM (${val}% Margin) applied`, 'online');
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
@@ -318,7 +337,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setActiveScsmBtn(btnScsmProduct);
         try {
           setStatus('Applying Product SCSM (10% Margin)...', 'working');
-          await window.PSAutomation.scsmByMargin(10);
+          await PSAutomation.scsmByMargin(10);
           setStatus('Product SCSM (10% Margin) applied', 'online');
         } catch (err) {
           setStatus(`Error: ${err.message}`, 'error');
@@ -333,7 +352,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setActiveScsmBtn(btnScsmModel);
         try {
           setStatus('Applying Model SCSM (5% Margin)...', 'working');
-          await window.PSAutomation.scsmByMargin(5);
+          await PSAutomation.scsmByMargin(5);
           setStatus('Model SCSM (5% Margin) applied', 'online');
         } catch (err) {
           setStatus(`Error: ${err.message}`, 'error');
@@ -407,7 +426,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (method === "fs") {
       try {
         setStatus("Creating Frequency Separation group...", "working");
-        await window.AdjustmentModule.applyFrequencySeparation();
+        await AdjustmentModule.applyFrequencySeparation();
         setStatus("Frequency Separation ready (Low/High layers)", "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
@@ -415,7 +434,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (method === "dnb") {
       try {
         setStatus("Creating Dodge and Burn Curves layers...", "working");
-        await window.AdjustmentModule.applyDodgeAndBurn();
+        await AdjustmentModule.applyDodgeAndBurn();
         setStatus("Dodge & Burn ready (Curves with black masks)", "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
@@ -423,7 +442,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (method === "evoto") {
       try {
         setStatus("Preparing JPG for Evoto AI...", "working");
-        const savedName = await window.AdjustmentModule.saveForEvoto();
+        const savedName = await AdjustmentModule.saveForEvoto();
         if (savedName) {
           setStatus(`Saved for Evoto: ${savedName}`, "online");
         } else {
@@ -446,7 +465,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btnShadow").addEventListener("click", async () => {
     try {
       setStatus("Adding contact shadow...", "working");
-      await window.AdjustmentModule.applyContactShadow();
+      await AdjustmentModule.applyContactShadow();
       setStatus("Contact shadow applied", "online");
     } catch (err) {
       setStatus(`Error: ${err.message}`, "error");
@@ -456,7 +475,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnColorCorrection").addEventListener("click", async () => {
     try {
       setStatus("Correcting colors & sRGB...", "working");
-      await window.AdjustmentModule.applyColorCorrection();
+      await AdjustmentModule.applyColorCorrection();
       setStatus("Color corrected & sRGB profile set", "online");
     } catch (err) {
       setStatus(`Error: ${err.message}`, "error");
@@ -468,7 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnReadyDelivery").addEventListener("click", async () => {
     try {
       setStatus("Preparing for Delivery...", "working");
-      await window.PSAutomation.exportPreset("Delivery");
+      await PSAutomation.exportPreset("Delivery");
       setStatus("Document ready for Delivery", "online");
     } catch (err) {
       setStatus(`Error: ${err.message}`, "error");
@@ -487,7 +506,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnUndo.addEventListener("click", async () => {
       try {
         setStatus("Undoing last action...", "working");
-        await window.PSAutomation.undo();
+        await PSAutomation.undo();
         setStatus("Undo completed", "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
@@ -499,7 +518,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnRedo.addEventListener("click", async () => {
       try {
         setStatus("Redoing last action...", "working");
-        await window.PSAutomation.redo();
+        await PSAutomation.redo();
         setStatus("Redo completed", "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");

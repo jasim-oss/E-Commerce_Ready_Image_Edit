@@ -385,4 +385,12 @@ const AdjustmentModule = {
   }
 };
 
-window.AdjustmentModule = AdjustmentModule;
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = AdjustmentModule;
+}
+if (typeof window !== "undefined") {
+  window.AdjustmentModule = AdjustmentModule;
+}
+if (typeof globalThis !== "undefined") {
+  globalThis.AdjustmentModule = AdjustmentModule;
+}
