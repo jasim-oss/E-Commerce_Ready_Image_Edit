@@ -926,3 +926,19 @@ input:checked + .slider:before {
   transform: scale(0.93) !important;
   background: #1b1348 !important;
 }
+/* Button Chevron for Collapsible Drawers */
+.btn-chevron {
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid #a5b4fc;
+  border-bottom: 1.5px solid #a5b4fc;
+  transform: rotate(45deg);
+  margin-left: auto;
+  margin-right: 4px;
+  transition: transform 0.2s ease;
+  pointer-events: none;
+}
+
+.btn-chevron.up {
+  transform: rotate(-135deg);
+}

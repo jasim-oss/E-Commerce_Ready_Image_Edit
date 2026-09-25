@@ -375,17 +375,59 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
   // 4. EDITING ADJUSTMENT Handlers
-  document.getElementById("btnWrinkleClothing").addEventListener("click", async () => {
-    try {
-      setStatus("Smoothing fabric wrinkles...", "working");
-      await window.AdjustmentModule.smoothClothingWrinkles();
-      setStatus("Wrinkle smoothing layer added", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
+  const btnWrinkleClothing = document.getElementById("btnWrinkleClothing");
+  const wrinkleOptionsBox = document.getElementById("wrinkleOptionsBox");
+  const wrinkleChevron = document.getElementById("wrinkleChevron");
+  const btnFreqSeparation = document.getElementById("btnFreqSeparation");
+  const btnSaveEvoto = document.getElementById("btnSaveEvoto");
 
-  document.getElementById("btnShadow").addEventListener("click", async () => {
+  if (btnWrinkleClothing) {
+    btnWrinkleClothing.addEventListener("click", () => {
+      if (!wrinkleOptionsBox) return;
+      const isOpen = wrinkleOptionsBox.style.display !== "none";
+      if (isOpen) {
+        wrinkleOptionsBox.style.display = "none";
+        btnWrinkleClothing.classList.remove("active");
+        if (wrinkleChevron) wrinkleChevron.classList.remove("up");
+      } else {
+        wrinkleOptionsBox.style.display = "block";
+        btnWrinkleClothing.classList.add("active");
+        if (wrinkleChevron) wrinkleChevron.classList.add("up");
+      }
+    });
+  }
+
+  // 1) Frequency Separation
+  if (btnFreqSeparation) {
+    btnFreqSeparation.addEventListener("click", async () => {
+      try {
+        setStatus("Creating Frequency Separation group...", "working");
+        await window.AdjustmentModule.applyFrequencySeparation();
+        setStatus("Frequency Separation ready (Low/High layers)", "online");
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
+  }
+
+  // 2) Save for Evoto
+  if (btnSaveEvoto) {
+    btnSaveEvoto.addEventListener("click", async () => {
+      try {
+        setStatus("Preparing JPG for Evoto AI...", "working");
+        const savedName = await window.AdjustmentModule.saveForEvoto();
+        if (savedName) {
+          setStatus(`Saved for Evoto: ${savedName}`, "online");
+        } else {
+          setStatus("Save for Evoto canceled", "online");
+        }
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
+  }
+
+    document.getElementById("btnShadow").addEventListener("click", async () => {
     try {
       setStatus("Adding contact shadow...", "working");
       await window.AdjustmentModule.applyContactShadow();
