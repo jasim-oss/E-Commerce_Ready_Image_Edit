@@ -378,8 +378,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnWrinkleClothing = document.getElementById("btnWrinkleClothing");
   const wrinkleOptionsBox = document.getElementById("wrinkleOptionsBox");
   const wrinkleChevron = document.getElementById("wrinkleChevron");
-  const btnFreqSeparation = document.getElementById("btnFreqSeparation");
-  const btnSaveEvoto = document.getElementById("btnSaveEvoto");
+  const selectWrinkleMethod = document.getElementById("selectWrinkleMethod");
+  const btnApplyWrinkle = document.getElementById("btnApplyWrinkle");
 
   if (btnWrinkleClothing) {
     btnWrinkleClothing.addEventListener("click", () => {
@@ -397,9 +397,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 1) Frequency Separation
-  if (btnFreqSeparation) {
-    btnFreqSeparation.addEventListener("click", async () => {
+  async function executeWrinkleMethod() {
+    const method = selectWrinkleMethod ? selectWrinkleMethod.value : "";
+    if (!method) {
+      setStatus("Please select a retouch option from dropdown", "error");
+      return;
+    }
+
+    if (method === "fs") {
       try {
         setStatus("Creating Frequency Separation group...", "working");
         await window.AdjustmentModule.applyFrequencySeparation();
@@ -407,12 +412,15 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
       }
-    });
-  }
-
-  // 2) Save for Evoto
-  if (btnSaveEvoto) {
-    btnSaveEvoto.addEventListener("click", async () => {
+    } else if (method === "dnb") {
+      try {
+        setStatus("Creating Dodge and Burn Curves layers...", "working");
+        await window.AdjustmentModule.applyDodgeAndBurn();
+        setStatus("Dodge & Burn ready (Curves with black masks)", "online");
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    } else if (method === "evoto") {
       try {
         setStatus("Preparing JPG for Evoto AI...", "working");
         const savedName = await window.AdjustmentModule.saveForEvoto();
@@ -424,7 +432,15 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
       }
-    });
+    }
+  }
+
+  if (btnApplyWrinkle) {
+    btnApplyWrinkle.addEventListener("click", executeWrinkleMethod);
+  }
+
+  if (selectWrinkleMethod) {
+    selectWrinkleMethod.addEventListener("change", executeWrinkleMethod);
   }
 
     document.getElementById("btnShadow").addEventListener("click", async () => {

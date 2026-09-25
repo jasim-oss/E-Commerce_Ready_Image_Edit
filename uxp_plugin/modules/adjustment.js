@@ -97,6 +97,147 @@ const AdjustmentModule = {
   },
 
   /**
+   * Dodge and Burn (D&B):
+   * Creates professional Curves adjustment layers with inverted black masks:
+   * - Dodge Layer (Curves brightened midtones, inverted mask)
+   * - Burn Layer (Curves darkened midtones, inverted mask)
+   * - Grouped inside "Dodge & Burn (Clothing)"
+   */
+  async applyDodgeAndBurn() {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document in Photoshop.");
+
+    return await core.executeAsModal(async () => {
+      let currentLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+      if (!currentLayer) throw new Error("No layer selected.");
+
+      let dodgeLayer = null;
+      let burnLayer = null;
+
+      // 1. Create Dodge Curves Layer
+      try {
+        await batchPlay([
+          {
+            _obj: "make",
+            _target: [{ _ref: "adjustmentLayer" }],
+            using: {
+              _obj: "adjustmentLayer",
+              name: "Dodge",
+              type: {
+                _obj: "curves",
+                curve: [
+                  {
+                    _obj: "channelType",
+                    channel: { _enum: "channelType", _value: "composite" },
+                    curvePoints: [
+                      { _obj: "paint", horizontal: 0, vertical: 0 },
+                      { _obj: "paint", horizontal: 128, vertical: 165 },
+                      { _obj: "paint", horizontal: 255, vertical: 255 }
+                    ]
+                  }
+                ]
+              }
+            },
+            dialogOptions: "dontDisplay"
+          },
+          {
+            _obj: "invert",
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+        dodgeLayer = doc.activeLayers[0];
+      } catch (e1) {
+        // Fallback: 50% Gray Soft Light layer
+        try {
+          await batchPlay([
+            {
+              _obj: "make",
+              _target: [{ _ref: "layer" }],
+              using: {
+                _obj: "layer",
+                name: "Dodge",
+                mode: { _enum: "blendMode", _value: "softLight" },
+                fillNeutral: true
+              },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+          dodgeLayer = doc.activeLayers[0];
+        } catch (e1b) {}
+      }
+
+      // 2. Create Burn Curves Layer
+      try {
+        await batchPlay([
+          {
+            _obj: "make",
+            _target: [{ _ref: "adjustmentLayer" }],
+            using: {
+              _obj: "adjustmentLayer",
+              name: "Burn",
+              type: {
+                _obj: "curves",
+                curve: [
+                  {
+                    _obj: "channelType",
+                    channel: { _enum: "channelType", _value: "composite" },
+                    curvePoints: [
+                      { _obj: "paint", horizontal: 0, vertical: 0 },
+                      { _obj: "paint", horizontal: 128, vertical: 95 },
+                      { _obj: "paint", horizontal: 255, vertical: 255 }
+                    ]
+                  }
+                ]
+              }
+            },
+            dialogOptions: "dontDisplay"
+          },
+          {
+            _obj: "invert",
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+        burnLayer = doc.activeLayers[0];
+      } catch (e2) {
+        // Fallback: 50% Gray Soft Light layer
+        try {
+          await batchPlay([
+            {
+              _obj: "make",
+              _target: [{ _ref: "layer" }],
+              using: {
+                _obj: "layer",
+                name: "Burn",
+                mode: { _enum: "blendMode", _value: "softLight" },
+                fillNeutral: true
+              },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+          burnLayer = doc.activeLayers[0];
+        } catch (e2b) {}
+      }
+
+      // 3. Put in Group
+      try {
+        if (typeof doc.createLayerGroup === "function" && dodgeLayer && burnLayer) {
+          await doc.createLayerGroup({
+            name: "Dodge & Burn (Clothing)",
+            fromLayers: [dodgeLayer, burnLayer]
+          });
+        }
+      } catch (grpErr) {}
+
+      // 4. Select Dodge layer
+      if (dodgeLayer) {
+        try {
+          doc.activeLayers = [dodgeLayer];
+        } catch (selErr) {}
+      }
+    }, { commandName: "Dodge and Burn (Clothing)" });
+  },
+
+  /**
    * Save for Evoto:
    * Prompts to save a high-quality JPG copy ready for Evoto AI clothing wrinkle removal
    */

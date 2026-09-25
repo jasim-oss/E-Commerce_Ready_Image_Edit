@@ -187,15 +187,18 @@
             <span class="btn-chevron" id="wrinkleChevron"></span>
           </button>
 
-          <!-- Wrinkle Options Drawer (Expands on click) -->
+          <!-- Wrinkle Options Drawer (Dropdown) -->
           <div id="wrinkleOptionsBox" class="custom-scsm-box" style="display: none; margin-bottom: 6px;">
-            <div class="scsm-options-row" style="margin-bottom: 0;">
-              <button type="button" class="action-btn scsm-choice-btn" id="btnFreqSeparation" title="Create Frequency Separation group (Low/High layers)">
-                <span class="btn-label-center">Frequency Separation</span>
-              </button>
-              <button type="button" class="action-btn scsm-choice-btn" id="btnSaveEvoto" title="Save high-quality JPG copy ready for Evoto AI">
-                <span class="btn-label-center">Save for Evoto</span>
-              </button>
+            <div class="wrinkle-dropdown-row" style="display: flex; gap: 8px; align-items: center; width: 100%;">
+              <div class="custom-select-wrap" style="flex: 1; margin-bottom: 0;">
+                <select id="selectWrinkleMethod" class="custom-select" style="height: 32px; font-size: 11px;">
+                  <option value="" disabled selected>Select Retouch Option...</option>
+                  <option value="fs">Frequency Separation</option>
+                  <option value="dnb">Dodge and Burn (D&B)</option>
+                  <option value="evoto">Save for Evoto (JPG)</option>
+                </select>
+              </div>
+              <button type="button" class="btn-apply-scsm" id="btnApplyWrinkle" style="height: 32px;">Apply</button>
             </div>
           </div>
 
