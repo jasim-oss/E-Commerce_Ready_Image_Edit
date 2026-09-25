@@ -617,62 +617,70 @@ const PSAutomation = {
         }
       }
 
-      // Add the 4 framing guides
+      const hDir = (constants && constants.Direction && constants.Direction.HORIZONTAL) || "horizontal";
+      const vDir = (constants && constants.Direction && constants.Direction.VERTICAL) || "vertical";
+
+      let guidesCreated = false;
       try {
-        await batchPlay([
-          // Top Horizontal Guide
-          {
-            _obj: "make",
-            new: {
-              _class: "guide",
-              position: { _unit: "pixelsUnit", _value: topGuide },
-              orientation: { _enum: "orientation", _value: "horizontal" }
-            },
-            dialogOptions: "dontDisplay"
-          },
-          // Bottom Horizontal Guide
-          {
-            _obj: "make",
-            new: {
-              _class: "guide",
-              position: { _unit: "pixelsUnit", _value: bottomGuide },
-              orientation: { _enum: "orientation", _value: "horizontal" }
-            },
-            dialogOptions: "dontDisplay"
-          },
-          // Left Vertical Guide
-          {
-            _obj: "make",
-            new: {
-              _class: "guide",
-              position: { _unit: "pixelsUnit", _value: leftGuide },
-              orientation: { _enum: "orientation", _value: "vertical" }
-            },
-            dialogOptions: "dontDisplay"
-          },
-          // Right Vertical Guide
-          {
-            _obj: "make",
-            new: {
-              _class: "guide",
-              position: { _unit: "pixelsUnit", _value: rightGuide },
-              orientation: { _enum: "orientation", _value: "vertical" }
-            },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (gErr) {
-        try {
-          if (doc.guides && doc.guides.add) {
-            await doc.guides.add("horizontal", topGuide);
-            await doc.guides.add("horizontal", bottomGuide);
-            await doc.guides.add("vertical", leftGuide);
-            await doc.guides.add("vertical", rightGuide);
-          }
-        } catch (domErr) {}
+        if (doc.guides && typeof doc.guides.add === "function") {
+          await doc.guides.add(hDir, topGuide);
+          await doc.guides.add(hDir, bottomGuide);
+          await doc.guides.add(vDir, leftGuide);
+          await doc.guides.add(vDir, rightGuide);
+          guidesCreated = (doc.guides.length >= 4);
+        }
+      } catch (domErr) {
+        guidesCreated = false;
       }
 
-    }, `SCSM: ${marginPercent}% Margin Fit`);
+      if (!guidesCreated) {
+        try {
+          await batchPlay([
+            {
+              _obj: "make",
+              _target: [{ _ref: "guide" }],
+              new: {
+                _obj: "guide",
+                orientation: { _enum: "orientation", _value: "horizontal" },
+                position: { _unit: "pixelsUnit", _value: topGuide }
+              },
+              dialogOptions: "dontDisplay"
+            },
+            {
+              _obj: "make",
+              _target: [{ _ref: "guide" }],
+              new: {
+                _obj: "guide",
+                orientation: { _enum: "orientation", _value: "horizontal" },
+                position: { _unit: "pixelsUnit", _value: bottomGuide }
+              },
+              dialogOptions: "dontDisplay"
+            },
+            {
+              _obj: "make",
+              _target: [{ _ref: "guide" }],
+              new: {
+                _obj: "guide",
+                orientation: { _enum: "orientation", _value: "vertical" },
+                position: { _unit: "pixelsUnit", _value: leftGuide }
+              },
+              dialogOptions: "dontDisplay"
+            },
+            {
+              _obj: "make",
+              _target: [{ _ref: "guide" }],
+              new: {
+                _obj: "guide",
+                orientation: { _enum: "orientation", _value: "vertical" },
+                position: { _unit: "pixelsUnit", _value: rightGuide }
+              },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (bpErr) {}
+      }
+
+      }, `SCSM: ${marginPercent}% Margin Fit`);
   },
 
   async scsmFitAndCenter(fillRatio = 0.85) {
