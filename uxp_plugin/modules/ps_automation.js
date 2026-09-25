@@ -427,42 +427,55 @@ const PSAutomation = {
       // Ensure layer is selected
       doc.activeLayers = [layer];
 
-      // 2. Measure Exact Subject Bounds (via Layer Mask selection or Transparency)
-      let b = null;
-      try {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _ref: "channel", _enum: "channel", _value: "mask" },
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ], { synchronousExecution: true });
-
-        if (doc.selection && doc.selection.bounds) {
-          const sb = doc.selection.bounds;
-          if (sb.right > sb.left && sb.bottom > sb.top) {
-            b = sb;
-          }
+      // Convert Background layer to regular layer if needed so it can be transformed
+      if (layer.isBackgroundLayer) {
+        try {
+          layer.isBackgroundLayer = false;
+        } catch (e) {
+          try {
+            await batchPlay([
+              {
+                _obj: "set",
+                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                to: { _obj: "layer", name: "Layer 0" },
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (e2) {}
         }
-        await batchPlay([
+      }
+      if (layer.locked) {
+        try { layer.locked = false; } catch (e) {}
+      }
+
+      // Check if layer has a user mask before attempting to select it
+      let hasMask = false;
+      try {
+        const res = await batchPlay([
           {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _enum: "ordinal", _value: "none" },
-            _options: { dialogOptions: "dontDisplay" }
+            _obj: "get",
+            _target: [
+              { _ref: "property", _property: "hasUserMask" },
+              { _ref: "layer", _id: layer.id }
+            ],
+            dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (e) {}
+        hasMask = Boolean(res && res[0] && res[0].hasUserMask);
+      } catch (e) {
+        hasMask = false;
+      }
 
-      if (!b) {
+      // 2. Measure Exact Subject Bounds
+      let b = null;
+      if (hasMask) {
         try {
           await batchPlay([
             {
               _obj: "set",
               _target: [{ _ref: "channel", _property: "selection" }],
-              to: { _ref: "channel", _enum: "channel", _value: "transparencyEnum" },
-              _options: { dialogOptions: "dontDisplay" }
+              to: { _ref: "channel", _enum: "channel", _value: "mask" },
+              dialogOptions: "dontDisplay"
             }
           ], { synchronousExecution: true });
 
@@ -477,7 +490,7 @@ const PSAutomation = {
               _obj: "set",
               _target: [{ _ref: "channel", _property: "selection" }],
               to: { _enum: "ordinal", _value: "none" },
-              _options: { dialogOptions: "dontDisplay" }
+              dialogOptions: "dontDisplay"
             }
           ], { synchronousExecution: true });
         } catch (e) {}
@@ -508,44 +521,48 @@ const PSAutomation = {
           await layer.scale(scalePct, scalePct);
         }
       } catch (scaleErr) {
-        await batchPlay([
-          {
-            _obj: "transform",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            width: { _unit: "percentUnit", _value: scalePct },
-            height: { _unit: "percentUnit", _value: scalePct },
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ], { synchronousExecution: true });
+        try {
+          await batchPlay([
+            {
+              _obj: "transform",
+              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+              width: { _unit: "percentUnit", _value: scalePct },
+              height: { _unit: "percentUnit", _value: scalePct },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (e) {}
       }
 
       // 4. Center Subject in Canvas
       let newCenter = null;
-      try {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _ref: "channel", _enum: "channel", _value: "mask" },
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ], { synchronousExecution: true });
+      if (hasMask) {
+        try {
+          await batchPlay([
+            {
+              _obj: "set",
+              _target: [{ _ref: "channel", _property: "selection" }],
+              to: { _ref: "channel", _enum: "channel", _value: "mask" },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
 
-        if (doc.selection && doc.selection.bounds) {
-          const sb = doc.selection.bounds;
-          if (sb.right > sb.left && sb.bottom > sb.top) {
-            newCenter = { x: (sb.left + sb.right) / 2, y: (sb.top + sb.bottom) / 2 };
+          if (doc.selection && doc.selection.bounds) {
+            const sb = doc.selection.bounds;
+            if (sb.right > sb.left && sb.bottom > sb.top) {
+              newCenter = { x: (sb.left + sb.right) / 2, y: (sb.top + sb.bottom) / 2 };
+            }
           }
-        }
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _enum: "ordinal", _value: "none" },
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ], { synchronousExecution: true });
-      } catch (e) {}
+          await batchPlay([
+            {
+              _obj: "set",
+              _target: [{ _ref: "channel", _property: "selection" }],
+              to: { _enum: "ordinal", _value: "none" },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (e) {}
+      }
 
       if (!newCenter) {
         const nb = layer.bounds;
@@ -555,21 +572,25 @@ const PSAutomation = {
       const dx = (canvasW / 2) - newCenter.x;
       const dy = (canvasH / 2) - newCenter.y;
 
-      try {
-        await layer.translate(dx, dy);
-      } catch (transErr) {
-        await batchPlay([
-          {
-            _obj: "move",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            to: {
-              _obj: "offset",
-              horizontal: { _unit: "pixelsUnit", _value: dx },
-              vertical: { _unit: "pixelsUnit", _value: dy }
-            },
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ], { synchronousExecution: true });
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+        try {
+          await layer.translate(dx, dy);
+        } catch (transErr) {
+          try {
+            await batchPlay([
+              {
+                _obj: "move",
+                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                to: {
+                  _obj: "offset",
+                  horizontal: { _unit: "pixelsUnit", _value: dx },
+                  vertical: { _unit: "pixelsUnit", _value: dy }
+                },
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (e) {}
+        }
       }
 
       // 5. Draw 4 Margin Guides (Top, Bottom, Left, Right)
@@ -578,15 +599,23 @@ const PSAutomation = {
       const topGuide = Math.round(canvasH * (m / 100));
       const bottomGuide = Math.round(canvasH * (1 - m / 100));
 
-      // Clear previous guides so we don't accumulate multiple guide lines
-      try {
-        await batchPlay([
-          {
-            _obj: "clearGuides",
-            _options: { dialogOptions: "dontDisplay" }
+      // Clear previous guides safely (only if document has guides)
+      if (doc.guides && doc.guides.length > 0) {
+        try {
+          for (let i = doc.guides.length - 1; i >= 0; i--) {
+            doc.guides[i].delete();
           }
-        ], { synchronousExecution: true });
-      } catch (cgErr) {}
+        } catch (cgErr) {
+          try {
+            await batchPlay([
+              {
+                _obj: "clearGuides",
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (e) {}
+        }
+      }
 
       // Add the 4 framing guides
       try {
@@ -599,7 +628,7 @@ const PSAutomation = {
               position: { _unit: "pixelsUnit", _value: topGuide },
               orientation: { _enum: "orientation", _value: "horizontal" }
             },
-            _options: { dialogOptions: "dontDisplay" }
+            dialogOptions: "dontDisplay"
           },
           // Bottom Horizontal Guide
           {
@@ -609,7 +638,7 @@ const PSAutomation = {
               position: { _unit: "pixelsUnit", _value: bottomGuide },
               orientation: { _enum: "orientation", _value: "horizontal" }
             },
-            _options: { dialogOptions: "dontDisplay" }
+            dialogOptions: "dontDisplay"
           },
           // Left Vertical Guide
           {
@@ -619,7 +648,7 @@ const PSAutomation = {
               position: { _unit: "pixelsUnit", _value: leftGuide },
               orientation: { _enum: "orientation", _value: "vertical" }
             },
-            _options: { dialogOptions: "dontDisplay" }
+            dialogOptions: "dontDisplay"
           },
           // Right Vertical Guide
           {
@@ -629,20 +658,19 @@ const PSAutomation = {
               position: { _unit: "pixelsUnit", _value: rightGuide },
               orientation: { _enum: "orientation", _value: "vertical" }
             },
-            _options: { dialogOptions: "dontDisplay" }
+            dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
       } catch (gErr) {
         try {
           if (doc.guides && doc.guides.add) {
-            doc.guides.add("horizontal", topGuide);
-            doc.guides.add("horizontal", bottomGuide);
-            doc.guides.add("vertical", leftGuide);
-            doc.guides.add("vertical", rightGuide);
+            await doc.guides.add("horizontal", topGuide);
+            await doc.guides.add("horizontal", bottomGuide);
+            await doc.guides.add("vertical", leftGuide);
+            await doc.guides.add("vertical", rightGuide);
           }
         } catch (domErr) {}
       }
-
 
     }, `SCSM: ${marginPercent}% Margin Fit`);
   },
