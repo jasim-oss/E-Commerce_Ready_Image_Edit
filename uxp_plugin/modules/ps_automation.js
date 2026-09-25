@@ -507,10 +507,34 @@ const PSAutomation = {
       const canvasW = doc.width;
       const canvasH = doc.height;
 
+      // Detect Edge Contact (Threshold: within 4px or 0.5% of canvas dimension)
+      const edgeThreshold = Math.max(4, Math.round(Math.min(canvasW, canvasH) * 0.005));
+      const touchLeft = b.left <= edgeThreshold;
+      const touchRight = b.right >= canvasW - edgeThreshold;
+      const touchTop = b.top <= edgeThreshold;
+      const touchBottom = b.bottom >= canvasH - edgeThreshold;
+
       const numMargin = typeof marginPercent === "number" ? marginPercent : parseInt(String(marginPercent).replace(/[^0-9]/g, "") || "10", 10);
       const m = Math.max(1, Math.min(isNaN(numMargin) ? 10 : numMargin, 45));
-      const targetW = canvasW * (1 - 2 * (m / 100));
-      const targetH = canvasH * (1 - 2 * (m / 100));
+
+      // Calculate Target Dimensions based on which edges touch the canvas
+      let targetW;
+      if (touchLeft && touchRight) {
+        targetW = canvasW; // both sides touch
+      } else if (touchLeft || touchRight) {
+        targetW = canvasW * (1 - (m / 100)); // only 1 side has gap
+      } else {
+        targetW = canvasW * (1 - 2 * (m / 100)); // both sides have gap
+      }
+
+      let targetH;
+      if (touchTop && touchBottom) {
+        targetH = canvasH; // top and bottom touch
+      } else if (touchTop || touchBottom) {
+        targetH = canvasH * (1 - (m / 100)); // only 1 end has gap (e.g. Model bottom cropped)
+      } else {
+        targetH = canvasH * (1 - 2 * (m / 100)); // both ends have gap
+      }
 
       const scalePct = Math.min(targetW / w, targetH / h) * 100;
 
@@ -535,8 +559,8 @@ const PSAutomation = {
         } catch (e) {}
       }
 
-      // 4. Center Subject in Canvas
-      let newCenter = null;
+      // 4. Position Subject (Anchored to touching edges, centered along free axes)
+      let newBounds = null;
       if (hasMask) {
         try {
           await batchPlay([
@@ -551,7 +575,7 @@ const PSAutomation = {
           if (doc.selection && doc.selection.bounds) {
             const sb = doc.selection.bounds;
             if (sb.right > sb.left && sb.bottom > sb.top) {
-              newCenter = { x: (sb.left + sb.right) / 2, y: (sb.top + sb.bottom) / 2 };
+              newBounds = sb;
             }
           }
           await batchPlay([
@@ -565,13 +589,37 @@ const PSAutomation = {
         } catch (e) {}
       }
 
-      if (!newCenter) {
-        const nb = layer.bounds;
-        newCenter = { x: (nb.left + nb.right) / 2, y: (nb.top + nb.bottom) / 2 };
+      if (!newBounds) {
+        newBounds = layer.bounds;
       }
 
-      const dx = (canvasW / 2) - newCenter.x;
-      const dy = (canvasH / 2) - newCenter.y;
+      // Calculate horizontal delta (dx)
+      let dx = 0;
+      if (touchLeft && !touchRight) {
+        // Pin to left edge (margin gap is on the right)
+        dx = 0 - newBounds.left;
+      } else if (touchRight && !touchLeft) {
+        // Pin to right edge (margin gap is on the left)
+        dx = canvasW - newBounds.right;
+      } else {
+        // Centered horizontally
+        const curCenterX = (newBounds.left + newBounds.right) / 2;
+        dx = (canvasW / 2) - curCenterX;
+      }
+
+      // Calculate vertical delta (dy)
+      let dy = 0;
+      if (touchTop && !touchBottom) {
+        // Pin to top edge (margin gap is on the bottom)
+        dy = 0 - newBounds.top;
+      } else if (touchBottom && !touchTop) {
+        // Pin to bottom edge (e.g. Model half-body cropped at bottom, margin gap is on top)
+        dy = canvasH - newBounds.bottom;
+      } else {
+        // Centered vertically
+        const curCenterY = (newBounds.top + newBounds.bottom) / 2;
+        dy = (canvasH / 2) - curCenterY;
+      }
 
       if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
         try {
@@ -594,12 +642,7 @@ const PSAutomation = {
         }
       }
 
-      // 5. Draw 4 Margin Guides (Top, Bottom, Left, Right)
-      const leftGuide = Math.round(canvasW * (m / 100));
-      const rightGuide = Math.round(canvasW * (1 - m / 100));
-      const topGuide = Math.round(canvasH * (m / 100));
-      const bottomGuide = Math.round(canvasH * (1 - m / 100));
-
+      // 5. Draw Margin Guides ONLY on sides that have gaps
       // Clear previous guides safely (only if document has guides)
       if (doc.guides && doc.guides.length > 0) {
         try {
@@ -621,63 +664,55 @@ const PSAutomation = {
       const hDir = (constants && constants.Direction && constants.Direction.HORIZONTAL) || "horizontal";
       const vDir = (constants && constants.Direction && constants.Direction.VERTICAL) || "vertical";
 
+      const topGuide = Math.round(canvasH * (m / 100));
+      const bottomGuide = Math.round(canvasH * (1 - m / 100));
+      const leftGuide = Math.round(canvasW * (m / 100));
+      const rightGuide = Math.round(canvasW * (1 - m / 100));
+
+      const guidesToMake = [];
+      // Top guide only if top has gap
+      if (!touchTop) {
+        guidesToMake.push({ dir: hDir, orientation: "horizontal", pos: topGuide });
+      }
+      // Bottom guide only if bottom has gap
+      if (!touchBottom) {
+        guidesToMake.push({ dir: hDir, orientation: "horizontal", pos: bottomGuide });
+      }
+      // Left guide only if left has gap
+      if (!touchLeft) {
+        guidesToMake.push({ dir: vDir, orientation: "vertical", pos: leftGuide });
+      }
+      // Right guide only if right has gap
+      if (!touchRight) {
+        guidesToMake.push({ dir: vDir, orientation: "vertical", pos: rightGuide });
+      }
+
+      // Add the guides via DOM or batchPlay
       let guidesCreated = false;
       try {
         if (doc.guides && typeof doc.guides.add === "function") {
-          await doc.guides.add(hDir, topGuide);
-          await doc.guides.add(hDir, bottomGuide);
-          await doc.guides.add(vDir, leftGuide);
-          await doc.guides.add(vDir, rightGuide);
-          guidesCreated = (doc.guides.length >= 4);
+          for (const g of guidesToMake) {
+            await doc.guides.add(g.dir, g.pos);
+          }
+          guidesCreated = true;
         }
       } catch (domErr) {
         guidesCreated = false;
       }
 
-      if (!guidesCreated) {
+      if (!guidesCreated && guidesToMake.length > 0) {
         try {
-          await batchPlay([
-            {
-              _obj: "make",
-              _target: [{ _ref: "guide" }],
-              new: {
-                _obj: "guide",
-                orientation: { _enum: "orientation", _value: "horizontal" },
-                position: { _unit: "pixelsUnit", _value: topGuide }
-              },
-              dialogOptions: "dontDisplay"
+          const bpDescriptors = guidesToMake.map(g => ({
+            _obj: "make",
+            _target: [{ _ref: "guide" }],
+            new: {
+              _obj: "guide",
+              orientation: { _enum: "orientation", _value: g.orientation },
+              position: { _unit: "pixelsUnit", _value: g.pos }
             },
-            {
-              _obj: "make",
-              _target: [{ _ref: "guide" }],
-              new: {
-                _obj: "guide",
-                orientation: { _enum: "orientation", _value: "horizontal" },
-                position: { _unit: "pixelsUnit", _value: bottomGuide }
-              },
-              dialogOptions: "dontDisplay"
-            },
-            {
-              _obj: "make",
-              _target: [{ _ref: "guide" }],
-              new: {
-                _obj: "guide",
-                orientation: { _enum: "orientation", _value: "vertical" },
-                position: { _unit: "pixelsUnit", _value: leftGuide }
-              },
-              dialogOptions: "dontDisplay"
-            },
-            {
-              _obj: "make",
-              _target: [{ _ref: "guide" }],
-              new: {
-                _obj: "guide",
-                orientation: { _enum: "orientation", _value: "vertical" },
-                position: { _unit: "pixelsUnit", _value: rightGuide }
-              },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
+            dialogOptions: "dontDisplay"
+          }));
+          await batchPlay(bpDescriptors, { synchronousExecution: true });
         } catch (bpErr) {}
       }
 
