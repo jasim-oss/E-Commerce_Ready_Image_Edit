@@ -942,3 +942,8 @@ input:checked + .slider:before {
 .btn-chevron.up {
   transform: rotate(-135deg);
 }
+
+.accordion-header .toggle-group {
+  padding: 0 2px;
+  cursor: default;
+}

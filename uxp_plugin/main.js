@@ -11,7 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Accordion Toggle Behavior
   document.querySelectorAll(".accordion-header").forEach((header) => {
-    header.addEventListener("click", () => {
+    header.addEventListener("click", (e) => {
+      if (e.target.closest(".toggle-group") || e.target.closest(".switch") || e.target.closest("input")) {
+        return;
+      }
       const targetId = header.getAttribute("data-target");
       const body = document.getElementById(targetId);
       const chevron = header.querySelector(".chevron");
@@ -276,6 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 3. SCSM Handlers (Product, Model, Custom)
+    const toggleScsmAll = document.getElementById('toggleScsmAll');
     const btnScsmProduct = document.getElementById('btnScsmProduct');
     const btnScsmModel = document.getElementById('btnScsmModel');
     const btnScsmCustom = document.getElementById('btnScsmCustom');
@@ -302,10 +306,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function applyCustomMargin() {
       const val = getCustomScsmMargin();
+      const applyAll = toggleScsmAll ? toggleScsmAll.checked : false;
       try {
-        setStatus(`Applying Custom SCSM (${val}% Margin)...`, 'working');
-        await window.PSAutomation.scsmByMargin(val);
-        setStatus(`Custom SCSM (${val}% Margin) applied`, 'online');
+        setStatus(`Applying Custom SCSM (${val}% Margin) ${applyAll ? "(ALL docs)" : ""}...`, 'working');
+        await window.PSAutomation.scsmByMargin(val, applyAll);
+        setStatus(`Custom SCSM (${val}% Margin) applied ${applyAll ? "(ALL docs)" : ""}`, 'online');
       } catch (err) {
         setStatus(`Error: ${err.message}`, 'error');
       }
@@ -316,10 +321,11 @@ document.addEventListener("DOMContentLoaded", () => {
       btnScsmProduct.addEventListener('click', async () => {
         if (customScsmBox) customScsmBox.style.display = 'none';
         setActiveScsmBtn(btnScsmProduct);
+        const applyAll = toggleScsmAll ? toggleScsmAll.checked : false;
         try {
-          setStatus('Applying Product SCSM (10% Margin)...', 'working');
-          await window.PSAutomation.scsmByMargin(10);
-          setStatus('Product SCSM (10% Margin) applied', 'online');
+          setStatus(`Applying Product SCSM (10% Margin) ${applyAll ? "(ALL docs)" : ""}...`, 'working');
+          await window.PSAutomation.scsmByMargin(10, applyAll);
+          setStatus(`Product SCSM (10% Margin) applied ${applyAll ? "(ALL docs)" : ""}`, 'online');
         } catch (err) {
           setStatus(`Error: ${err.message}`, 'error');
         }
@@ -331,10 +337,11 @@ document.addEventListener("DOMContentLoaded", () => {
       btnScsmModel.addEventListener('click', async () => {
         if (customScsmBox) customScsmBox.style.display = 'none';
         setActiveScsmBtn(btnScsmModel);
+        const applyAll = toggleScsmAll ? toggleScsmAll.checked : false;
         try {
-          setStatus('Applying Model SCSM (5% Margin)...', 'working');
-          await window.PSAutomation.scsmByMargin(5);
-          setStatus('Model SCSM (5% Margin) applied', 'online');
+          setStatus(`Applying Model SCSM (5% Margin) ${applyAll ? "(ALL docs)" : ""}...`, 'working');
+          await window.PSAutomation.scsmByMargin(5, applyAll);
+          setStatus(`Model SCSM (5% Margin) applied ${applyAll ? "(ALL docs)" : ""}`, 'online');
         } catch (err) {
           setStatus(`Error: ${err.message}`, 'error');
         }
