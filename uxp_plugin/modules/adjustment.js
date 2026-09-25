@@ -9,17 +9,19 @@ const batchPlay = action.batchPlay;
 
 const AdjustmentModule = {
   /**
-   * Frequency Separation (Clothing Retouching):
-   * Creates a dedicated High/Low frequency group:
-   * - Low Frequency: Blurs color/tone for smooth wrinkle removal
-   * - High Frequency: Keeps fabric texture sharp with Linear Light blend
+   * Frequency Separation (Wrinkle Retouch Action):
+   * Built exactly from user's "Wrinkle On CLothing / Frequency Separation.atn":
+   * 1. High layer (Linear Light, Apply Image Subtract/Add with Blur)
+   * 2. Blur with mask (Gaussian Blur 37.5px with Black Hide-All Mask)
+   * 3. Blur layer (Gaussian Blur 8.0px)
+   * 4. Enclosed in group: "Wrinkle Retouch"
    */
   async applyFrequencySeparation() {
     const doc = app.activeDocument;
     if (!doc) throw new Error("No active document in Photoshop.");
 
     return await core.executeAsModal(async () => {
-      let currentLayer = doc.activeLayers[0];
+      let currentLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
       if (!currentLayer) throw new Error("No layer selected to retouch.");
 
       if (currentLayer.isBackgroundLayer) {
@@ -29,44 +31,81 @@ const AdjustmentModule = {
         currentLayer.locked = false;
       }
 
-      // 1. Create Low Frequency (Color / Tone) Layer
-      const lowFreq = await currentLayer.duplicate();
-      lowFreq.name = "Low Frequency (Color / Tone)";
-      doc.activeLayers = [lowFreq];
+      // Step 1: Create a merged stamp or duplicate active layer as "Blur"
+      let blurLayer = null;
+      try {
+        await batchPlay([
+          {
+            _obj: "mergeVisible",
+            duplicate: true,
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+        blurLayer = doc.activeLayers[0];
+      } catch (e) {
+        blurLayer = await currentLayer.duplicate();
+      }
 
+      if (!blurLayer) {
+        blurLayer = await currentLayer.duplicate();
+      }
+      blurLayer.name = "Blur";
+
+      // Step 2: Create "High" layer duplicate from blurLayer
+      const highLayer = await blurLayer.duplicate();
+      highLayer.name = "High";
+
+      // Step 3: On "Blur" layer, apply Gaussian Blur with Radius 8.0 px
+      doc.activeLayers = [blurLayer];
       try {
         await batchPlay([
           {
             _obj: "gaussianBlur",
-            radius: { _unit: "pixelsUnit", _value: 4.0 },
+            radius: { _unit: "pixelsUnit", _value: 8.0 },
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (e) {
-        try {
-          await batchPlay([
-            {
-              _obj: "surfaceBlur",
-              radius: { _unit: "pixelsUnit", _value: 6 },
-              threshold: 20,
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (e2) {}
-      }
+      } catch (gbErr1) {}
 
-      // 2. Create High Frequency (Texture) Layer
-      const highFreq = await currentLayer.duplicate();
-      highFreq.name = "High Frequency (Texture)";
-      doc.activeLayers = [highFreq];
-
+      // Step 4: On "High" layer, Apply Image with "Blur" layer
+      doc.activeLayers = [highLayer];
+      const is16Bit = doc.bitsPerChannel === 16;
+      let applied = false;
       try {
         await batchPlay([
           {
-            _obj: "highPass",
-            radius: { _unit: "pixelsUnit", _value: 4.0 },
+            _obj: "applyImageEvent",
+            with: {
+              _obj: "calculation",
+              to: { _ref: "channel", _enum: "channel", _value: "RGB" },
+              layer: "Blur",
+              calculation: { _enum: "calculation", _value: is16Bit ? "add" : "subtract" },
+              scale: 2,
+              offset: is16Bit ? 0 : 128,
+              invert: is16Bit
+            },
             dialogOptions: "dontDisplay"
-          },
+          }
+        ], { synchronousExecution: true });
+        applied = true;
+      } catch (appErr) {}
+
+      if (!applied) {
+        // Fallback: High Pass filter with 8.0 px
+        try {
+          await batchPlay([
+            {
+              _obj: "highPass",
+              radius: { _unit: "pixelsUnit", _value: 8.0 },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (hpErr) {}
+      }
+
+      // Set "High" layer blend mode to Linear Light
+      try {
+        await batchPlay([
           {
             _obj: "set",
             _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
@@ -77,23 +116,47 @@ const AdjustmentModule = {
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (hpErr) {}
+      } catch (bmErr) {}
 
-      // 3. Put both in a Layer Group
+      // Step 5: Duplicate "Blur" layer as "Blur with mask"
+      doc.activeLayers = [blurLayer];
+      const blurWithMask = await blurLayer.duplicate();
+      blurWithMask.name = "Blur with mask";
+      doc.activeLayers = [blurWithMask];
+
+      // On "Blur with mask", apply Gaussian Blur with Radius 37.5 px & Hide-All Mask
+      try {
+        await batchPlay([
+          {
+            _obj: "gaussianBlur",
+            radius: { _unit: "pixelsUnit", _value: 37.5 },
+            dialogOptions: "dontDisplay"
+          },
+          {
+            _obj: "make",
+            new: { _class: "channel" },
+            at: { _ref: "channel", _enum: "channel", _value: "mask" },
+            using: { _enum: "userMaskOptions", _value: "hideAll" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (bwmErr) {}
+
+      // Step 6: Create Group "Wrinkle Retouch"
       try {
         if (typeof doc.createLayerGroup === "function") {
           await doc.createLayerGroup({
-            name: "Frequency Separation (Clothing)",
-            fromLayers: [lowFreq, highFreq]
+            name: "Wrinkle Retouch",
+            fromLayers: [highLayer, blurWithMask, blurLayer]
           });
         }
       } catch (grpErr) {}
 
-      // 4. Select Low Frequency layer so user can immediately paint or smooth wrinkles
+      // Step 7: Select "Blur with mask" layer ready for painting on wrinkles
       try {
-        doc.activeLayers = [lowFreq];
+        doc.activeLayers = [blurWithMask];
       } catch (selErr) {}
-    }, { commandName: "Frequency Separation (Clothing)" });
+    }, { commandName: "Frequency Separation (Wrinkle Retouch)" });
   },
 
   /**
