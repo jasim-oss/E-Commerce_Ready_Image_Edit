@@ -1,17 +1,17 @@
 /**
  * Editing Adjustments Module:
- * - Wrinkle on clothing (Frequency Separation & Save for Evoto)
+ * - Wrinkle on clothing (Frequency Separation, Dodge and Burn, Save for Evoto)
  * - Shadow (Natural contact & drop shadow)
  * - Color Correction & sRGB
  */
-const { app, core, action } = require("photoshop");
+const { app, core, action, constants } = require("photoshop");
 const batchPlay = action.batchPlay;
 
 const AdjustmentModule = {
   /**
    * Frequency Separation (Wrinkle Retouch Action):
    * Built exactly from user's "Wrinkle On CLothing / Frequency Separation.atn":
-   * 1. High layer (Linear Light, Apply Image Subtract/Add with Blur)
+   * 1. High layer (Linear Light, fabric texture)
    * 2. Blur with mask (Gaussian Blur 37.5px with Black Hide-All Mask)
    * 3. Blur layer (Gaussian Blur 8.0px)
    * 4. Enclosed in group: "Wrinkle Retouch"
@@ -20,6 +20,24 @@ const AdjustmentModule = {
     const doc = app.activeDocument;
     if (!doc) throw new Error("No active document in Photoshop.");
 
+    // Check if the user already loaded the action set in Photoshop Actions Panel
+    try {
+      if (app.actionTree && app.actionTree.length > 0) {
+        for (const set of app.actionTree) {
+          const setName = (set.name || "").toLowerCase();
+          if (setName.includes("wrinkle") || setName.includes("frequency")) {
+            const act = set.actions && set.actions.find(a => (a.name || "").toLowerCase().includes("frequency"));
+            if (act) {
+              return await core.executeAsModal(async () => {
+                await act.play();
+              }, { commandName: "Frequency Separation (Action)" });
+            }
+          }
+        }
+      }
+    } catch (atErr) {}
+
+    // Otherwise, create the exact layer hierarchy natively
     return await core.executeAsModal(async () => {
       let currentLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
       if (!currentLayer) throw new Error("No layer selected to retouch.");
@@ -31,31 +49,19 @@ const AdjustmentModule = {
         currentLayer.locked = false;
       }
 
-      // Step 1: Create a merged stamp or duplicate active layer as "Blur"
-      let blurLayer = null;
-      try {
-        await batchPlay([
-          {
-            _obj: "mergeVisible",
-            duplicate: true,
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-        blurLayer = doc.activeLayers[0];
-      } catch (e) {
-        blurLayer = await currentLayer.duplicate();
-      }
-
-      if (!blurLayer) {
-        blurLayer = await currentLayer.duplicate();
-      }
+      // Step 1: Duplicate base layer as "Blur"
+      const blurLayer = await currentLayer.duplicate();
       blurLayer.name = "Blur";
 
-      // Step 2: Create "High" layer duplicate from blurLayer
+      // Step 2: Duplicate as "High"
       const highLayer = await blurLayer.duplicate();
       highLayer.name = "High";
 
-      // Step 3: On "Blur" layer, apply Gaussian Blur with Radius 8.0 px
+      // Step 3: Duplicate as "Blur with mask"
+      const blurWithMask = await blurLayer.duplicate();
+      blurWithMask.name = "Blur with mask";
+
+      // 1. On "Blur" layer: apply Gaussian Blur with Radius 8.0 px
       doc.activeLayers = [blurLayer];
       try {
         await batchPlay([
@@ -65,47 +71,17 @@ const AdjustmentModule = {
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (gbErr1) {}
+      } catch (gb1) {}
 
-      // Step 4: On "High" layer, Apply Image with "Blur" layer
+      // 2. On "High" layer: apply High Pass at 8.0 px & set Linear Light
       doc.activeLayers = [highLayer];
-      const is16Bit = doc.bitsPerChannel === 16;
-      let applied = false;
       try {
         await batchPlay([
           {
-            _obj: "applyImageEvent",
-            with: {
-              _obj: "calculation",
-              to: { _ref: "channel", _enum: "channel", _value: "RGB" },
-              layer: "Blur",
-              calculation: { _enum: "calculation", _value: is16Bit ? "add" : "subtract" },
-              scale: 2,
-              offset: is16Bit ? 0 : 128,
-              invert: is16Bit
-            },
+            _obj: "highPass",
+            radius: { _unit: "pixelsUnit", _value: 8.0 },
             dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-        applied = true;
-      } catch (appErr) {}
-
-      if (!applied) {
-        // Fallback: High Pass filter with 8.0 px
-        try {
-          await batchPlay([
-            {
-              _obj: "highPass",
-              radius: { _unit: "pixelsUnit", _value: 8.0 },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (hpErr) {}
-      }
-
-      // Set "High" layer blend mode to Linear Light
-      try {
-        await batchPlay([
+          },
           {
             _obj: "set",
             _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
@@ -116,22 +92,22 @@ const AdjustmentModule = {
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (bmErr) {}
+      } catch (hpErr) {}
 
-      // Step 5: Duplicate "Blur" layer as "Blur with mask"
-      doc.activeLayers = [blurLayer];
-      const blurWithMask = await blurLayer.duplicate();
-      blurWithMask.name = "Blur with mask";
+      // 3. On "Blur with mask" layer: apply Gaussian Blur 37.5 px & Hide-All Mask
       doc.activeLayers = [blurWithMask];
-
-      // On "Blur with mask", apply Gaussian Blur with Radius 37.5 px & Hide-All Mask
       try {
         await batchPlay([
           {
             _obj: "gaussianBlur",
             radius: { _unit: "pixelsUnit", _value: 37.5 },
             dialogOptions: "dontDisplay"
-          },
+          }
+        ], { synchronousExecution: true });
+      } catch (gb2) {}
+
+      try {
+        await batchPlay([
           {
             _obj: "make",
             new: { _class: "channel" },
@@ -140,9 +116,19 @@ const AdjustmentModule = {
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (bwmErr) {}
+      } catch (mskErr) {
+        // Fallback: invert mask
+        try {
+          await batchPlay([
+            {
+              _obj: "invert",
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (invErr) {}
+      }
 
-      // Step 6: Create Group "Wrinkle Retouch"
+      // 4. Create Layer Group "Wrinkle Retouch"
       try {
         if (typeof doc.createLayerGroup === "function") {
           await doc.createLayerGroup({
@@ -150,9 +136,22 @@ const AdjustmentModule = {
             fromLayers: [highLayer, blurWithMask, blurLayer]
           });
         }
-      } catch (grpErr) {}
+      } catch (grpErr) {
+        try {
+          doc.activeLayers = [highLayer, blurWithMask, blurLayer];
+          await batchPlay([
+            {
+              _obj: "make",
+              _target: [{ _ref: "layerSection" }],
+              from: { _ref: "layer", _enum: "ordinal", _value: "targetEnum" },
+              name: "Wrinkle Retouch",
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (e2) {}
+      }
 
-      // Step 7: Select "Blur with mask" layer ready for painting on wrinkles
+      // 5. Select "Blur with mask" layer ready to paint on wrinkles
       try {
         doc.activeLayers = [blurWithMask];
       } catch (selErr) {}
@@ -186,20 +185,7 @@ const AdjustmentModule = {
             using: {
               _obj: "adjustmentLayer",
               name: "Dodge",
-              type: {
-                _obj: "curves",
-                curve: [
-                  {
-                    _obj: "channelType",
-                    channel: { _enum: "channelType", _value: "composite" },
-                    curvePoints: [
-                      { _obj: "paint", horizontal: 0, vertical: 0 },
-                      { _obj: "paint", horizontal: 128, vertical: 165 },
-                      { _obj: "paint", horizontal: 255, vertical: 255 }
-                    ]
-                  }
-                ]
-              }
+              type: { _class: "curves" }
             },
             dialogOptions: "dontDisplay"
           },
@@ -210,7 +196,6 @@ const AdjustmentModule = {
         ], { synchronousExecution: true });
         dodgeLayer = doc.activeLayers[0];
       } catch (e1) {
-        // Fallback: 50% Gray Soft Light layer
         try {
           await batchPlay([
             {
@@ -238,20 +223,7 @@ const AdjustmentModule = {
             using: {
               _obj: "adjustmentLayer",
               name: "Burn",
-              type: {
-                _obj: "curves",
-                curve: [
-                  {
-                    _obj: "channelType",
-                    channel: { _enum: "channelType", _value: "composite" },
-                    curvePoints: [
-                      { _obj: "paint", horizontal: 0, vertical: 0 },
-                      { _obj: "paint", horizontal: 128, vertical: 95 },
-                      { _obj: "paint", horizontal: 255, vertical: 255 }
-                    ]
-                  }
-                ]
-              }
+              type: { _class: "curves" }
             },
             dialogOptions: "dontDisplay"
           },
@@ -262,7 +234,6 @@ const AdjustmentModule = {
         ], { synchronousExecution: true });
         burnLayer = doc.activeLayers[0];
       } catch (e2) {
-        // Fallback: 50% Gray Soft Light layer
         try {
           await batchPlay([
             {
@@ -281,7 +252,7 @@ const AdjustmentModule = {
         } catch (e2b) {}
       }
 
-      // 3. Put in Group
+      // 3. Put in Group "Dodge & Burn (Clothing)"
       try {
         if (typeof doc.createLayerGroup === "function" && dodgeLayer && burnLayer) {
           await doc.createLayerGroup({
@@ -289,7 +260,22 @@ const AdjustmentModule = {
             fromLayers: [dodgeLayer, burnLayer]
           });
         }
-      } catch (grpErr) {}
+      } catch (grpErr) {
+        try {
+          if (dodgeLayer && burnLayer) {
+            doc.activeLayers = [dodgeLayer, burnLayer];
+            await batchPlay([
+              {
+                _obj: "make",
+                _target: [{ _ref: "layerSection" }],
+                from: { _ref: "layer", _enum: "ordinal", _value: "targetEnum" },
+                name: "Dodge & Burn (Clothing)",
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          }
+        } catch (e3) {}
+      }
 
       // 4. Select Dodge layer
       if (dodgeLayer) {
