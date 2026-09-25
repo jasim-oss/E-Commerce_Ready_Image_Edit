@@ -507,7 +507,8 @@ const PSAutomation = {
       const canvasW = doc.width;
       const canvasH = doc.height;
 
-      const m = Math.max(1, Math.min(marginPercent, 45));
+      const numMargin = typeof marginPercent === "number" ? marginPercent : parseInt(String(marginPercent).replace(/[^0-9]/g, "") || "10", 10);
+      const m = Math.max(1, Math.min(isNaN(numMargin) ? 10 : numMargin, 45));
       const targetW = canvasW * (1 - 2 * (m / 100));
       const targetH = canvasH * (1 - 2 * (m / 100));
 

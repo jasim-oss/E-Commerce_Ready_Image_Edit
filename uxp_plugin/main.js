@@ -283,11 +283,39 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputScsmCustomPercent = document.getElementById('inputScsmCustomPercent');
     const btnApplyCustomScsm = document.getElementById('btnApplyCustomScsm');
 
+    function setActiveScsmBtn(activeBtn) {
+      if (btnScsmProduct) btnScsmProduct.classList.remove('active');
+      if (btnScsmModel) btnScsmModel.classList.remove('active');
+      if (btnScsmCustom) btnScsmCustom.classList.remove('active');
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    // Helper to get and sanitize custom SCSM margin percent
+    function getCustomScsmMargin() {
+      const raw = (inputScsmCustomPercent && inputScsmCustomPercent.value) || '10';
+      let val = parseInt(String(raw).replace(/[^0-9]/g, ''), 10);
+      if (isNaN(val) || val < 1) val = 10;
+      if (val > 45) val = 45;
+      if (inputScsmCustomPercent) inputScsmCustomPercent.value = val;
+      return val;
+    }
+
+    async function applyCustomMargin() {
+      const val = getCustomScsmMargin();
+      try {
+        setStatus(`Applying Custom SCSM (${val}% Margin)...`, 'working');
+        await window.PSAutomation.scsmByMargin(val);
+        setStatus(`Custom SCSM (${val}% Margin) applied`, 'online');
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, 'error');
+      }
+    }
+
     // 1) Product (10% Margin)
     if (btnScsmProduct) {
       btnScsmProduct.addEventListener('click', async () => {
         if (customScsmBox) customScsmBox.style.display = 'none';
-        if (btnScsmCustom) btnScsmCustom.classList.remove('active');
+        setActiveScsmBtn(btnScsmProduct);
         try {
           setStatus('Applying Product SCSM (10% Margin)...', 'working');
           await window.PSAutomation.scsmByMargin(10);
@@ -302,7 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnScsmModel) {
       btnScsmModel.addEventListener('click', async () => {
         if (customScsmBox) customScsmBox.style.display = 'none';
-        if (btnScsmCustom) btnScsmCustom.classList.remove('active');
+        setActiveScsmBtn(btnScsmModel);
         try {
           setStatus('Applying Model SCSM (5% Margin)...', 'working');
           await window.PSAutomation.scsmByMargin(5);
@@ -313,44 +341,35 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // 3) Custom Drawer Toggle
+    // 3) Custom Button: Expands drawer AND immediately executes custom margin
     if (btnScsmCustom) {
-      btnScsmCustom.addEventListener('click', () => {
-        if (!customScsmBox) return;
-        const isOpen = customScsmBox.style.display !== 'none';
-        if (isOpen) {
-          customScsmBox.style.display = 'none';
-          btnScsmCustom.classList.remove('active');
-        } else {
+      btnScsmCustom.addEventListener('click', async () => {
+        setActiveScsmBtn(btnScsmCustom);
+        if (customScsmBox) {
           customScsmBox.style.display = 'block';
-          btnScsmCustom.classList.add('active');
-          if (inputScsmCustomPercent) inputScsmCustomPercent.focus();
         }
+        if (inputScsmCustomPercent) {
+          inputScsmCustomPercent.focus();
+          if (typeof inputScsmCustomPercent.select === 'function') {
+            inputScsmCustomPercent.select();
+          }
+        }
+        await applyCustomMargin();
       });
     }
 
-    // Apply Custom SCSM Margin
+    // Apply Custom SCSM Margin Button
     if (btnApplyCustomScsm) {
       btnApplyCustomScsm.addEventListener('click', async () => {
-        const val = parseInt((inputScsmCustomPercent && inputScsmCustomPercent.value) || '10', 10);
-        if (isNaN(val) || val < 1 || val > 45) {
-          setStatus('Please enter a margin between 1% and 45%', 'error');
-          return;
-        }
-        try {
-          setStatus(`Applying Custom SCSM (${val}% Margin)...`, 'working');
-          await window.PSAutomation.scsmByMargin(val);
-          setStatus(`Custom SCSM (${val}% Margin) applied`, 'online');
-        } catch (err) {
-          setStatus(`Error: ${err.message}`, 'error');
-        }
+        setActiveScsmBtn(btnScsmCustom);
+        await applyCustomMargin();
       });
     }
 
     if (inputScsmCustomPercent) {
       inputScsmCustomPercent.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && btnApplyCustomScsm) {
-          btnApplyCustomScsm.click();
+        if (e.key === 'Enter') {
+          if (btnApplyCustomScsm) btnApplyCustomScsm.click();
         }
       });
     }
