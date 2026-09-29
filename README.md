@@ -1,23 +1,44 @@
-# E-Commerce Auto Photo Editor (Photoshop Panel + AI)
+# E-Commerce Ready Image Edit — Photoshop UXP Plugin 🚀
 
-An automated Adobe Photoshop UXP panel built specifically for e-commerce marketplaces, featuring built-in Photoshop automation actions and a local Python AI backend.
+A high-performance **Adobe Photoshop UXP Panel** built specifically for e-commerce image editing, marketplace compliance (Amazon, eBay, Etsy, Shopify, Walmart, WooCommerce, Zalando), and batch image processing with an **Apple Minimal Dark UI**.
+
+[![GitHub Repository](https://img.shields.io/badge/GitHub-E--Commerce__Ready__Image__Edit-blue?style=flat-square&logo=github)](https://github.com/jasim-oss/E-Commerce_Ready_Image_Edit.git)
+[![Adobe UXP](https://img.shields.io/badge/Adobe%20Photoshop-UXP%20v5-purple?style=flat-square&logo=adobephotoshop)](https://developer.adobe.com/photoshop/uxp/)
 
 ---
 
-## 🚀 Key Features (Starting with Amazon)
+## 🎨 UI Aesthetic: Apple Minimal Dark
 
-1. **One-Click Amazon Auto-Fit:**
-   - **Pure White Background:** `#FFFFFF` (RGB 255, 255, 255).
-   - **85% Frame Fill Rule:** Automatically scales the product to fill 85% of the frame with 7.5% margins.
-   - **2000 x 2000 px Standard:** Perfect square high-res canvas for Amazon zoom.
-   - **Auto sRGB:** Converts document color profile to `sRGB IEC61966-2.1`.
-   - **Realistic Shadows:** Natural contact shadow, soft drop shadow, or AI ground shadow.
-2. **Dual AI Integration:**
-   - **Photoshop Built-In AI:** Native `Select Subject` and edge-aware masking.
-   - **Python Local Backend:** Custom realistic shadow generation, edge refinement, and model integration.
-3. **Multi-Marketplace Architecture:**
-   - Amazon (Active)
-   - Shopify, eBay, Walmart, Etsy (Modular tabs ready for next iterations).
+The plugin features a custom **Apple Minimal Dark Theme** designed for pro image editors:
+- **San Francisco Typographic Hierarchy**
+- **iOS-Style Pill Toggle Switches**
+- **Compact Control Drawers & Precise Micro-Interactions**
+- **Clean Border Strokes & Apple Blue `#007AFF` Accent**
+
+---
+
+## 🚀 Key Features
+
+1. **Marketplace Preset Auto-Resize:**
+   - Pre-configured specs for **Amazon (2000x2000 72 DPI)**, **eBay (1600x1600 72 DPI)**, **Etsy**, **Shopify (2048x2048)**, **Walmart (2200x2200 300 DPI)**, **WooCommerce**, **Zalando**, and **Custom Dimensions**.
+   - **Smart Edge Anchor:** Detects edge-attached product objects and anchors them intelligently during canvas resizing.
+
+2. **Background Automation:**
+   - One-click **BG Remove** (Native Photoshop Select Subject AI).
+   - Solid White `#FFFFFF`, Custom Color Picker (Hex), or Custom Image Overlay.
+
+3. **Editing Adjustments:**
+   - **Wrinkle on Clothing:** Frequency Separation, Dodge & Burn (D&B), Save for Evoto.
+   - **Shadow Generation:** Drop Shadow, Natural Shadow, Existing Shadow, Cast Shadow.
+   - **Color Correction:** White Balance for PATH, Auto Color Correction.
+
+4. **SCSM Margin Padding:**
+   - Automatic percentage margin fitting for **Product**, **Model**, or **Custom Margins (1% - 45%)**.
+
+5. **Batch Processing & Export:**
+   - Process single document or **ALL open documents** in Photoshop with one click.
+   - Export for delivery in **JPG**, **PNG**, or **WebP** format with sRGB color profile & maximum file size rules.
+   - Export **Working File (PSD)**.
 
 ---
 
@@ -25,65 +46,42 @@ An automated Adobe Photoshop UXP panel built specifically for e-commerce marketp
 
 ```
 Photoshop Panel Making for e-commerce market place/
-├── uxp_plugin/                    # Adobe UXP Photoshop Panel
+├── uxp_plugin/                    # Adobe UXP Photoshop Plugin
 │   ├── manifest.json              # UXP v5 Plugin Manifest
-│   ├── index.html                 # Modern Panel Interface
-│   ├── styles.css                 # Dark theme Photoshop UI
-│   ├── main.js                    # UI Event handlers
-│   └── modules/
-│       ├── ps_automation.js       # Photoshop batchPlay DOM functions
-│       ├── amazon.js              # Amazon compliance orchestrator
-│       └── ai_bridge.js           # Python AI backend bridge
-└── python_backend/                # Local Python AI Service
-    ├── app.py                     # FastAPI server (127.0.0.1:8000)
-    ├── requirements.txt           # Python dependencies
-    └── services/
-        └── shadow_service.py      # Photorealistic shadow engine
+│   ├── index.html                 # Apple Minimal Interface
+│   ├── styles.css                 # Apple Studio Dark Theme Styles
+│   ├── main.js                    # Core Panel Controller & Event Listeners
+│   ├── modules/
+│   │   └── ps_automation.js       # Photoshop batchPlay DOM Automation
+│   └── *.ATN                      # Photoshop Action Files (Shadows & Color)
+└── python_backend/                # Local Python AI Microservice (Optional)
+    ├── app.py                     # FastAPI Server (127.0.0.1:8000)
+    └── requirements.txt           # Python AI Dependencies
 ```
 
 ---
 
-## 🛠️ How to Run & Test in Photoshop
+## 📥 How Users / Clients Install and Use the Plugin
 
-### 1. Load the Plugin in Photoshop (UXP Developer Tool)
-1. Download or open **Adobe UXP Developer Tool (UDT)** (available for free via Adobe Creative Cloud desktop app).
-2. In UDT, click **Add Plugin**.
-3. Select the `manifest.json` file inside `uxp_plugin/manifest.json`.
-4. Click the **Actions (•••)** menu next to the plugin and choose **Load**.
-5. The panel will instantly appear inside Photoshop under **Plugins > E-Commerce Auto Editor**!
+### Method 1: Installing via `.ccx` Installer Package (Recommended for Clients)
 
-### 2. Run the Local Python AI Backend (Optional)
-```bash
-cd "python_backend"
-pip install -r requirements.txt
-python app.py
-```
-The server will start at `http://127.0.0.1:8000`. The panel's header will show a green dot: `AI: Online`.
+1. Double-click the **`E-Commerce_Ready_Edit.ccx`** installer file.
+2. **Adobe Creative Cloud Desktop** will automatically prompt to install the plugin.
+3. Click **Install**.
+4. Open **Adobe Photoshop** -> Go to **Window > Plugins > E-Commerce Ready Edit**.
 
 ---
 
-## 🔗 How to Connect This Project to Your GitHub Account
+### Method 2: Developer / Testing Load (Adobe UXP Developer Tool)
 
-Follow these quick steps in PowerShell or Git Bash:
+1. Open **Adobe UXP Developer Tool (UDT)**.
+2. Click **Add Plugin** -> Select `uxp_plugin/manifest.json`.
+3. Click **Actions (•••) > Load**.
+4. The panel will launch instantly inside Photoshop!
 
-### Step 1: Create a New Repository on GitHub
-1. Go to [https://github.com/new](https://github.com/new).
-2. Repository name দিন: e.g. `photoshop-ecommerce-auto-editor`
-3. **Private** অথবা **Public** সিলেক্ট করুন।
-4. **Initialize with README বা .gitignore টিক মার্ক দেওয়ার প্রয়োজন নেই** (কারণ আমরা অলরেডি লোকালি এগুলো তৈরি করেছি)।
-5. **Create repository** বাটনে ক্লিক করুন।
+---
 
-### Step 2: Push Local Code to GitHub
-আপনার কম্পিউটারের টার্মিনাল বা PowerShell ওপেন করে নিচের কমান্ডগুলো চালান:
+## 🔗 Repository & Version Control
 
-```bash
-cd "D:\Current Task\#In-progress\Photoshop Panel Making for e-commerce market place"
-
-# Git remote যুক্ত করুন (YOUR_USERNAME এবং REPO_NAME আপনার গিটহাব অনুযায়ী বসান)
-git remote add origin https://github.com/YOUR_USERNAME/photoshop-ecommerce-auto-editor.git
-
-# কোড গিটহাবে পুশ করুন
-git add .
-git commit -m "Initial commit: E-Commerce Photoshop UXP panel with Amazon automation and Python AI backend"
-git push -u origin main
-```
+- **GitHub Repository:** [https://github.com/jasim-oss/E-Commerce_Ready_Image_Edit.git](https://github.com/jasim-oss/E-Commerce_Ready_Image_Edit.git)
+- **Branch:** `main`
