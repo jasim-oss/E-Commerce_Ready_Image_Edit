@@ -30,6 +30,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const marketplaceSelect = document.getElementById("selectMarketplaceResize");
   const resizeControlsGroup = document.getElementById("resizeControlsGroup");
   const toggleResizeAll = document.getElementById("toggleResizeAll");
+  const toggleSmartAnchor = document.getElementById("toggleSmartAnchor");
+  const lblSmartAnchor = document.getElementById("lblSmartAnchor");
   const inputW = document.getElementById("inputResizeW");
   const inputH = document.getElementById("inputResizeH");
   const inputDpi = document.getElementById("inputResizeDpi");
@@ -121,15 +123,29 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function updateApplyResizeLabel() {
+    if (!lblApplyResize) return;
+    const w = (inputW && inputW.value) || "2000";
+    const h = (inputH && inputH.value) || "2000";
+    const isSmart = toggleSmartAnchor && toggleSmartAnchor.checked;
+    lblApplyResize.textContent = isSmart ? `Apply Smart Resize (${w}x${h})` : `Apply Resize (${w}x${h})`;
+  }
+
   [inputW, inputH].forEach(input => {
     if (input) {
-      input.addEventListener("input", () => {
-        const w = (inputW && inputW.value) || 0;
-        const h = (inputH && inputH.value) || 0;
-        if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}x${h})`;
-      });
+      input.addEventListener("input", updateApplyResizeLabel);
     }
   });
+
+  if (toggleSmartAnchor) {
+    toggleSmartAnchor.addEventListener("change", () => {
+      if (lblSmartAnchor) {
+        lblSmartAnchor.textContent = toggleSmartAnchor.checked ? "ON" : "OFF";
+        lblSmartAnchor.style.color = toggleSmartAnchor.checked ? "#38bdf8" : "";
+      }
+      updateApplyResizeLabel();
+    });
+  }
 
   if (btnApplyResize) {
     btnApplyResize.addEventListener("click", async () => {
@@ -143,10 +159,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      const smartAnchor = toggleSmartAnchor ? toggleSmartAnchor.checked : false;
+      const modeStr = smartAnchor ? " [Smart Edge]" : "";
       try {
-        setStatus(`Resizing to ${w}×${h} px @ ${dpi} DPI ${applyAll ? "(ALL docs)" : ""}...`, "working");
-        await window.PSAutomation.resizeForMarketplace(w, h, dpi, applyAll);
-        setStatus(`Resized to ${w}×${h} px (${dpi} DPI) ${applyAll ? "(ALL docs)" : ""}`, "online");
+        setStatus(`Resizing to ${w}x${h} px @ ${dpi} DPI${modeStr} ${applyAll ? "(ALL docs)" : ""}...`, "working");
+        await window.PSAutomation.resizeForMarketplace(w, h, dpi, applyAll, smartAnchor);
+        setStatus(`Resized to ${w}x${h} px (${dpi} DPI)${modeStr} ${applyAll ? "(ALL docs)" : ""}`, "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
       }
@@ -404,12 +422,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const toggleWrinkleAll = document.getElementById("toggleWrinkleAll");
+
   async function executeWrinkleMethod() {
     const method = selectWrinkleMethod ? selectWrinkleMethod.value : "";
     if (!method) {
       setStatus("Please select a retouch option from dropdown", "error");
       return;
     }
+
+    const applyAll = toggleWrinkleAll ? toggleWrinkleAll.checked : false;
+    const allStr = applyAll ? " (ALL docs)" : "";
 
     const mod = window.PSAutomation || window.AdjustmentModule;
     if (!mod) {
@@ -419,80 +442,404 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (method === "fs") {
       try {
-        setStatus("Creating Frequency Separation group...", "working");
-        await mod.applyFrequencySeparation();
-        setStatus("Frequency Separation ready (Low/High layers)", "online");
+        setStatus(`Creating Frequency Separation group${allStr}...`, "working");
+        await mod.applyFrequencySeparation(applyAll);
+        setStatus(`Frequency Separation ready (Low/High layers)${allStr}`, "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
       }
     } else if (method === "dnb") {
       try {
-        setStatus("Creating Dodge and Burn Curves layers...", "working");
-        await mod.applyDodgeAndBurn();
-        setStatus("Dodge & Burn ready (Curves with black masks)", "online");
+        setStatus(`Creating Dodge and Burn Curves layers${allStr}...`, "working");
+        await mod.applyDodgeAndBurn(applyAll);
+        setStatus(`Dodge & Burn ready (Curves with black masks)${allStr}`, "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
       }
     } else if (method === "evoto") {
       try {
-        setStatus("Preparing JPG for Evoto AI...", "working");
-        const savedName = await mod.saveForEvoto();
+        setStatus(`Preparing JPG for Evoto AI${allStr}...`, "working");
+        const savedName = await mod.saveForEvoto(applyAll);
         if (savedName) {
           setStatus(`Saved for Evoto: ${savedName}`, "online");
         } else {
           setStatus("Save for Evoto canceled", "online");
         }
       } catch (err) {
-        setStatus(`Error: ${err.message}`, "error");
+        console.error("Save for Evoto error:", err);
+        const msg = (err && (err.message || err.description || err.error)) || (typeof err === "string" ? err : JSON.stringify(err)) || "Unknown error";
+        setStatus(`Error: ${msg}`, "error");
+      }
+    }
+  }
+    if (btnApplyWrinkle) {
+    btnApplyWrinkle.addEventListener("click", executeWrinkleMethod);
+  }
+  // Wrinkle method now only executes on btnApplyWrinkle click
+
+
+    // Shadow Drawer and Handlers (Drop, Natural, Existing, Cast)
+  const btnShadow = document.getElementById("btnShadow");
+  const shadowOptionsBox = document.getElementById("shadowOptionsBox");
+  const shadowChevron = document.getElementById("shadowChevron");
+  const selectShadowMethod = document.getElementById("selectShadowMethod");
+  const btnApplyShadow = document.getElementById("btnApplyShadow");
+  const toggleShadowAll = document.getElementById("toggleShadowAll");
+
+  if (btnShadow) {
+    btnShadow.addEventListener("click", () => {
+      if (!shadowOptionsBox) return;
+      const isOpen = shadowOptionsBox.style.display !== "none";
+      if (isOpen) {
+        shadowOptionsBox.style.display = "none";
+        btnShadow.classList.remove("active");
+        if (shadowChevron) shadowChevron.classList.remove("up");
+      } else {
+        shadowOptionsBox.style.display = "block";
+        btnShadow.classList.add("active");
+        if (shadowChevron) shadowChevron.classList.add("up");
+      }
+    });
+  }
+
+  async function executeShadowMethod() {
+    const method = selectShadowMethod ? selectShadowMethod.value : "drop";
+    const applyAll = toggleShadowAll ? toggleShadowAll.checked : false;
+    const mod = window.PSAutomation || window.AdjustmentModule;
+    if (!mod) {
+      setStatus("Error: Automation module not ready", "error");
+      return;
+    }
+    const allStr = applyAll ? " (ALL docs)" : "";
+
+    try {
+      if (method === "drop") {
+        setStatus(`Applying Drop Shadow${allStr}...`, "working");
+        await mod.applyDropShadow(applyAll);
+        setStatus(`Drop shadow applied${allStr}`, "online");
+      } else if (method === "natural") {
+        setStatus(`Applying Natural Shadow${allStr}...`, "working");
+        await mod.applyNaturalShadow(applyAll);
+        setStatus(`Natural shadow applied${allStr}`, "online");
+      } else if (method === "existing") {
+        setStatus(`Applying Existing Shadow${allStr}...`, "working");
+        await mod.applyExistingShadow(applyAll);
+        setStatus(`Existing shadow applied${allStr}`, "online");
+      } else if (method === "cast") {
+        setStatus(`Applying Cast Shadow${allStr}...`, "working");
+        await mod.applyCastShadow(applyAll);
+        setStatus(`Cast shadow applied${allStr}`, "online");
+      }
+    } catch (err) {
+      setStatus(`Error: ${err.message}`, "error");
+    }
+  }
+
+  if (btnApplyShadow) {
+    btnApplyShadow.addEventListener("click", executeShadowMethod);
+  }
+  // Shadow method now only executes on btnApplyShadow click
+
+
+  // Color Correction Drawer and Handlers (White Balance, Auto Color)
+  const btnColorCorrection = document.getElementById("btnColorCorrection");
+  const colorOptionsBox = document.getElementById("colorOptionsBox");
+  const colorChevron = document.getElementById("colorChevron");
+  const selectColorMethod = document.getElementById("selectColorMethod");
+  const btnApplyColor = document.getElementById("btnApplyColor");
+  const toggleColorAll = document.getElementById("toggleColorAll");
+
+  if (btnColorCorrection) {
+    btnColorCorrection.addEventListener("click", () => {
+      if (!colorOptionsBox) return;
+      const isOpen = colorOptionsBox.style.display !== "none";
+      if (isOpen) {
+        colorOptionsBox.style.display = "none";
+        btnColorCorrection.classList.remove("active");
+        if (colorChevron) colorChevron.classList.remove("up");
+      } else {
+        colorOptionsBox.style.display = "block";
+        btnColorCorrection.classList.add("active");
+        if (colorChevron) colorChevron.classList.add("up");
+      }
+    });
+  }
+
+  async function executeColorMethod() {
+    const method = selectColorMethod ? selectColorMethod.value : "white_balance";
+    const applyAll = toggleColorAll ? toggleColorAll.checked : false;
+    const mod = window.PSAutomation || window.AdjustmentModule;
+    if (!mod) {
+      setStatus("Error: Automation module not ready", "error");
+      return;
+    }
+    const allStr = applyAll ? " (ALL docs)" : "";
+
+    try {
+      if (method === "white_balance") {
+        setStatus("Balancing White / Color Cast" + allStr + "...", "working");
+        await mod.applyWhiteBalance(applyAll);
+        setStatus("White Balance applied" + allStr, "online");
+      } else if (method === "auto_color") {
+        setStatus("Applying Color Correction" + allStr + "...", "working");
+        await mod.applyColorCorrection(applyAll);
+        setStatus("Color corrected" + allStr, "online");
+      }
+    } catch (err) {
+      setStatus("Error: " + err.message, "error");
+    }
+  }
+
+  if (btnApplyColor) {
+    btnApplyColor.addEventListener("click", executeColorMethod);
+  }
+
+  // 5. EXPORT Handlers (Ready for Delivery with Marketplace presets)
+  const MARKETPLACE_DELIVERY_DATA = {
+    amazon: {
+      name: "Amazon",
+      formats: ["JPG", "PNG"],
+      maxSize: "10 MB",
+      maxBytes: 10 * 1024 * 1024,
+      colorProfile: "sRGB",
+      defaultFormat: "JPG"
+    },
+    ebay: {
+      name: "eBay",
+      formats: ["JPG", "PNG", "WebP"],
+      maxSize: "12 MB",
+      maxBytes: 12 * 1024 * 1024,
+      colorProfile: "sRGB",
+      defaultFormat: "JPG"
+    },
+    etsy: {
+      name: "Etsy",
+      formats: ["JPG", "PNG"],
+      maxSize: "1 MB",
+      maxBytes: 1 * 1024 * 1024,
+      colorProfile: "sRGB",
+      defaultFormat: "JPG"
+    },
+    shopify: {
+      name: "Shopify",
+      formats: ["JPG", "PNG", "WebP"],
+      maxSize: "20 MB",
+      maxBytes: 20 * 1024 * 1024,
+      colorProfile: "sRGB",
+      defaultFormat: "JPG"
+    },
+    walmart: {
+      name: "Walmart",
+      formats: ["JPG", "PNG"],
+      maxSize: "5 MB",
+      maxBytes: 5 * 1024 * 1024,
+      colorProfile: "sRGB",
+      defaultFormat: "JPG"
+    },
+    woocommerce: {
+      name: "WooCommerce",
+      formats: ["JPG", "PNG"],
+      maxSize: "5 MB",
+      maxBytes: 5 * 1024 * 1024,
+      colorProfile: "RGB, sRGB",
+      defaultFormat: "JPG"
+    },
+    zalando: {
+      name: "Zalando",
+      formats: ["JPG", "PNG"],
+      maxSize: "20 MB",
+      maxBytes: 20 * 1024 * 1024,
+      colorProfile: "sRGB",
+      defaultFormat: "JPG"
+    },
+    custom: {
+      name: "Custom",
+      formats: ["JPG", "PNG", "WebP", "TIF", "PSD"],
+      maxSize: "10 MB",
+      maxBytes: 10 * 1024 * 1024,
+      colorProfile: "sRGB",
+      defaultFormat: "JPG",
+      isCustom: true
+    }
+  };
+
+  const btnReadyDelivery = document.getElementById("btnReadyDelivery");
+  const deliveryOptionsBox = document.getElementById("deliveryOptionsBox");
+  const deliveryChevron = document.getElementById("deliveryChevron");
+  const selectDeliveryMarketplace = document.getElementById("selectDeliveryMarketplace");
+  const selectDeliveryFormat = document.getElementById("selectDeliveryFormat");
+  const lblDeliveryMaxSize = document.getElementById("lblDeliveryMaxSize");
+  const lblDeliveryColorProfile = document.getElementById("lblDeliveryColorProfile");
+  const toggleDeliveryAll = document.getElementById("toggleDeliveryAll");
+  const btnExportDelivery = document.getElementById("btnExportDelivery");
+
+  // Toggle delivery drawer
+  const deliveryCustomRow = document.getElementById("deliveryCustomRow");
+  const inputDeliveryCustomMaxMb = document.getElementById("inputDeliveryCustomMaxMb");
+  const selectDeliveryCustomProfile = document.getElementById("selectDeliveryCustomProfile");
+
+  if (btnReadyDelivery) {
+    btnReadyDelivery.addEventListener("click", () => {
+      if (!deliveryOptionsBox) return;
+      const isOpen = deliveryOptionsBox.style.display !== "none";
+      if (isOpen) {
+        deliveryOptionsBox.style.display = "none";
+        btnReadyDelivery.classList.remove("active");
+        if (deliveryChevron) deliveryChevron.classList.remove("up");
+      } else {
+        deliveryOptionsBox.style.display = "block";
+        btnReadyDelivery.classList.add("active");
+        if (deliveryChevron) deliveryChevron.classList.add("up");
+        updateDeliveryMarketplaceUI();
+      }
+    });
+  }
+
+  // Update format dropdown & metadata badges on marketplace change
+  function updateDeliveryMarketplaceUI() {
+    const rawKey = selectDeliveryMarketplace ? selectDeliveryMarketplace.value : "";
+    const key = rawKey.toLowerCase();
+    const data = MARKETPLACE_DELIVERY_DATA[key];
+
+    if (!data) {
+      if (deliveryCustomRow) deliveryCustomRow.style.display = "none";
+      if (lblDeliveryMaxSize) lblDeliveryMaxSize.textContent = "Max: -";
+      if (lblDeliveryColorProfile) lblDeliveryColorProfile.textContent = "-";
+      if (selectDeliveryFormat) {
+        while (selectDeliveryFormat.firstChild) {
+          selectDeliveryFormat.removeChild(selectDeliveryFormat.firstChild);
+        }
+        const ph = document.createElement("option");
+        ph.value = "";
+        ph.textContent = "Select Format...";
+        ph.disabled = true;
+        ph.selected = true;
+        selectDeliveryFormat.appendChild(ph);
+      }
+      return;
+    }
+
+    // Toggle Custom inputs row
+    if (data.isCustom) {
+      if (deliveryCustomRow) deliveryCustomRow.style.display = "flex";
+      const customMb = parseFloat(inputDeliveryCustomMaxMb ? inputDeliveryCustomMaxMb.value : "10") || 10;
+      data.maxSize = customMb + " MB";
+      data.maxBytes = Math.round(customMb * 1024 * 1024);
+      data.colorProfile = selectDeliveryCustomProfile ? selectDeliveryCustomProfile.value : "sRGB";
+    } else {
+      if (deliveryCustomRow) deliveryCustomRow.style.display = "none";
+    }
+
+    if (lblDeliveryMaxSize) {
+      lblDeliveryMaxSize.textContent = "Max: " + data.maxSize;
+    }
+    if (lblDeliveryColorProfile) {
+      lblDeliveryColorProfile.textContent = data.colorProfile;
+    }
+
+    if (selectDeliveryFormat) {
+      const currentVal = selectDeliveryFormat.value;
+      while (selectDeliveryFormat.firstChild) {
+        selectDeliveryFormat.removeChild(selectDeliveryFormat.firstChild);
+      }
+      data.formats.forEach((fmt) => {
+        const opt = document.createElement("option");
+        opt.value = fmt;
+        opt.textContent = fmt;
+        if (fmt === currentVal || fmt === data.defaultFormat) {
+          opt.selected = true;
+        }
+        selectDeliveryFormat.appendChild(opt);
+      });
+      if (!data.formats.includes(selectDeliveryFormat.value)) {
+        selectDeliveryFormat.value = data.formats[0];
       }
     }
   }
 
-  if (btnApplyWrinkle) {
-    btnApplyWrinkle.addEventListener("click", executeWrinkleMethod);
+  if (selectDeliveryMarketplace) {
+    selectDeliveryMarketplace.addEventListener("change", updateDeliveryMarketplaceUI);
+    updateDeliveryMarketplaceUI();
   }
 
-  if (selectWrinkleMethod) {
-    selectWrinkleMethod.addEventListener("change", executeWrinkleMethod);
+  // Real-time update for Custom inputs
+  if (inputDeliveryCustomMaxMb) {
+    inputDeliveryCustomMaxMb.addEventListener("input", () => {
+      if (selectDeliveryMarketplace && selectDeliveryMarketplace.value === "custom") {
+        updateDeliveryMarketplaceUI();
+      }
+    });
   }
 
-  document.getElementById("btnShadow").addEventListener("click", async () => {
+  if (selectDeliveryCustomProfile) {
+    selectDeliveryCustomProfile.addEventListener("change", () => {
+      if (selectDeliveryMarketplace && selectDeliveryMarketplace.value === "custom") {
+        updateDeliveryMarketplaceUI();
+      }
+    });
+  }
+
+  // Export delivery execute button handler
+  async function executeExportDelivery() {
+    const rawKey = selectDeliveryMarketplace ? selectDeliveryMarketplace.value : "";
+    const key = rawKey.toLowerCase();
+    const data = MARKETPLACE_DELIVERY_DATA[key];
+
+    if (!data) {
+      setStatus("Please select a marketplace first.", "error");
+      return;
+    }
+
+    let targetBytes = data.maxBytes;
+    let targetProfile = data.colorProfile;
+
+    if (data.isCustom) {
+      const mb = parseFloat(inputDeliveryCustomMaxMb ? inputDeliveryCustomMaxMb.value : "10") || 10;
+      targetBytes = Math.round(mb * 1024 * 1024);
+      targetProfile = selectDeliveryCustomProfile ? selectDeliveryCustomProfile.value : "sRGB";
+    }
+
+    const format = (selectDeliveryFormat && selectDeliveryFormat.value) ? selectDeliveryFormat.value : data.defaultFormat;
+    const applyAll = toggleDeliveryAll ? toggleDeliveryAll.checked : false;
+    const mod = window.PSAutomation || window.AdjustmentModule;
+
+    if (!mod) {
+      setStatus("Error: Automation module not ready", "error");
+      return;
+    }
+
+    const allStr = applyAll ? " (ALL docs)" : "";
     try {
-      setStatus("Adding contact shadow...", "working");
+      setStatus("Exporting for " + data.name + " (" + format + ")" + allStr + "...", "working");
+      const result = await mod.exportForDelivery(key, format, applyAll, targetBytes, targetProfile);
+      setStatus(typeof result === "string" ? result : "Export for " + data.name + " completed!", "online");
+    } catch (err) {
+      setStatus("Error: " + err.message, "error");
+    }
+  }
+
+  if (btnExportDelivery) {
+    btnExportDelivery.addEventListener("click", executeExportDelivery);
+  }
+
+
+    const btnWorkingFile = document.getElementById("btnWorkingFile");
+  if (btnWorkingFile) {
+    btnWorkingFile.addEventListener("click", async () => {
       const mod = window.PSAutomation || window.AdjustmentModule;
-      await mod.applyContactShadow();
-      setStatus("Contact shadow applied", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
-
-  document.getElementById("btnColorCorrection").addEventListener("click", async () => {
-    try {
-      setStatus("Correcting colors & sRGB...", "working");
-      const mod = window.PSAutomation || window.AdjustmentModule;
-      await mod.applyColorCorrection();
-      setStatus("Color corrected & sRGB profile set", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
-
-  // 5. EXPORT Handlers
-  
-  document.getElementById("btnReadyDelivery").addEventListener("click", async () => {
-    try {
-      setStatus("Preparing for Delivery...", "working");
-      await window.PSAutomation.exportPreset("Delivery");
-      setStatus("Document ready for Delivery", "online");
-    } catch (err) {
-      setStatus(`Error: ${err.message}`, "error");
-    }
-  });
-
-  document.getElementById("btnWorkingFile").addEventListener("click", async () => {
-    setStatus("Use Photoshop File > Save As to save .PSD working file", "online");
-  });
+      if (!mod) {
+        setStatus("Error: Automation module not ready", "error");
+        return;
+      }
+      try {
+        setStatus("Saving Working File (PSD)...", "working");
+        const result = await mod.saveWorkingFile();
+        setStatus("Working File saved: " + result, "online");
+      } catch (err) {
+        setStatus("Error: " + err.message, "error");
+      }
+    });
+  }
 
   // 6. HISTORY Handlers (Undo / Redo)
   const btnUndo = document.getElementById("btnUndo");

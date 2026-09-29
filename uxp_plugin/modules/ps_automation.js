@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Core Photoshop Automation Engine via UXP batchPlay & DOM
  */
 const { app, core, action, constants } = require("photoshop");
@@ -34,52 +34,45 @@ const PSAutomation = {
    * @param {number} dpi - Target resolution in DPI
    * @param {boolean} applyToAll - Apply to all open documents
    */
-  async resizeForMarketplace(width, height, dpi = 72, applyToAll = false) {
+  async resizeForMarketplace(width, height, dpi = 72, applyToAll = false, smartAnchor = false) {
     return await this.executeOnTargetDocs(applyToAll, async (doc) => {
       const docW = doc.width;
       const docH = doc.height;
-      const edgeThreshold = Math.max(4, Math.round(Math.min(docW, docH) * 0.005));
 
-      let touchBottom = false;
-      let touchTop = false;
-      let touchLeft = false;
-      let touchRight = false;
+      let vAnchor = "MIDDLE";
+      let hAnchor = "CENTER";
 
-      // 1. Detect edge contact from subject layer or mask
-      let layer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
-      if (!layer || layer.isBackgroundLayer || layer.name === "BG Color" || layer.name === "BG Image") {
-        const nonBg = (doc.layers || []).filter(l => !l.isBackgroundLayer && l.name !== "BG Color" && l.name !== "BG Image");
-        layer = nonBg.length > 0 ? nonBg[0] : null;
-      }
+      if (smartAnchor) {
+        // Robust thresholds for width and height (3.5% of dimension, at least 16px)
+        const edgeThresholdX = Math.max(16, Math.round(docW * 0.035));
+        const edgeThresholdY = Math.max(16, Math.round(docH * 0.035));
 
-      if (layer) {
-        let b = null;
-        try {
-          const res = await batchPlay([
-            {
-              _obj: "get",
-              _target: [
-                { _ref: "property", _property: "hasUserMask" },
-                { _ref: "layer", _id: layer.id }
-              ],
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-          if (res && res[0] && res[0].hasUserMask) {
-            await batchPlay([
-              {
-                _obj: "set",
-                _target: [{ _ref: "channel", _property: "selection" }],
-                to: { _ref: "channel", _enum: "channel", _value: "mask" },
-                dialogOptions: "dontDisplay"
-              }
-            ], { synchronousExecution: true });
+        let touchBottom = false;
+        let touchTop = false;
+        let touchLeft = false;
+        let touchRight = false;
+        let subjectBounds = null;
+
+        // Safe helper to read selection bounds
+        function readSelectionBounds() {
+          try {
             if (doc.selection && doc.selection.bounds) {
-              const sb = doc.selection.bounds;
-              if (sb.right > sb.left && sb.bottom > sb.top) {
-                b = sb;
+              const b = doc.selection.bounds;
+              const left = (b.left && b.left._value !== undefined) ? b.left._value : b.left;
+              const top = (b.top && b.top._value !== undefined) ? b.top._value : b.top;
+              const right = (b.right && b.right._value !== undefined) ? b.right._value : b.right;
+              const bottom = (b.bottom && b.bottom._value !== undefined) ? b.bottom._value : b.bottom;
+              if (typeof left === "number" && typeof right === "number" && right > left && bottom > top) {
+                return { left, top, right, bottom };
               }
             }
+          } catch (e) {}
+          return null;
+        }
+
+        // Safe helper to clear selection
+        async function clearSelection() {
+          try {
             await batchPlay([
               {
                 _obj: "set",
@@ -88,248 +81,250 @@ const PSAutomation = {
                 dialogOptions: "dontDisplay"
               }
             ], { synchronousExecution: true });
-          }
-        } catch (mErr) {}
-
-        if (!b) {
-          b = layer.bounds;
+          } catch (e) {}
         }
 
-        if (b) {
-          const fillsCanvas = (b.left <= edgeThreshold && b.right >= docW - edgeThreshold && b.top <= edgeThreshold && b.bottom >= docH - edgeThreshold);
-          if (!fillsCanvas) {
-            if (b.bottom >= docH - edgeThreshold) touchBottom = true;
-            if (b.top <= edgeThreshold) touchTop = true;
-            if (b.left <= edgeThreshold) touchLeft = true;
-            if (b.right >= docW - edgeThreshold) touchRight = true;
+        // Method A: Check for existing layer mask on subject layer
+        const layers = doc.layers || [];
+        let candidateLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+        if (!candidateLayer || candidateLayer.isBackgroundLayer || candidateLayer.name === "BG Color" || candidateLayer.name === "BG Image") {
+          const nonBg = layers.filter(l => !l.isBackgroundLayer && l.name !== "BG Color" && l.name !== "BG Image");
+          if (nonBg.length > 0) candidateLayer = nonBg[0];
+        }
+
+        if (candidateLayer && !candidateLayer.isBackgroundLayer) {
+          try {
+            const res = await batchPlay([
+              {
+                _obj: "get",
+                _target: [
+                  { _ref: "property", _property: "hasUserMask" },
+                  { _ref: "layer", _id: candidateLayer.id }
+                ],
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+
+            if (res && res[0] && res[0].hasUserMask) {
+              await batchPlay([
+                {
+                  _obj: "set",
+                  _target: [{ _ref: "channel", _property: "selection" }],
+                  to: { _ref: "channel", _enum: "channel", _value: "mask" },
+                  dialogOptions: "dontDisplay"
+                }
+              ], { synchronousExecution: true });
+              subjectBounds = readSelectionBounds();
+              await clearSelection();
+            }
+          } catch (mErr) {}
+
+          // If no mask, check if layer bounds do not fill the whole canvas (transparent background cutout)
+          if (!subjectBounds) {
+            try {
+              const lb = candidateLayer.bounds;
+              if (lb) {
+                const left = (lb.left && lb.left._value !== undefined) ? lb.left._value : lb.left;
+                const top = (lb.top && lb.top._value !== undefined) ? lb.top._value : lb.top;
+                const right = (lb.right && lb.right._value !== undefined) ? lb.right._value : lb.right;
+                const bottom = (lb.bottom && lb.bottom._value !== undefined) ? lb.bottom._value : lb.bottom;
+                const fillsCanvas = (
+                  left <= edgeThresholdX &&
+                  right >= docW - edgeThresholdX &&
+                  top <= edgeThresholdY &&
+                  bottom >= docH - edgeThresholdY
+                );
+                if (!fillsCanvas && right > left && bottom > top) {
+                  subjectBounds = { left, top, right, bottom };
+                }
+              }
+            } catch (lbErr) {}
           }
+        }
+
+        // Method B: For flat images (camera shots / locked Background layer / opaque canvas), run autoCutout
+        if (!subjectBounds) {
+          const isBg = (doc.activeLayers && doc.activeLayers.length > 0 && doc.activeLayers[0].isBackgroundLayer) ||
+                       (layers.length === 1 && layers[0].isBackgroundLayer);
+          let tempLayerCreated = false;
+
+          if (isBg) {
+            try {
+              await batchPlay([
+                {
+                  _obj: "duplicate",
+                  _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                  name: "_temp_subject_detect",
+                  dialogOptions: "dontDisplay"
+                }
+              ], { synchronousExecution: true });
+              tempLayerCreated = true;
+            } catch (dupErr) {}
+          }
+
+          // Run autoCutout (AI Select Subject)
+          try {
+            await batchPlay([
+              {
+                _obj: "autoCutout",
+                sampleAllLayers: false,
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+            subjectBounds = readSelectionBounds();
+          } catch (acErr) {}
+
+          // If a temp layer was created, delete it
+          if (tempLayerCreated) {
+            try {
+              await batchPlay([
+                {
+                  _obj: "delete",
+                  _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                  dialogOptions: "dontDisplay"
+                }
+              ], { synchronousExecution: true });
+            } catch (delErr) {}
+          }
+
+          // Clear selection
+          await clearSelection();
+        }
+
+        // 3. Determine edge contact on all sides
+        if (subjectBounds) {
+          const { left: sL, top: sT, right: sR, bottom: sB } = subjectBounds;
+          if (sB >= docH - edgeThresholdY) touchBottom = true;
+          if (sT <= edgeThresholdY) touchTop = true;
+          if (sL <= edgeThresholdX) touchLeft = true;
+          if (sR >= docW - edgeThresholdX) touchRight = true;
+        }
+
+        // 4. Determine Vertical Anchor (Top, Bottom, or Middle)
+        if (touchBottom && !touchTop) {
+          vAnchor = "BOTTOM";
+        } else if (touchTop && !touchBottom) {
+          vAnchor = "TOP";
+        } else {
+          // Touching both top & bottom (full height), or touching neither -> Centered vertically
+          vAnchor = "MIDDLE";
+        }
+
+        // 4. Determine Horizontal Anchor (Left, Right, or Center)
+        if (touchRight && !touchLeft) {
+          hAnchor = "RIGHT";
+        } else if (touchLeft && !touchRight) {
+          hAnchor = "LEFT";
+        } else {
+          // Touching both left & right (full width), or touching neither -> Centered horizontally
+          hAnchor = "CENTER";
         }
       }
 
-      // 2. If touches not found (e.g. flat background photo like raw camera exports), run autoCutout (Select Subject)
-      if (!touchBottom && !touchTop && !touchLeft && !touchRight) {
-        try {
-          await batchPlay([
-            {
-              _obj: "autoCutout",
-              sampleAllLayers: false,
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-
-          if (doc.selection && doc.selection.bounds) {
-            const sb = doc.selection.bounds;
-            if (sb.right > sb.left && sb.bottom > sb.top) {
-              if (sb.bottom >= docH - edgeThreshold) touchBottom = true;
-              if (sb.top <= edgeThreshold) touchTop = true;
-              if (sb.left <= edgeThreshold) touchLeft = true;
-              if (sb.right >= docW - edgeThreshold) touchRight = true;
-            }
-          }
-
-          await batchPlay([
-            {
-              _obj: "set",
-              _target: [{ _ref: "channel", _property: "selection" }],
-              to: { _enum: "ordinal", _value: "none" },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (acErr) {}
-      }
-
-      // 3. Determine Canvas Expansion Anchor
-      let vLoc = "center";
-      let vAnchor = "MIDDLE";
-      if (touchBottom && !touchTop) {
-        vLoc = "bottom";
-        vAnchor = "BOTTOM";
-      } else if (touchTop && !touchBottom) {
-        vLoc = "top";
-        vAnchor = "TOP";
-      }
-
-      let hLoc = "center";
-      let hAnchor = "CENTER";
-      if (touchLeft && !touchRight) {
-        hLoc = "left";
-        hAnchor = "LEFT";
-      } else if (touchRight && !touchLeft) {
-        hLoc = "right";
-        hAnchor = "RIGHT";
-      }
-
-      const anchorMap = {
-        "TOPLEFT": AnchorPosition.TOPLEFT,
-        "TOPCENTER": AnchorPosition.TOPCENTER,
-        "TOPRIGHT": AnchorPosition.TOPRIGHT,
-        "MIDDLELEFT": AnchorPosition.MIDDLELEFT,
-        "MIDDLECENTER": AnchorPosition.MIDDLECENTER,
-        "MIDDLERIGHT": AnchorPosition.MIDDLERIGHT,
-        "BOTTOMLEFT": AnchorPosition.BOTTOMLEFT,
-        "BOTTOMCENTER": AnchorPosition.BOTTOMCENTER,
-        "BOTTOMRIGHT": AnchorPosition.BOTTOMRIGHT
-      };
+      // 5. Exact Anchor Position for UXP DOM resizeCanvas
       const anchorKey = `${vAnchor}${hAnchor}`;
-      const targetAnchor = anchorMap[anchorKey] || AnchorPosition.MIDDLECENTER;
+      const targetAnchor = (constants && constants.AnchorPosition && constants.AnchorPosition[anchorKey]) ||
+                           (AnchorPosition && AnchorPosition[anchorKey]);
 
-      // 4. Proportional Scale to fit inside width x height
+      // 6. Proportional Scale dimensions to fit inside width x height
       const scale = Math.min(width / docW, height / docH);
       const fitW = Math.max(1, Math.round(docW * scale));
       const fitH = Math.max(1, Math.round(docH * scale));
 
-      try {
-        await batchPlay([
-          {
-            _obj: "imageSize",
-            width: { _unit: "pixelsUnit", _value: fitW },
-            height: { _unit: "pixelsUnit", _value: fitH },
-            resolution: { _unit: "densityUnit", _value: dpi },
-            scaleStyles: true,
-            constrainProportions: true,
-            interfaceIconFrameDimmed: {
-              _enum: "interpolationType",
-              _value: "bicubicAutomatic"
-            },
-            _options: { dialogOptions: "dontDisplay" }
+      // Step A: Image Size scaling (BatchPlay imageSize)
+      await batchPlay([
+        {
+          _obj: "imageSize",
+          width: { _unit: "pixelsUnit", _value: fitW },
+          height: { _unit: "pixelsUnit", _value: fitH },
+          resolution: { _unit: "densityUnit", _value: dpi },
+          scaleStyles: true,
+          constrainProportions: true,
+          interfaceIconFrameDimmed: {
+            _enum: "interpolationType",
+            _value: "bicubicAutomatic"
           },
-          {
-            _obj: "canvasSize",
-            width: { _unit: "pixelsUnit", _value: width },
-            height: { _unit: "pixelsUnit", _value: height },
-            horizontal: { _enum: "horizontalLocation", _value: hLoc },
-            vertical: { _enum: "verticalLocation", _value: vLoc },
-            _options: { dialogOptions: "dontDisplay" }
-          }
-        ], { synchronousExecution: true });
-      } catch (bpErr) {
-        if (doc.resizeImage) {
-          try {
-            await doc.resizeImage(fitW, fitH, dpi);
-          } catch (e1) {}
+          dialogOptions: "dontDisplay"
         }
-        if (doc.resizeCanvas) {
+      ], { synchronousExecution: true });
+
+      // Step B: Canvas Size expansion (Direct UXP doc.resizeCanvas with targetAnchor)
+      let canvasResized = false;
+      if (targetAnchor && doc.resizeCanvas) {
+        try {
           await doc.resizeCanvas(width, height, targetAnchor);
-        }
+          canvasResized = true;
+        } catch (rcErr) {}
+      }
+
+      // Fallback: batchPlay canvasSize with modern anchor and coordinates
+      if (!canvasResized) {
+        const camelMap = {
+          "TOPLEFT": "topLeft", "TOPCENTER": "topCenter", "TOPRIGHT": "topRight",
+          "MIDDLELEFT": "middleLeft", "MIDDLECENTER": "middleCenter", "MIDDLERIGHT": "middleRight",
+          "BOTTOMLEFT": "bottomLeft", "BOTTOMCENTER": "bottomCenter", "BOTTOMRIGHT": "bottomRight"
+        };
+        const bpHorizontal = { "LEFT": "left", "CENTER": "center", "RIGHT": "right" };
+        const bpVertical = { "TOP": "top", "MIDDLE": "center", "BOTTOM": "bottom" };
+
+        try {
+          await batchPlay([
+            {
+              _obj: "canvasSize",
+              width: { _unit: "pixelsUnit", _value: width },
+              height: { _unit: "pixelsUnit", _value: height },
+              horizontal: { _enum: "horizontalLocation", _value: bpHorizontal[hAnchor] || "center" },
+              vertical: { _enum: "verticalLocation", _value: bpVertical[vAnchor] || "center" },
+              anchor: { _enum: "anchor", _value: camelMap[anchorKey] || "middleCenter" },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (bpErr) {}
       }
     }, `Resize to ${width}x${height} @ ${dpi}DPI`);
   },
 
   /**
-   * 1. RESIZE: Fixed Size 2000x2000 px standard
+   * 2. BG REMOVE: AI Select Subject + Mask on Layer 1 from main layer
+   * User workflow: First copy layer from background -> Remove background -> Mask Layer 1.
+   * Leaves Background layer natively locked.
    */
-  async fixedSize(targetDim = 2000) {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document.");
+  async bgRemove(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      const layers = doc.layers || [];
+      const layerCount = layers.length;
+      const activeLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : (layers[0] || null);
 
-    return await core.executeAsModal(async () => {
-      await doc.resizeCanvas(targetDim, targetDim, AnchorPosition.MIDDLECENTER);
-    }, { commandName: "Resize: Fixed Size 2000px" });
-  },
-
-  /**
-   * 1. RESIZE: Upscale / Super Resolution (Bicubic Automatic / Preserve Details)
-   */
-  async upscaleImage(scaleMultiplier = 1.5) {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document.");
-
-    return await core.executeAsModal(async () => {
-      const newW = Math.round(doc.width * scaleMultiplier);
-      const newH = Math.round(doc.height * scaleMultiplier);
-      await doc.resizeImage(newW, newH, doc.resolution, InterpolationMethod.PRESERVEDETAILS);
-    }, { commandName: "Resize: Upscale Image" });
-  },
-
-  /**
-   * 1. RESIZE: Set Aspect Ratio (1:1 Square)
-   */
-  async setSquareAspectRatio() {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document.");
-
-    return await core.executeAsModal(async () => {
-      const maxDim = Math.max(doc.width, doc.height);
-      await doc.resizeCanvas(maxDim, maxDim, AnchorPosition.MIDDLECENTER);
-    }, { commandName: "Resize: 1:1 Aspect Ratio" });
-  },
-
-  /**
-     * 2. BG REMOVE: AI Select Subject + Mask on Layer 1 from main layer
-     * User workflow: First copy layer from background -> Remove background -> Mask Layer 1.
-     * Leaves Background layer natively locked with [🔒].
-     */
-    async bgRemove(applyToAll = false) {
-      return await this.executeOnTargetDocs(applyToAll, async (doc) => {
-        const layers = doc.layers || [];
-        const layerCount = layers.length;
-        const activeLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : (layers[0] || null);
-
-        // When document has only 1 layer (like default Background), or active layer is Background
-        if (layerCount === 1 || (activeLayer && activeLayer.isBackgroundLayer)) {
-          // 1. শুরুতে ব্যাকগ্রাউন্ড থেকে নতুন লেয়ার কপি করা (Duplicate main layer to Layer 1)
-          // We do NOT convert or touch Background, so it remains 100% natively locked with [🔒]
-          await batchPlay([
-            {
-              _obj: "duplicate",
-              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-              name: "Layer 1",
-              _options: { dialogOptions: "dontDisplay" }
-            }
-          ], { synchronousExecution: true });
-
-          // Ensure Layer 1 is selected and active
-          try {
-            const l1 = doc.layers ? doc.layers.find(l => l.name === "Layer 1") : null;
-            if (l1) {
-              doc.activeLayers = [l1];
-            }
-          } catch (e) {}
-
-          // 2. তারপর ব্যাকগ্রাউন্ড রিমুভ (AI Select Subject on Layer 1)
-          await batchPlay([
-            {
-              _obj: "autoCutout",
-              sampleAllLayers: false,
-              _options: { dialogOptions: "dontDisplay" }
-            }
-          ], { synchronousExecution: true });
-
-          // 3. লেয়ার ১ মাস্ক করা (Apply Layer Mask onto Layer 1)
-          try {
-            await batchPlay([
-              {
-                _obj: "make",
-                new: { _class: "channel" },
-                at: { _ref: "channel", _enum: "channel", _value: "mask" },
-                using: { _enum: "userMaskOptions", _value: "revealSelection" },
-                _options: { dialogOptions: "dontDisplay" }
-              }
-            ], { synchronousExecution: true });
-          } catch (maskErr) {
-            await batchPlay([
-              {
-                _obj: "make",
-                new: { _class: "channel" },
-                at: { _ref: "channel", _enum: "channel", _value: "mask" },
-                using: { _enum: "userMaskOptions", _value: "revealAll" },
-                _options: { dialogOptions: "dontDisplay" }
-              }
-            ], { synchronousExecution: true });
+      // When document has only 1 layer (like default Background), or active layer is Background
+      if (layerCount === 1 || (activeLayer && activeLayer.isBackgroundLayer)) {
+        // 1. Duplicate main layer to Layer 1
+        await batchPlay([
+          {
+            _obj: "duplicate",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            name: "Layer 1",
+            dialogOptions: "dontDisplay"
           }
+        ], { synchronousExecution: true });
 
-          return;
-        }
+        // Ensure Layer 1 is selected and active
+        try {
+          const l1 = doc.layers ? doc.layers.find(l => l.name === "Layer 1") : null;
+          if (l1) {
+            doc.activeLayers = [l1];
+          }
+        } catch (e) {}
 
-        // Multiple layers case: Run Select Subject AI + mask on active layer
+        // 2. AI Select Subject on Layer 1
         await batchPlay([
           {
             _obj: "autoCutout",
             sampleAllLayers: false,
-            _options: { dialogOptions: "dontDisplay" }
+            dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
 
+        // 3. Apply Layer Mask onto Layer 1
         try {
           await batchPlay([
             {
@@ -337,7 +332,7 @@ const PSAutomation = {
               new: { _class: "channel" },
               at: { _ref: "channel", _enum: "channel", _value: "mask" },
               using: { _enum: "userMaskOptions", _value: "revealSelection" },
-              _options: { dialogOptions: "dontDisplay" }
+              dialogOptions: "dontDisplay"
             }
           ], { synchronousExecution: true });
         } catch (maskErr) {
@@ -347,12 +342,46 @@ const PSAutomation = {
               new: { _class: "channel" },
               at: { _ref: "channel", _enum: "channel", _value: "mask" },
               using: { _enum: "userMaskOptions", _value: "revealAll" },
-              _options: { dialogOptions: "dontDisplay" }
+              dialogOptions: "dontDisplay"
             }
           ], { synchronousExecution: true });
         }
-      }, "BG Remove: AI Cutout (Layer 1 Mask)");
-    },
+
+        return;
+      }
+
+      // Multiple layers case: Run Select Subject AI + mask on active layer
+      await batchPlay([
+        {
+          _obj: "autoCutout",
+          sampleAllLayers: false,
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      try {
+        await batchPlay([
+          {
+            _obj: "make",
+            new: { _class: "channel" },
+            at: { _ref: "channel", _enum: "channel", _value: "mask" },
+            using: { _enum: "userMaskOptions", _value: "revealSelection" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (maskErr) {
+        await batchPlay([
+          {
+            _obj: "make",
+            new: { _class: "channel" },
+            at: { _ref: "channel", _enum: "channel", _value: "mask" },
+            using: { _enum: "userMaskOptions", _value: "revealAll" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      }
+    }, "AI BG Remove");
+  },
 
   /**
    * 2. BG REMOVE: Toggle / Restore Original BG
@@ -555,39 +584,75 @@ const PSAutomation = {
    */
   async scsmByMargin(marginPercent = 10, applyToAll = false) {
     return await this.executeOnTargetDocs(applyToAll, async (doc) => {
-      // 1. Identify Subject Layer
-      let layer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
-      if (!layer || layer.isBackgroundLayer || layer.name === "BG Color" || layer.name === "BG Image") {
-        const nonBg = (doc.layers || []).filter(l => !l.isBackgroundLayer && l.name !== "BG Color" && l.name !== "BG Image");
-        layer = nonBg.length > 0 ? nonBg[0] : (doc.layers ? doc.layers[0] : null);
-      }
-      if (!layer) throw new Error("No subject layer found to size.");
+      // 1. Identify Background vs Subject / Foreground Layers
+      const isBackgroundLike = (l) => {
+        if (!l) return true;
+        if (l.isBackgroundLayer) return true;
+        const name = (l.name || "").trim().toLowerCase();
+        if (name === "background" || name === "original bg") return true;
+        if (name === "bg color" || name === "bg image" || name === "bg") return true;
+        if (name.startsWith("color fill")) return true;
+        return false;
+      };
 
-      // Ensure layer is selected
-      doc.activeLayers = [layer];
+      // Collect all subject / foreground layers (product, shadows, retouch, adjustments)
+      let subjectLayers = (doc.layers || []).filter(l => !isBackgroundLike(l));
 
-      // Convert Background layer to regular layer if needed so it can be transformed
-      if (layer.isBackgroundLayer) {
-        try {
-          layer.isBackgroundLayer = false;
-        } catch (e) {
+      // If document only has a background layer, convert it to a regular layer
+      if (subjectLayers.length === 0) {
+        let candidate = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : (doc.layers ? doc.layers[0] : null);
+        if (candidate && candidate.isBackgroundLayer) {
           try {
-            await batchPlay([
-              {
-                _obj: "set",
-                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                to: { _obj: "layer", name: "Layer 0" },
-                dialogOptions: "dontDisplay"
-              }
-            ], { synchronousExecution: true });
-          } catch (e2) {}
+            candidate.isBackgroundLayer = false;
+          } catch (e) {
+            try {
+              await batchPlay([
+                {
+                  _obj: "set",
+                  _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                  to: { _obj: "layer", name: "Layer 0" },
+                  dialogOptions: "dontDisplay"
+                }
+              ], { synchronousExecution: true });
+            } catch (e2) {}
+          }
+        }
+        subjectLayers = (doc.layers || []).filter(l => !isBackgroundLike(l));
+      }
+
+      if (subjectLayers.length === 0) throw new Error("No subject layers found to size.");
+
+      // Unlock any locked subject layers so they can be transformed
+      for (const lyr of subjectLayers) {
+        if (lyr.locked) {
+          try { lyr.locked = false; } catch (e) {}
         }
       }
-      if (layer.locked) {
-        try { layer.locked = false; } catch (e) {}
+
+      // Identify the primary subject layer (e.g. Layer 1 / Product) for measuring margins
+      const isShadowName = (l) => {
+        const n = (l.name || "").toLowerCase();
+        return n.includes("shadow");
+      };
+
+      let mainSubjectLayer = null;
+      if (doc.activeLayers && doc.activeLayers.length > 0) {
+        const active = doc.activeLayers[0];
+        if (subjectLayers.some(sl => sl.id === active.id)) {
+          if (isShadowName(active)) {
+            // If user has a shadow layer selected, prefer the actual product layer
+            const nonShadow = subjectLayers.find(l => !isShadowName(l));
+            mainSubjectLayer = nonShadow || active;
+          } else {
+            mainSubjectLayer = active;
+          }
+        }
+      }
+      if (!mainSubjectLayer) {
+        mainSubjectLayer = subjectLayers.find(l => !isShadowName(l)) || subjectLayers[0];
       }
 
-      // Check if layer has a user mask before attempting to select it
+      // Check if main subject layer has a user mask before measuring
       let hasMask = false;
       try {
         const res = await batchPlay([
@@ -595,7 +660,7 @@ const PSAutomation = {
             _obj: "get",
             _target: [
               { _ref: "property", _property: "hasUserMask" },
-              { _ref: "layer", _id: layer.id }
+              { _ref: "layer", _id: mainSubjectLayer.id }
             ],
             dialogOptions: "dontDisplay"
           }
@@ -605,10 +670,11 @@ const PSAutomation = {
         hasMask = false;
       }
 
-      // 2. Measure Exact Subject Bounds
+      // 2. Measure Exact Subject Bounds on main subject layer
       let b = null;
       if (hasMask) {
         try {
+          doc.activeLayers = [mainSubjectLayer];
           await batchPlay([
             {
               _obj: "set",
@@ -636,15 +702,31 @@ const PSAutomation = {
       }
 
       if (!b) {
-        b = layer.bounds;
+        b = mainSubjectLayer.bounds;
       }
 
       const w = b.right - b.left;
       const h = b.bottom - b.top;
-      if (w <= 0 || h <= 0) throw new Error("Selected layer has no visible content.");
+      if (w <= 0 || h <= 0) throw new Error("Selected subject layer has no visible content.");
 
       const canvasW = doc.width;
       const canvasH = doc.height;
+
+      // Center of main subject before transform
+      const cx_main = (b.left + b.right) / 2;
+      const cy_main = (b.top + b.bottom) / 2;
+
+      // Record pre-transform centers for all subject layers (for proportional alignment)
+      const layerPositions = subjectLayers.map(lyr => {
+        const lb = lyr.bounds;
+        return {
+          layer: lyr,
+          id: lyr.id,
+          isMain: lyr.id === mainSubjectLayer.id,
+          centerX: (lb.left + lb.right) / 2,
+          centerY: (lb.top + lb.bottom) / 2
+        };
+      });
 
       // Detect Edge Contact (Threshold: within 4px or 0.5% of canvas dimension)
       const edgeThreshold = Math.max(4, Math.round(Math.min(canvasW, canvasH) * 0.005));
@@ -676,16 +758,13 @@ const PSAutomation = {
       }
 
       const scalePct = Math.min(targetW / w, targetH / h) * 100;
+      const scaleRatio = scalePct / 100;
 
-      // 3. Proportional Scale
-      try {
-        if (AnchorPosition && AnchorPosition.MIDDLECENTER) {
-          await layer.scale(scalePct, scalePct, AnchorPosition.MIDDLECENTER);
-        } else {
-          await layer.scale(scalePct, scalePct);
-        }
-      } catch (scaleErr) {
+      // 3. Proportional Scale ALL Subject Layers simultaneously
+      let multiScaleSuccess = false;
+      if (subjectLayers.length > 1) {
         try {
+          doc.activeLayers = subjectLayers;
           await batchPlay([
             {
               _obj: "transform",
@@ -695,13 +774,44 @@ const PSAutomation = {
               dialogOptions: "dontDisplay"
             }
           ], { synchronousExecution: true });
-        } catch (e) {}
+          multiScaleSuccess = true;
+        } catch (mErr) {
+          multiScaleSuccess = false;
+        }
       }
 
-      // 4. Position Subject (Anchored to touching edges, centered along free axes)
+      // Fallback: Scale each subject layer individually if multi-transform is unavailable
+      if (!multiScaleSuccess) {
+        for (const item of layerPositions) {
+          const lyr = item.layer;
+          try {
+            if (AnchorPosition && AnchorPosition.MIDDLECENTER) {
+              await lyr.scale(scalePct, scalePct, AnchorPosition.MIDDLECENTER);
+            } else {
+              await lyr.scale(scalePct, scalePct);
+            }
+          } catch (scaleErr) {
+            try {
+              doc.activeLayers = [lyr];
+              await batchPlay([
+                {
+                  _obj: "transform",
+                  _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                  width: { _unit: "percentUnit", _value: scalePct },
+                  height: { _unit: "percentUnit", _value: scalePct },
+                  dialogOptions: "dontDisplay"
+                }
+              ], { synchronousExecution: true });
+            } catch (e) {}
+          }
+        }
+      }
+
+      // 4. Measure New Bounds on Main Subject Layer after scaling
       let newBounds = null;
       if (hasMask) {
         try {
+          doc.activeLayers = [mainSubjectLayer];
           await batchPlay([
             {
               _obj: "set",
@@ -729,7 +839,7 @@ const PSAutomation = {
       }
 
       if (!newBounds) {
-        newBounds = layer.bounds;
+        newBounds = mainSubjectLayer.bounds;
       }
 
       // Calculate horizontal delta (dx)
@@ -760,26 +870,67 @@ const PSAutomation = {
         dy = (canvasH / 2) - curCenterY;
       }
 
-      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      // Move ALL subject layers in unison
+      let multiMoveSuccess = false;
+      if (multiScaleSuccess && subjectLayers.length > 1 && (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5)) {
         try {
-          await layer.translate(dx, dy);
-        } catch (transErr) {
-          try {
-            await batchPlay([
-              {
-                _obj: "move",
-                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                to: {
-                  _obj: "offset",
-                  horizontal: { _unit: "pixelsUnit", _value: dx },
-                  vertical: { _unit: "pixelsUnit", _value: dy }
-                },
-                dialogOptions: "dontDisplay"
-              }
-            ], { synchronousExecution: true });
-          } catch (e) {}
+          doc.activeLayers = subjectLayers;
+          await batchPlay([
+            {
+              _obj: "move",
+              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+              to: {
+                _obj: "offset",
+                horizontal: { _unit: "pixelsUnit", _value: dx },
+                vertical: { _unit: "pixelsUnit", _value: dy }
+              },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+          multiMoveSuccess = true;
+        } catch (mErr) {
+          multiMoveSuccess = false;
         }
       }
+
+      if (!multiMoveSuccess) {
+        for (const item of layerPositions) {
+          const lyr = item.layer;
+          // If multiScaleSuccess was true, layers were already scaled around common center.
+          // Otherwise, each layer was scaled around its own center, so apply proportional shift relative to main subject.
+          const shiftX = multiScaleSuccess ? 0 : (scaleRatio - 1) * (item.centerX - cx_main);
+          const shiftY = multiScaleSuccess ? 0 : (scaleRatio - 1) * (item.centerY - cy_main);
+          const layerDx = dx + shiftX;
+          const layerDy = dy + shiftY;
+
+          if (Math.abs(layerDx) > 0.5 || Math.abs(layerDy) > 0.5) {
+            try {
+              await lyr.translate(layerDx, layerDy);
+            } catch (transErr) {
+              try {
+                doc.activeLayers = [lyr];
+                await batchPlay([
+                  {
+                    _obj: "move",
+                    _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                    to: {
+                      _obj: "offset",
+                      horizontal: { _unit: "pixelsUnit", _value: layerDx },
+                      vertical: { _unit: "pixelsUnit", _value: layerDy }
+                    },
+                    dialogOptions: "dontDisplay"
+                  }
+                ], { synchronousExecution: true });
+              } catch (e) {}
+            }
+          }
+        }
+      }
+
+      // Restore active layer to the primary subject layer
+      try {
+        doc.activeLayers = [mainSubjectLayer];
+      } catch (e) {}
 
       // 5. Draw Margin Guides ONLY on sides that have gaps
       // Clear previous guides safely (only if document has guides)
@@ -882,32 +1033,493 @@ const PSAutomation = {
   },
 
   /**
-   * 5. EXPORT: Ready for Amazon / Delivery / PSD
+   * 5. EXPORT: Ready for Delivery
+   * Exports optimized copies for specific e-commerce marketplaces (Shopify, Amazon, WooCommerce, etc.)
+   * into a dedicated "Ready For Delivery" subfolder with correct format (JPG, PNG, WebP) and sRGB profile.
+   * @param {string} marketplaceKey - Marketplace key (shopify, amazon, woocommerce, etc.)
+   * @param {string} format - Target format ("JPG", "PNG", "WebP")
+   * @param {boolean} applyToAll - Process all open documents in Photoshop
    */
-  async exportPreset(type = "amazon") {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document.");
+  async exportForDelivery(marketplaceKey = "amazon", format = "JPG", applyToAll = false, customMaxBytes = 0, targetProfile = "sRGB") {
+    const docs = applyToAll ? app.documents : (app.activeDocument ? [app.activeDocument] : []);
+    if (!docs || docs.length === 0) throw new Error("No active document open in Photoshop.");
 
-    return await core.executeAsModal(async () => {
-      // Convert to sRGB first
-      await batchPlay([
-        {
-          _obj: "convertToProfile",
-          destination: "sRGB IEC61966-2.1",
-          intent: { _enum: "intent", _value: "colorimetric" },
-          blackPointCompensation: true,
-          dither: true,
-          _options: { dialogOptions: "dontDisplay" }
-        }
-      ], { synchronousExecution: true });
-    }, { commandName: `Export: ${type}` });
-  }
-,
+    let count = 0;
+    let lastSummary = "";
+    for (let i = 0; i < docs.length; i++) {
+      lastSummary = await this.exportSingleDocForDelivery(docs[i], marketplaceKey, format, customMaxBytes, targetProfile);
+      count++;
+    }
+
+    const keyClean = (marketplaceKey || "").toLowerCase();
+    const marketName = keyClean === "woocommerce" ? "WooCommerce" : (keyClean ? keyClean.charAt(0).toUpperCase() + keyClean.slice(1) : "Marketplace");
+    if (applyToAll) {
+      return `Ready for Delivery: ${count} of ${docs.length} images exported for ${marketName} (${format})`;
+    }
+    return `Saved for ${marketName} (${format}): ${lastSummary}`;
+  },
 
   /**
-   * History: Undo (Step Backward)
+   * Exports a single document for Delivery into "Ready For Delivery" subfolder
+   * Strictly enforces maximum file size constraint per marketplace (Etsy 1MB, Walmart 5MB, Amazon 10MB, etc.)
    */
-  async undo() {
+  async exportSingleDocForDelivery(doc, marketplaceKey, format = "JPG", customMaxBytes = 0, targetProfile = "sRGB") {
+    // Definitive strict max size lookup for each marketplace
+    const MARKETPLACE_MAX_BYTES = {
+      etsy: 1 * 1024 * 1024,        // 1 MB
+      walmart: 5 * 1024 * 1024,     // 5 MB
+      woocommerce: 5 * 1024 * 1024, // 5 MB
+      amazon: 10 * 1024 * 1024,     // 10 MB
+      ebay: 12 * 1024 * 1024,       // 12 MB
+      shopify: 20 * 1024 * 1024,    // 20 MB
+      zalando: 20 * 1024 * 1024,    // 20 MB
+      custom: 10 * 1024 * 1024      // Custom fallback default
+    };
+
+    const keyClean = (marketplaceKey || "").toLowerCase();
+    const maxBytesAllowed = customMaxBytes || MARKETPLACE_MAX_BYTES[keyClean] || (10 * 1024 * 1024);
+    // Strict safety threshold: 98% of max limit so Windows File Explorer never exceeds the MB threshold
+    const targetLimit = Math.floor(maxBytesAllowed * 0.98);
+
+    // 1. Resolve document path on disk
+    let rawPath = "";
+    try { rawPath = doc.path || ""; } catch (e) {}
+
+    if (!rawPath) {
+      try {
+        const res = await batchPlay([
+          {
+            _obj: "get",
+            _target: [
+              { _property: "fileReference" },
+              { _ref: "document", _id: doc.id }
+            ]
+          }
+        ], { synchronousExecution: true });
+        if (res && res[0] && res[0].fileReference) {
+          const ref = res[0].fileReference;
+          rawPath = typeof ref === "string" ? ref : (ref._path || ref.path || "");
+        }
+      } catch (e) {}
+    }
+
+    if (!rawPath) {
+      throw new Error(`Document "${doc.title}" is not saved on disk. Please save the PSD/image first.`);
+    }
+
+    // 2. Folder resolution
+    let folderPath = rawPath.replace(/\\/g, "/");
+    if (/\.[a-zA-Z0-9]{2,5}$/.test(folderPath)) {
+      folderPath = folderPath.substring(0, folderPath.lastIndexOf("/"));
+    }
+
+    const title = doc.title || doc.name || "untitled";
+    const baseName = title.replace(/\.[^/.]+$/, "");
+    const fmtLower = format.toLowerCase();
+    const ext = fmtLower === "webp" ? "webp"
+      : fmtLower === "png" ? "png"
+      : (fmtLower === "tif" || fmtLower === "tiff") ? "tif"
+      : fmtLower === "psd" ? "psd"
+      : "jpg";
+    const outFileName = `${baseName}.${ext}`;
+
+    // 3. Resolve directory entry via UXP storage
+    const uxp = require("uxp");
+    const localFS = uxp.storage.localFileSystem;
+    const types = uxp.storage.types;
+
+    const normalized = folderPath.replace(/^\/+/, "");
+    const parts = normalized.split("/");
+    const encodedParts = parts.map(part => /^[a-zA-Z]:$/.test(part) ? part : encodeURIComponent(part));
+    const encodedClean = encodedParts.join("/");
+
+    const candidates = [
+      "file:/" + encodedClean,
+      "file:///" + encodedClean,
+      "file:" + normalized,
+      "file:/" + normalized,
+      "file:///" + normalized
+    ];
+
+    let srcEntry = null;
+    let lastErr = null;
+    for (const url of candidates) {
+      try {
+        srcEntry = await localFS.getEntryWithUrl(url);
+        if (srcEntry) break;
+      } catch (err) { lastErr = err; }
+    }
+
+    if (!srcEntry) {
+      throw new Error(`Cannot access directory "${folderPath}": ${lastErr ? (lastErr.message || lastErr) : "Not found"}`);
+    }
+
+    if (srcEntry.isFile) {
+      srcEntry = await srcEntry.parent;
+    }
+
+    // 4. Create or locate "Ready For Delivery" subfolder
+    let deliveryFolder = null;
+    try {
+      const children = await srcEntry.getEntries();
+      deliveryFolder = children.find(e => e.isFolder && (e.name === "Ready For Delivery" || e.name.toLowerCase() === "ready for delivery"));
+    } catch (e) {}
+
+    if (!deliveryFolder) {
+      try {
+        if (typeof srcEntry.createFolder === "function") {
+          deliveryFolder = await srcEntry.createFolder("Ready For Delivery");
+        } else {
+          deliveryFolder = await srcEntry.createEntry("Ready For Delivery", { type: types.folder });
+        }
+      } catch (err) {
+        try {
+          const children = await srcEntry.getEntries();
+          deliveryFolder = children.find(e => e.isFolder && (e.name === "Ready For Delivery" || e.name.toLowerCase() === "ready for delivery"));
+        } catch (e2) {}
+      }
+    }
+
+    if (!deliveryFolder) {
+      throw new Error('Failed to create or access "Ready For Delivery" folder.');
+    }
+
+    // 5. Create output file entry & token
+    let fileEntry = null;
+    try {
+      if (typeof deliveryFolder.createFile === "function") {
+        fileEntry = await deliveryFolder.createFile(outFileName, { overwrite: true });
+      } else {
+        fileEntry = await deliveryFolder.createEntry(outFileName, { type: types.file, overwrite: true });
+      }
+    } catch (fileErr) {
+      throw new Error(`Failed to create file "${outFileName}": ${fileErr.message || fileErr}`);
+    }
+
+    const token = await localFS.createSessionToken(fileEntry);
+
+    // 6. Save execution with auto size optimization
+    const fmtUpper = (format || "JPG").toUpperCase();
+    let currentQuality = fmtUpper === "JPG" ? 11 : (fmtUpper === "WEBP" ? 90 : 6);
+    let initialHistory = null;
+
+    // Helper inside executeAsModal to write the current document state to fileEntry
+    const saveToDisk = async (qLevel) => {
+      let saveSuccess = false;
+      let saveErrorMsg = "";
+
+      if (fmtUpper === "TIF" || fmtUpper === "TIFF") {
+        // Save as TIF – all layers preserved, no flatten
+        try {
+          if (doc.saveAs && typeof doc.saveAs.tiff === "function") {
+            await doc.saveAs.tiff(fileEntry, {
+              imageCompression: "lzw",
+              saveAlpha: true,
+              layers: true
+            }, true);
+            saveSuccess = true;
+          }
+        } catch (domErr) { saveErrorMsg = domErr.message || String(domErr); }
+
+        if (!saveSuccess) {
+          try {
+            await batchPlay([
+              {
+                _obj: "save",
+                as: {
+                  _obj: "TIFF",
+                  byteOrder: { _enum: "byteOrder", _value: "IBM" },
+                  encoding: { _enum: "encoding", _value: "LZW" },
+                  transparency: true,
+                  layers: true
+                },
+                in: { _path: token, _kind: "local" },
+                documentID: doc.id,
+                copy: true,
+                lowerCase: true,
+                saveStage: { _enum: "saveStageType", _value: "saveSucceeded" },
+                _options: { dialogOptions: "dontDisplay" }
+              }
+            ], { synchronousExecution: true });
+            saveSuccess = true;
+          } catch (bpErr) { saveErrorMsg = bpErr.message || String(bpErr); }
+        }
+      } else if (fmtUpper === "PSD") {
+        // Save as PSD – all layers preserved
+        try {
+          if (doc.saveAs && typeof doc.saveAs.psd === "function") {
+            await doc.saveAs.psd(fileEntry, {
+              embedColorProfile: true,
+              maximizeCompatibility: true
+            }, true);
+            saveSuccess = true;
+          }
+        } catch (domErr) { saveErrorMsg = domErr.message || String(domErr); }
+
+        if (!saveSuccess) {
+          try {
+            await batchPlay([
+              {
+                _obj: "save",
+                as: {
+                  _obj: "photoshop35Format",
+                  embedColorProfile: true,
+                  maximizeCompatibility: true,
+                  saveAlpha: true,
+                  layers: true
+                },
+                in: { _path: token, _kind: "local" },
+                documentID: doc.id,
+                copy: true,
+                lowerCase: true,
+                saveStage: { _enum: "saveStageType", _value: "saveSucceeded" },
+                _options: { dialogOptions: "dontDisplay" }
+              }
+            ], { synchronousExecution: true });
+            saveSuccess = true;
+          } catch (bpErr) { saveErrorMsg = bpErr.message || String(bpErr); }
+        }
+      } else if (fmtUpper === "PNG") {
+        try {
+          if (doc.saveAs && typeof doc.saveAs.png === "function") {
+            await doc.saveAs.png(fileEntry, { compression: 6 }, true);
+            saveSuccess = true;
+          }
+        } catch (domErr) { saveErrorMsg = domErr.message || String(domErr); }
+
+        if (!saveSuccess) {
+          try {
+            await batchPlay([
+              {
+                _obj: "save",
+                as: {
+                  _obj: "PNGFormat",
+                  method: { _enum: "PNGMethod", _value: "quick" },
+                  compression: 6
+                },
+                in: { _path: token, _kind: "local" },
+                documentID: doc.id,
+                copy: true,
+                lowerCase: true,
+                saveStage: { _enum: "saveStageType", _value: "saveSucceeded" },
+                _options: { dialogOptions: "dontDisplay" }
+              }
+            ], { synchronousExecution: true });
+            saveSuccess = true;
+          } catch (bpErr) { saveErrorMsg = bpErr.message || String(bpErr); }
+        }
+      } else if (fmtUpper === "WEBP") {
+        try {
+          await batchPlay([
+            {
+              _obj: "save",
+              as: {
+                _obj: "WebPFormat",
+                compression: { _enum: "compression", _value: "lossy" },
+                quality: qLevel || 90
+              },
+              in: { _path: token, _kind: "local" },
+              documentID: doc.id,
+              copy: true,
+              lowerCase: true,
+              saveStage: { _enum: "saveStageType", _value: "saveSucceeded" },
+              _options: { dialogOptions: "dontDisplay" }
+            }
+          ], { synchronousExecution: true });
+          saveSuccess = true;
+        } catch (webpErr) { saveErrorMsg = webpErr.message || String(webpErr); }
+
+        if (!saveSuccess) {
+          try {
+            if (doc.saveAs && typeof doc.saveAs.jpg === "function") {
+              await doc.saveAs.jpg(fileEntry, { quality: Math.min(10, Math.round((qLevel || 90) / 10)) }, true);
+              saveSuccess = true;
+            }
+          } catch (e) {}
+        }
+      } else {
+        // Default: JPG
+        const jpgQ = qLevel || 11;
+        try {
+          if (doc.saveAs && typeof doc.saveAs.jpg === "function") {
+            await doc.saveAs.jpg(fileEntry, { quality: jpgQ }, true);
+            saveSuccess = true;
+          }
+        } catch (domErr) { saveErrorMsg = domErr.message || String(domErr); }
+
+        if (!saveSuccess) {
+          try {
+            await batchPlay([
+              {
+                _obj: "save",
+                as: {
+                  _obj: "JPEG",
+                  extendedQuality: Math.min(12, jpgQ),
+                  matteColor: { _enum: "matteColor", _value: "none" }
+                },
+                in: { _path: token, _kind: "local" },
+                documentID: doc.id,
+                copy: true,
+                lowerCase: true,
+                saveStage: { _enum: "saveStageType", _value: "saveSucceeded" },
+                _options: { dialogOptions: "dontDisplay" }
+              }
+            ], { synchronousExecution: true });
+            saveSuccess = true;
+          } catch (bpErr) { saveErrorMsg = bpErr.message || String(bpErr); }
+        }
+      }
+
+      if (!saveSuccess) {
+        throw new Error(`Failed to save ${fmtUpper}: ${saveErrorMsg || "Unknown save error"}`);
+      }
+    };
+
+    // Step A: Modal scope for color conversion & initial save
+    await core.executeAsModal(async () => {
+      app.activeDocument = doc;
+      initialHistory = doc.activeHistoryState;
+
+      // Ensure RGB Color Mode
+      try {
+        await batchPlay([
+          {
+            _obj: "convertMode",
+            to: { _obj: "RGBColorMode" },
+            _options: { dialogOptions: "dontDisplay" }
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      // Color profile conversion (sRGB unless RGB explicitly requested)
+      const needSRGB = !targetProfile || targetProfile.toUpperCase() !== "RGB";
+      if (needSRGB) {
+        try {
+          await batchPlay([
+            {
+              _obj: "convertToProfile",
+              destination: "sRGB IEC61966-2.1",
+              intent: { _enum: "intent", _value: "colorimetric" },
+              blackPointCompensation: true,
+              dither: true,
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (profErr) {}
+      }
+
+      await saveToDisk(currentQuality);
+    }, { commandName: `Export for Delivery: ${format}` });
+
+    // Step B: Check file size on disk OUTSIDE modal scope to prevent IPC deadlocks
+    let curSize = 0;
+    try {
+      const meta = await fileEntry.getMetadata();
+      curSize = meta ? meta.size : 0;
+    } catch (e) {}
+
+    // Step C: Auto-optimize if file exceeds marketplace maximum allowed bytes
+    // Note: TIF and PSD are lossless layer formats – size optimization skipped for those
+    const isLayerFormat = fmtUpper === "TIF" || fmtUpper === "TIFF" || fmtUpper === "PSD";
+    let passes = 0;
+    while (!isLayerFormat && curSize > targetLimit && passes < 4) {
+      passes++;
+
+      await core.executeAsModal(async () => {
+        app.activeDocument = doc;
+
+        if (fmtUpper === "JPG") {
+          if (currentQuality > 6) {
+            currentQuality = Math.max(5, currentQuality - 2);
+          } else {
+            const scaleFactor = Math.min(0.92, Math.sqrt(targetLimit / curSize) * 0.96);
+            const targetW = Math.max(500, Math.round(doc.width * scaleFactor));
+            const targetH = Math.max(500, Math.round(doc.height * scaleFactor));
+            try {
+              await batchPlay([
+                {
+                  _obj: "imageSize",
+                  width: { _unit: "pixelsUnit", _value: targetW },
+                  height: { _unit: "pixelsUnit", _value: targetH },
+                  linked: true,
+                  interfaceIconFrameDimmed: { _enum: "interpolationType", _value: "automaticInterpolation" }
+                }
+              ], { synchronousExecution: true });
+            } catch (szErr) {}
+          }
+        } else if (fmtUpper === "PNG") {
+          // PNG lossless reduction: scale dimensions proportionally based on pixel area
+          const scaleFactor = Math.min(0.94, Math.sqrt(targetLimit / curSize) * 0.96);
+          const targetW = Math.max(500, Math.round(doc.width * scaleFactor));
+          const targetH = Math.max(500, Math.round(doc.height * scaleFactor));
+          try {
+            await batchPlay([
+              {
+                _obj: "imageSize",
+                width: { _unit: "pixelsUnit", _value: targetW },
+                height: { _unit: "pixelsUnit", _value: targetH },
+                linked: true,
+                interfaceIconFrameDimmed: { _enum: "interpolationType", _value: "automaticInterpolation" }
+              }
+            ], { synchronousExecution: true });
+          } catch (szErr) {}
+        } else if (fmtUpper === "WEBP") {
+          if (currentQuality > 50) {
+            currentQuality = Math.max(40, currentQuality - 20);
+          } else {
+            const scaleFactor = Math.min(0.92, Math.sqrt(targetLimit / curSize) * 0.96);
+            const targetW = Math.max(500, Math.round(doc.width * scaleFactor));
+            const targetH = Math.max(500, Math.round(doc.height * scaleFactor));
+            try {
+              await batchPlay([
+                {
+                  _obj: "imageSize",
+                  width: { _unit: "pixelsUnit", _value: targetW },
+                  height: { _unit: "pixelsUnit", _value: targetH },
+                  linked: true,
+                  interfaceIconFrameDimmed: { _enum: "interpolationType", _value: "automaticInterpolation" }
+                }
+              ], { synchronousExecution: true });
+            } catch (szErr) {}
+          }
+        }
+
+        // Re-save optimized copy
+        await saveToDisk(currentQuality);
+      }, { commandName: `Auto-Optimize Size (${passes})` });
+
+      // Re-read file size on disk outside modal scope
+      try {
+        const meta = await fileEntry.getMetadata();
+        curSize = meta ? meta.size : curSize;
+      } catch (e) {}
+    }
+
+    // Step D: Restore original document state so active document is 100% untouched
+    await core.executeAsModal(async () => {
+      app.activeDocument = doc;
+      if (initialHistory) {
+        try {
+          doc.activeHistoryState = initialHistory;
+        } catch (hErr) {}
+      }
+    }, { commandName: "Restore Document State" });
+
+    // Format human-friendly size
+    const sizeStr = curSize < 1048576 
+      ? `${Math.round(curSize / 1024)} KB`
+      : `${(curSize / 1048576).toFixed(1)} MB`;
+
+    return `${outFileName} (${sizeStr})`;
+  },
+
+  // Legacy preset compatibility
+  async exportPreset(type = "amazon") {
+    return await this.exportForDelivery(type);
+  },
+
+
+    async undo() {
     const doc = app.activeDocument;
     if (!doc) throw new Error("No active document in Photoshop.");
 
@@ -973,32 +1585,36 @@ const PSAutomation = {
    * 2. Blur with mask (Gaussian Blur 37.5px with Black Hide-All Mask)
    * 3. Blur layer (Gaussian Blur 8.0px)
    * 4. Enclosed in group: "Wrinkle Retouch"
+   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
-  async applyFrequencySeparation() {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document in Photoshop.");
-
-    // Check if the user already loaded the action set in Photoshop Actions Panel
-    try {
-      if (app.actionTree && app.actionTree.length > 0) {
-        for (const set of app.actionTree) {
-          const setName = (set.name || "").toLowerCase();
-          if (setName.includes("wrinkle") || setName.includes("frequency")) {
-            const act = set.actions && set.actions.find(a => (a.name || "").toLowerCase().includes("frequency"));
-            if (act) {
-              return await core.executeAsModal(async () => {
+  async applyFrequencySeparation(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      // 1. If action exists, play action on active document
+      let actionPlayed = false;
+      try {
+        if (app.actionTree && app.actionTree.length > 0) {
+          for (const set of app.actionTree) {
+            const setName = (set.name || "").toLowerCase();
+            if (setName.includes("wrinkle") || setName.includes("frequency")) {
+              const act = set.actions && set.actions.find(a => (a.name || "").toLowerCase().includes("frequency"));
+              if (act) {
                 await act.play();
-              }, { commandName: "Frequency Separation (Action)" });
+                actionPlayed = true;
+                break;
+              }
             }
           }
         }
-      }
-    } catch (atErr) {}
+      } catch (atErr) {}
 
-    // Otherwise, create the exact layer hierarchy natively
-    return await core.executeAsModal(async () => {
+      if (actionPlayed) return;
+
+      // 2. Otherwise create native layers on doc
       let currentLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
-      if (!currentLayer) throw new Error("No layer selected to retouch.");
+      if (!currentLayer) {
+        currentLayer = doc.layers && doc.layers.length > 0 ? doc.layers[0] : null;
+      }
+      if (!currentLayer) return;
 
       if (currentLayer.isBackgroundLayer) {
         currentLayer.isBackgroundLayer = false;
@@ -1039,20 +1655,15 @@ const PSAutomation = {
             _obj: "highPass",
             radius: { _unit: "pixelsUnit", _value: 8.0 },
             dialogOptions: "dontDisplay"
-          },
-          {
-            _obj: "set",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            to: {
-              _obj: "layer",
-              mode: { _enum: "blendMode", _value: "linearLight" }
-            },
-            dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (hpErr) {}
+      } catch (hp1) {}
 
-      // 3. On "Blur with mask" layer: apply Gaussian Blur 37.5 px & Hide-All Mask
+      try {
+        highLayer.blendMode = "linearLight";
+      } catch (bm1) {}
+
+      // 3. On "Blur with mask" layer: apply Gaussian Blur at 37.5 px & add inverted Black Mask
       doc.activeLayers = [blurWithMask];
       try {
         await batchPlay([
@@ -1074,20 +1685,11 @@ const PSAutomation = {
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (mskErr) {
-        try {
-          await batchPlay([
-            {
-              _obj: "invert",
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (invErr) {}
-      }
+      } catch (mErr) {}
 
-      // 4. Create Layer Group "Wrinkle Retouch"
+      // 4. Group all 3 layers inside "Wrinkle Retouch"
       try {
-        if (typeof doc.createLayerGroup === "function") {
+        if (doc.createLayerGroup) {
           await doc.createLayerGroup({
             name: "Wrinkle Retouch",
             fromLayers: [highLayer, blurWithMask, blurLayer]
@@ -1112,7 +1714,7 @@ const PSAutomation = {
       try {
         doc.activeLayers = [blurWithMask];
       } catch (selErr) {}
-    }, { commandName: "Frequency Separation (Wrinkle Retouch)" });
+    }, "Frequency Separation (Wrinkle Retouch)");
   },
 
   /**
@@ -1121,14 +1723,15 @@ const PSAutomation = {
    * - Dodge Layer (Curves brightened midtones, inverted mask)
    * - Burn Layer (Curves darkened midtones, inverted mask)
    * - Grouped inside "Dodge & Burn (Clothing)"
+   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
-  async applyDodgeAndBurn() {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document in Photoshop.");
-
-    return await core.executeAsModal(async () => {
+  async applyDodgeAndBurn(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
       let currentLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
-      if (!currentLayer) throw new Error("No layer selected.");
+      if (!currentLayer) {
+        currentLayer = doc.layers && doc.layers.length > 0 ? doc.layers[0] : null;
+      }
+      if (!currentLayer) return;
 
       let dodgeLayer = null;
       let burnLayer = null;
@@ -1173,6 +1776,7 @@ const PSAutomation = {
 
       // 2. Create Burn Curves Layer
       try {
+        doc.activeLayers = [currentLayer];
         await batchPlay([
           {
             _obj: "make",
@@ -1240,32 +1844,197 @@ const PSAutomation = {
           doc.activeLayers = [dodgeLayer];
         } catch (selErr) {}
       }
-    }, { commandName: "Dodge and Burn (Clothing)" });
+    }, "Dodge and Burn (Clothing)");
+  },
+
+  /**
+   * Save single document for Evoto
+   */
+  async saveSingleDocForEvoto(doc) {
+    // 1. Get document raw path
+    let rawPath = "";
+    try {
+      rawPath = doc.path || "";
+    } catch (e) {}
+
+    // Fallback: query document fileReference via batchPlay
+    if (!rawPath) {
+      try {
+        const res = await batchPlay([
+          {
+            _obj: "get",
+            _target: [
+              { _property: "fileReference" },
+              { _ref: "document", _id: doc.id }
+            ]
+          }
+        ], { synchronousExecution: true });
+        if (res && res[0] && res[0].fileReference) {
+          const ref = res[0].fileReference;
+          rawPath = typeof ref === "string" ? ref : (ref._path || ref.path || "");
+        }
+      } catch (e) {}
+    }
+
+    if (!rawPath) {
+      throw new Error(`Document "${doc.title}" is not saved on disk yet. Please save the file first.`);
+    }
+
+    // 2. Extract folder path from rawPath
+    let folderPath = rawPath.replace(/\\/g, "/");
+    if (/\.[a-zA-Z0-9]{2,5}$/.test(folderPath)) {
+      folderPath = folderPath.substring(0, folderPath.lastIndexOf("/"));
+    }
+
+    const title = doc.title || doc.name || "untitled";
+    const baseName = title.replace(/\.[^/.]+$/, "");
+    const jpgFileName = baseName + ".jpg";
+
+    // 3. Resolve folder entry via UXP localFileSystem (OUTSIDE executeAsModal)
+    const uxp = require("uxp");
+    const localFS = uxp.storage.localFileSystem;
+    const types = uxp.storage.types;
+
+    const normalized = folderPath.replace(/^\/+/, "");
+    const parts = normalized.split("/");
+    const encodedParts = parts.map(part => {
+      if (/^[a-zA-Z]:$/.test(part)) return part;
+      return encodeURIComponent(part);
+    });
+    const encodedClean = encodedParts.join("/");
+
+    const candidates = [
+      "file:/" + encodedClean,
+      "file:///" + encodedClean,
+      "file:" + normalized,
+      "file:/" + normalized,
+      "file:///" + normalized
+    ];
+
+    let srcEntry = null;
+    let lastErr = null;
+    for (const url of candidates) {
+      try {
+        srcEntry = await localFS.getEntryWithUrl(url);
+        if (srcEntry) break;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+
+    if (!srcEntry) {
+      throw new Error(`Cannot access folder "${folderPath}": ${lastErr ? (lastErr.message || lastErr) : "Not found"}`);
+    }
+
+    if (srcEntry.isFile) {
+      srcEntry = await srcEntry.parent;
+    }
+
+    // 4. Create or get "Save for Evoto" subfolder
+    let evotoFolder = null;
+    try {
+      const children = await srcEntry.getEntries();
+      evotoFolder = children.find(e => e.isFolder && (e.name === "Save for Evoto" || e.name.toLowerCase() === "save for evoto"));
+    } catch (e) {}
+
+    if (!evotoFolder) {
+      try {
+        if (typeof srcEntry.createFolder === "function") {
+          evotoFolder = await srcEntry.createFolder("Save for Evoto");
+        } else {
+          evotoFolder = await srcEntry.createEntry("Save for Evoto", { type: types.folder });
+        }
+      } catch (err) {
+        try {
+          const children = await srcEntry.getEntries();
+          evotoFolder = children.find(e => e.isFolder && (e.name === "Save for Evoto" || e.name.toLowerCase() === "save for evoto"));
+        } catch (e2) {}
+      }
+    }
+
+    if (!evotoFolder) {
+      throw new Error('Failed to create or access "Save for Evoto" folder.');
+    }
+
+    // 5. Create output JPG file entry & session token
+    let fileEntry = null;
+    try {
+      if (typeof evotoFolder.createFile === "function") {
+        fileEntry = await evotoFolder.createFile(jpgFileName, { overwrite: true });
+      } else {
+        fileEntry = await evotoFolder.createEntry(jpgFileName, { type: types.file, overwrite: true });
+      }
+    } catch (fileErr) {
+      throw new Error(`Failed to create file "${jpgFileName}": ${fileErr.message || fileErr}`);
+    }
+
+    const token = await localFS.createSessionToken(fileEntry);
+
+    // 6. Execute save inside executeAsModal (without touching active document layers)
+    await core.executeAsModal(async () => {
+      app.activeDocument = doc;
+      let saved = false;
+      let saveError = null;
+
+      try {
+        await doc.saveAs.jpg(fileEntry, { quality: 10 }, true);
+        saved = true;
+      } catch (domErr) {
+        saveError = domErr;
+      }
+
+      if (!saved) {
+        try {
+          await batchPlay([
+            {
+              _obj: "save",
+              as: {
+                _obj: "JPEG",
+                extendedQuality: 10,
+                matteColor: { _enum: "matteColor", _value: "none" }
+              },
+              in: {
+                _path: token,
+                _kind: "local"
+              },
+              documentID: doc.id,
+              copy: true,
+              lowerCase: true,
+              saveStage: { _enum: "saveStageType", _value: "saveSucceeded" },
+              _options: { dialogOptions: "dontDisplay" }
+            }
+          ], { synchronousExecution: true });
+          saved = true;
+        } catch (bpErr) {
+          throw new Error("Save JPG failed: " + (bpErr.message || bpErr || saveError?.message || "Unknown save error"));
+        }
+      }
+    }, { commandName: "Save for Evoto (JPG)" });
+
+    return "Save for Evoto/" + jpgFileName;
   },
 
   /**
    * Save for Evoto:
-   * Prompts to save a high-quality JPG copy ready for Evoto AI clothing wrinkle removal
+   * Creates a "Save for Evoto" subfolder inside the source document folder
+   * and saves a high-quality flat JPG copy there without modifying or flattening the active document.
+   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
-  async saveForEvoto() {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document in Photoshop.");
+  async saveForEvoto(applyToAll = false) {
+    const docs = applyToAll ? app.documents : (app.activeDocument ? [app.activeDocument] : []);
+    if (!docs || docs.length === 0) throw new Error("No active document open in Photoshop.");
 
-    const uxp = require("uxp");
-    const title = doc.title || "image";
-    const rawName = title.replace(/\.[^/.]+$/, "");
-    const defaultName = rawName + "_evoto.jpg";
+    let lastPath = "";
+    let count = 0;
+    for (let i = 0; i < docs.length; i++) {
+      lastPath = await this.saveSingleDocForEvoto(docs[i]);
+      count++;
+    }
 
-    const entry = await uxp.storage.localFileSystem.getFileForSaving(defaultName, {
-      types: ["jpg", "jpeg"]
-    });
-    if (!entry) return false; // Canceled by user
-
-    await core.executeAsModal(async () => {
-      await doc.saveAs.jpg(entry, { quality: 12 }, true);
-    }, { commandName: "Save for Evoto" });
-
-    return entry.name;
+    if (applyToAll) {
+      return `Save for Evoto (${count} of ${docs.length} images saved)`;
+    }
+    return lastPath;
   },
 
   /**
@@ -1276,14 +2045,11 @@ const PSAutomation = {
   },
 
   /**
-   * Shadow:
-   * Adds clean photorealistic contact / ground shadow under product
+   * Shadow 1: Drop Shadow
+   * Soft, floating ambient shadow below and slightly offset
    */
-  async applyContactShadow() {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document.");
-
-    return await core.executeAsModal(async () => {
+  async applyDropShadow(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
       await batchPlay([
         {
           _obj: "set",
@@ -1295,50 +2061,1209 @@ const PSAutomation = {
               _obj: "dropShadow",
               enabled: true,
               mode: { _enum: "blendMode", _value: "multiply" },
-              color: { _obj: "RGBColor", red: 15, grain: 15, blue: 25 },
-              opacity: { _unit: "percentUnit", _value: 28 },
+              color: { _obj: "RGBColor", red: 0, grain: 0, blue: 0 },
+              opacity: { _unit: "percentUnit", _value: 54 },
               useGlobalAngle: false,
-              localLightingAngle: { _unit: "angleUnit", _value: 90 },
-              distance: { _unit: "pixelsUnit", _value: 16 },
-              chokeMatte: { _unit: "pixelsUnit", _value: 0 },
-              blur: { _unit: "pixelsUnit", _value: 30 }
+              localLightingAngle: { _unit: "angleUnit", _value: 142 },
+              distance: { _unit: "pixelsUnit", _value: 10 },
+              chokeMatte: { _unit: "percentUnit", _value: 5 },
+              blur: { _unit: "pixelsUnit", _value: 16 },
+              noise: { _unit: "percentUnit", _value: 0 },
+              antiAlias: true,
+              layerConceals: true
             }
           },
           dialogOptions: "dontDisplay"
         }
       ], { synchronousExecution: true });
-    }, { commandName: "Adjustment: Contact Shadow" });
+    }, "Adjustment: Drop Shadow");
   },
 
   /**
-   * Color Correction & sRGB:
-   * Balanced auto-contrast, white-point correction, and sRGB profile
+   * Shadow 2: Natural Shadow
+   * Fully automated implementation of Natural_Shadow.ATN that works regardless of which layer is selected:
+   * 1. Deselects any marching ants first to ensure clean state
+   * 2. Auto-identifies Background layer and cutout Subject layer
+   * 3. Duplicates Background layer as "Shadow" & removes any pre-existing mask
+   * 4. Positions "Shadow" directly below Subject layer
+   * 5. Inverted luminosity mask & exact curves contrast from action
+   * 6. Sets Multiply blend mode, Desaturates, and clears selection
+   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
-  async applyColorCorrection() {
-    const doc = app.activeDocument;
-    if (!doc) throw new Error("No active document.");
+  async applyNaturalShadow(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      const layers = doc.layers || [];
+      if (layers.length === 0) return;
+
+      // 1. Deselect any active selection first so duplicate/copy is clean
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _enum: "ordinal", _value: "none" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      // 2. Remove any previously created "Shadow" layer if re-applying
+      const oldShadow = layers.find(l => l.name === "Shadow" || l.name === "Natural Shadow" || l.name === "Existing Shadow" || l.name === "Cast Shadow");
+      if (oldShadow) {
+        try { await oldShadow.delete(); } catch (e) {}
+      }
+
+      // 3. Intelligently identify Background layer (source of real floor shadow)
+      let bgLayer = layers.find(l => l.isBackgroundLayer || l.name === "Background" || l.name === "Original BG");
+      if (!bgLayer) {
+        // Find the lowest pixel layer that isn't solid BG Color
+        for (let i = layers.length - 1; i >= 0; i--) {
+          const name = layers[i].name || "";
+          if (name !== "BG Color" && name !== "Shadow" && name !== "Natural Shadow" && name !== "Existing Shadow" && name !== "Cast Shadow" && !name.startsWith("Color Fill")) {
+            bgLayer = layers[i];
+            break;
+          }
+        }
+      }
+      if (!bgLayer) bgLayer = layers[layers.length - 1]; // bottom-most layer fallback
+      if (!bgLayer) return;
+
+      // 4. Intelligently identify Subject cutout layer
+      let subjectLayer = layers.find(l => !l.isBackgroundLayer && l.name !== "Background" && l.name !== "Original BG" && l.name !== "BG Color" && l.name !== "Shadow" && !l.name.startsWith("Color Fill"));
+      if (!subjectLayer && doc.activeLayers && doc.activeLayers.length > 0) {
+        subjectLayer = doc.activeLayers[0];
+      }
+
+      // 5. Select Background layer & duplicate it as "Shadow"
+      doc.activeLayers = [bgLayer];
+
+      let shadowLayer = null;
+      try {
+        shadowLayer = await bgLayer.duplicate();
+        shadowLayer.name = "Shadow";
+      } catch (dupErr) {
+        await batchPlay([
+          { _obj: "copyToLayer", dialogOptions: "dontDisplay" }
+        ], { synchronousExecution: true });
+        shadowLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+        if (shadowLayer) shadowLayer.name = "Shadow";
+      }
+
+      if (!shadowLayer) return;
+
+      // Ensure shadowLayer is unlocked and not a background layer
+      if (shadowLayer.isBackgroundLayer) shadowLayer.isBackgroundLayer = false;
+      if (shadowLayer.locked) shadowLayer.locked = false;
+
+      // 6. CRITICAL: Remove any pre-existing layer mask from the duplicated layer
+      // This prevents "The command 'Make' is not currently available" error when adding new mask!
+      try {
+        await batchPlay([
+          {
+            _obj: "delete",
+            _target: [{ _ref: "channel", _enum: "channel", _value: "mask" }],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (delMaskErr) {}
+
+      // 7. Move Shadow layer directly below the subjectLayer
+      if (subjectLayer && shadowLayer !== subjectLayer) {
+        try {
+          await shadowLayer.move(subjectLayer, constants.ElementPlacement ? constants.ElementPlacement.PLACEAFTER : "after");
+        } catch (mvErr) {
+          try {
+            await batchPlay([
+              {
+                _obj: "move",
+                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                to: { _ref: "layer", _id: subjectLayer.id },
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (e) {}
+        }
+      }
+
+      // 8. Create luminosity selection (Inverted RGB) and Mask on shadowLayer
+      doc.activeLayers = [shadowLayer];
+
+      // Step A: Set selection to RGB channel luminosity
+      await batchPlay([
+        {
+          _obj: "set",
+          _target: [{ _ref: "channel", _property: "selection" }],
+          to: { _ref: "channel", _enum: "channel", _value: "RGB" },
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // Step B: Invert selection
+      await batchPlay([
+        {
+          _obj: "inverse",
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // Step C: Make layer mask revealing selection
+      await batchPlay([
+        {
+          _obj: "make",
+          new: { _class: "channel" },
+          at: { _ref: "channel", _enum: "channel", _value: "mask" },
+          using: { _enum: "userMaskOptions", _value: "revealSelection" },
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // 9. Select mask channel and apply exact contrast Curve from Natural_Shadow.ATN
+      await batchPlay([
+        {
+          _obj: "select",
+          _target: [{ _ref: "channel", _enum: "ordinal", _value: "targetEnum" }],
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      const naturalShadowCurveLut = [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,4,5,6,8,9,10,12,13,14,16,17,18,19,
+        21,22,23,25,26,27,28,30,31,32,34,35,36,38,39,40,41,43,44,45,47,48,49,50,52,53,54,56,
+        57,58,60,61,62,63,65,66,67,69,70,71,72,74,75,76,78,79,80,82,83,84,85,87,88,89,91,92,
+        93,94,96,97,98,100,101,102,104,105,106,107,109,110,111,113,114,115,116,118,119,120,
+        122,123,124,126,127,128,129,131,132,133,135,136,137,139,140,141,142,144,145,146,148,
+        149,150,151,153,154,155,157,158,159,161,162,163,164,166,167,168,170,171,172,173,175,
+        176,177,179,180,181,183,184,185,186,188,189,190,192,193,194,195,197,198,199,201,202,
+        203,205,206,207,208,210,211,212,214,215,216,217,219,220,221,223,224,225,227,228,229,
+        230,232,233,234,236,237,238,239,241,242,243,245,246,247,249,250,251,252,254,255,255,
+        255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+        255,255,255,255,255,255,255,255,255,255,255,255,255,255,255
+      ];
+
+      try {
+        await batchPlay([
+          {
+            _obj: "curves",
+            presetKind: { _enum: "presetKindType", _value: "presetKindCustom" },
+            adjustment: [
+              {
+                _obj: "curveAdjustment",
+                channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
+                mapping: naturalShadowCurveLut
+              }
+            ],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (cErr) {
+        try {
+          await batchPlay([
+            {
+              _obj: "curves",
+              adjustment: [
+                {
+                  _obj: "curveAdjustment",
+                  channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
+                  curve: [
+                    { _obj: "point", horizontal: 22, vertical: 0 },
+                    { _obj: "point", horizontal: 235, vertical: 255 }
+                  ]
+                }
+              ],
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (cErr2) {}
+      }
+
+      // Return to RGB channel
+      await batchPlay([
+        {
+          _obj: "select",
+          _target: [{ _ref: "channel", _enum: "channel", _value: "RGB" }],
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // 10. Set layer name to "Shadow"
+      shadowLayer.name = "Shadow";
+
+      // 11. Set blend mode to Multiply
+      try {
+        shadowLayer.blendMode = "multiply";
+      } catch (bmErr) {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            to: { _obj: "layer", mode: { _enum: "blendMode", _value: "multiply" } },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      }
+
+      // 12. Desaturate layer pixels (clean neutral shadow, removes color casts)
+      try {
+        await batchPlay([
+          {
+            _obj: "desaturate",
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (dsErr) {}
+
+      // 13. Clean up: remove marching ants selection
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _enum: "ordinal", _value: "none" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      // 14. Return active layer to subjectLayer so user can immediately continue work
+      if (subjectLayer) {
+        try { doc.activeLayers = [subjectLayer]; } catch (e) {}
+      }
+    }, "Adjustment: Natural Shadow");
+  },
+
+  /**
+   * Shadow 3: Existing Shadow
+   * Fully automated implementation of Existing Shadow.ATN:
+   * 1. Deselects any active selection first
+   * 2. Cleans up any previous shadow layers ("Existing Shadow", "Shadow", "Cast Shadow", "Natural Shadow")
+   * 3. Intelligently identifies Background layer and cutout Subject layer
+   * 4. Duplicates Background layer as "Existing Shadow" & removes any pre-existing mask
+   * 5. Positions "Existing Shadow" directly below Subject layer
+   * 6. Creates inverted luminosity selection (RGB -> inverse -> revealSelection layer mask)
+   * 7. Selects mask channel and applies exact Levels adjustment from action (input: [41, 255])
+   * 8. Selects RGB channel and applies Levels adjustment (input: [41, 255])
+   * 9. Sets layer blend mode to Multiply
+   * 10. Desaturates layer pixels for neutral authentic shadow
+   * 11. Clears selection and restores focus to Subject layer
+   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
+   */
+  async applyExistingShadow(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      const layers = doc.layers || [];
+      if (layers.length === 0) return;
+
+      // 1. Deselect any active selection first
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _enum: "ordinal", _value: "none" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      // 2. Remove any previously created shadow layer if re-applying
+      const oldShadow = layers.find(l => l.name === "Existing Shadow" || l.name === "Shadow" || l.name === "Natural Shadow" || l.name === "Cast Shadow");
+      if (oldShadow) {
+        try { await oldShadow.delete(); } catch (e) {}
+      }
+
+      // 3. Intelligently identify Background layer (source of real floor shadow)
+      let bgLayer = layers.find(l => l.isBackgroundLayer || l.name === "Background" || l.name === "Original BG");
+      if (!bgLayer) {
+        for (let i = layers.length - 1; i >= 0; i--) {
+          const name = layers[i].name || "";
+          if (name !== "BG Color" && name !== "Shadow" && name !== "Natural Shadow" && name !== "Existing Shadow" && name !== "Cast Shadow" && !name.startsWith("Color Fill")) {
+            bgLayer = layers[i];
+            break;
+          }
+        }
+      }
+      if (!bgLayer) bgLayer = layers[layers.length - 1];
+      if (!bgLayer) return;
+
+      // 4. Intelligently identify Subject cutout layer
+      let subjectLayer = layers.find(l => !l.isBackgroundLayer && l.name !== "Background" && l.name !== "Original BG" && l.name !== "BG Color" && l.name !== "Shadow" && l.name !== "Natural Shadow" && l.name !== "Existing Shadow" && l.name !== "Cast Shadow" && !l.name.startsWith("Color Fill"));
+      if (!subjectLayer && doc.activeLayers && doc.activeLayers.length > 0) {
+        subjectLayer = doc.activeLayers[0];
+      }
+
+      // 5. Select Background layer & duplicate it as "Existing Shadow"
+      doc.activeLayers = [bgLayer];
+
+      let shadowLayer = null;
+      try {
+        shadowLayer = await bgLayer.duplicate();
+        shadowLayer.name = "Existing Shadow";
+      } catch (dupErr) {
+        await batchPlay([
+          { _obj: "copyToLayer", dialogOptions: "dontDisplay" }
+        ], { synchronousExecution: true });
+        shadowLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+        if (shadowLayer) shadowLayer.name = "Existing Shadow";
+      }
+
+      if (!shadowLayer) return;
+
+      if (shadowLayer.isBackgroundLayer) shadowLayer.isBackgroundLayer = false;
+      if (shadowLayer.locked) shadowLayer.locked = false;
+
+      // 6. Remove any pre-existing layer mask from the duplicated layer
+      try {
+        await batchPlay([
+          {
+            _obj: "delete",
+            _target: [{ _ref: "channel", _enum: "channel", _value: "mask" }],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (delMaskErr) {}
+
+      // 7. Move Shadow layer directly below the subjectLayer
+      if (subjectLayer && shadowLayer !== subjectLayer) {
+        try {
+          await shadowLayer.move(subjectLayer, constants.ElementPlacement ? constants.ElementPlacement.PLACEAFTER : "after");
+        } catch (mvErr) {
+          try {
+            await batchPlay([
+              {
+                _obj: "move",
+                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                to: { _ref: "layer", _id: subjectLayer.id },
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (e) {}
+        }
+      }
+
+      // 8. Create luminosity selection (Inverted RGB) and Mask on shadowLayer
+      doc.activeLayers = [shadowLayer];
+
+      // Set selection to RGB channel luminosity
+      await batchPlay([
+        {
+          _obj: "set",
+          _target: [{ _ref: "channel", _property: "selection" }],
+          to: { _ref: "channel", _enum: "channel", _value: "RGB" },
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // Invert selection
+      await batchPlay([
+        {
+          _obj: "inverse",
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // Make layer mask revealing selection
+      await batchPlay([
+        {
+          _obj: "make",
+          new: { _class: "channel" },
+          at: { _ref: "channel", _enum: "channel", _value: "mask" },
+          using: { _enum: "userMaskOptions", _value: "revealSelection" },
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // 9. Select mask channel and apply Levels adjustment from Existing Shadow.ATN (input: [41, 255])
+      try {
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "channel", _enum: "ordinal", _value: "targetEnum" }],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+
+        await batchPlay([
+          {
+            _obj: "levels",
+            presetKind: { _enum: "presetKindType", _value: "presetKindCustom" },
+            adjustment: [
+              {
+                _obj: "levelAdjustment",
+                channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
+                input: [41, 255]
+              }
+            ],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (lvlErr) {
+        try {
+          await batchPlay([
+            {
+              _obj: "levels",
+              adjustment: [
+                {
+                  _obj: "levelAdjustment",
+                  channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
+                  input: [41, 255]
+                }
+              ],
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (lvlErr2) {}
+      }
+
+      // 10. Return to RGB channel and apply Levels adjustment to deepen shadow pixels
+      try {
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "channel", _enum: "channel", _value: "RGB" }],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+
+        await batchPlay([
+          {
+            _obj: "levels",
+            presetKind: { _enum: "presetKindType", _value: "presetKindCustom" },
+            adjustment: [
+              {
+                _obj: "levelAdjustment",
+                channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
+                input: [41, 255]
+              }
+            ],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (lvlRgbErr) {}
+
+      // 11. Set layer name to "Existing Shadow"
+      shadowLayer.name = "Existing Shadow";
+
+      // 12. Set blend mode to Multiply
+      try {
+        shadowLayer.blendMode = "multiply";
+      } catch (bmErr) {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            to: { _obj: "layer", mode: { _enum: "blendMode", _value: "multiply" } },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      }
+
+      // 13. Desaturate layer pixels (clean neutral shadow, removes color casts)
+      try {
+        await batchPlay([
+          {
+            _obj: "desaturate",
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (dsErr) {}
+
+      // 14. Clean up: remove marching ants selection
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _enum: "ordinal", _value: "none" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      // 15. Return active layer to subjectLayer so user can immediately continue work
+      if (subjectLayer) {
+        try { doc.activeLayers = [subjectLayer]; } catch (e) {}
+      }
+    }, "Adjustment: Existing Shadow");
+  },
+
+  /**
+   * Shadow 4: Cast Shadow
+   * Fully automated implementation of Cast Shadow.ATN:
+   * 1. Deselects any active selection first
+   * 2. Cleans up any previous shadow layers ("Cast Shadow", "Shadow", "Existing Shadow", "Natural Shadow")
+   * 3. Intelligently identifies Background layer and cutout Subject layer
+   * 4. Duplicates Background layer as "Cast Shadow" & removes any pre-existing mask
+   * 5. Positions "Cast Shadow" directly below Subject layer
+   * 6. Creates inverted luminosity selection (RGB -> inverse -> revealSelection layer mask)
+   * 7. Selects mask channel and applies exact Levels adjustment from Cast Shadow.ATN (input: [41, 255])
+   * 8. Returns to RGB channel
+   * 9. Sets Multiply blend mode while preserving natural colors & reflections (NO desaturate)
+   * 10. Clears selection and restores focus to Subject layer
+   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
+   */
+  async applyCastShadow(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      const layers = doc.layers || [];
+      if (layers.length === 0) return;
+
+      // 1. Deselect any active selection first
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _enum: "ordinal", _value: "none" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      // 2. Remove any previously created shadow layer if re-applying
+      const oldShadow = layers.find(l => l.name === "Cast Shadow" || l.name === "Shadow" || l.name === "Natural Shadow" || l.name === "Existing Shadow");
+      if (oldShadow) {
+        try { await oldShadow.delete(); } catch (e) {}
+      }
+
+      // 3. Intelligently identify Background layer (source of real floor shadow)
+      let bgLayer = layers.find(l => l.isBackgroundLayer || l.name === "Background" || l.name === "Original BG");
+      if (!bgLayer) {
+        for (let i = layers.length - 1; i >= 0; i--) {
+          const name = layers[i].name || "";
+          if (name !== "BG Color" && name !== "Shadow" && name !== "Natural Shadow" && name !== "Existing Shadow" && name !== "Cast Shadow" && !name.startsWith("Color Fill")) {
+            bgLayer = layers[i];
+            break;
+          }
+        }
+      }
+      if (!bgLayer) bgLayer = layers[layers.length - 1];
+      if (!bgLayer) return;
+
+      // 4. Intelligently identify Subject cutout layer
+      let subjectLayer = layers.find(l => !l.isBackgroundLayer && l.name !== "Background" && l.name !== "Original BG" && l.name !== "BG Color" && l.name !== "Shadow" && l.name !== "Natural Shadow" && l.name !== "Existing Shadow" && l.name !== "Cast Shadow" && !l.name.startsWith("Color Fill"));
+      if (!subjectLayer && doc.activeLayers && doc.activeLayers.length > 0) {
+        subjectLayer = doc.activeLayers[0];
+      }
+
+      // 5. Select Background layer & duplicate it as "Cast Shadow"
+      doc.activeLayers = [bgLayer];
+
+      let shadowLayer = null;
+      try {
+        shadowLayer = await bgLayer.duplicate();
+        shadowLayer.name = "Cast Shadow";
+      } catch (dupErr) {
+        await batchPlay([
+          { _obj: "copyToLayer", dialogOptions: "dontDisplay" }
+        ], { synchronousExecution: true });
+        shadowLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+        if (shadowLayer) shadowLayer.name = "Cast Shadow";
+      }
+
+      if (!shadowLayer) return;
+
+      if (shadowLayer.isBackgroundLayer) shadowLayer.isBackgroundLayer = false;
+      if (shadowLayer.locked) shadowLayer.locked = false;
+
+      // 6. Remove any pre-existing layer mask from the duplicated layer
+      try {
+        await batchPlay([
+          {
+            _obj: "delete",
+            _target: [{ _ref: "channel", _enum: "channel", _value: "mask" }],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (delMaskErr) {}
+
+      // 7. Move Shadow layer directly below the subjectLayer
+      if (subjectLayer && shadowLayer !== subjectLayer) {
+        try {
+          await shadowLayer.move(subjectLayer, constants.ElementPlacement ? constants.ElementPlacement.PLACEAFTER : "after");
+        } catch (mvErr) {
+          try {
+            await batchPlay([
+              {
+                _obj: "move",
+                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                to: { _ref: "layer", _id: subjectLayer.id },
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (e) {}
+        }
+      }
+
+      // 8. Create luminosity selection (Inverted RGB) and Mask on shadowLayer
+      doc.activeLayers = [shadowLayer];
+
+      // Set selection to RGB channel luminosity
+      await batchPlay([
+        {
+          _obj: "set",
+          _target: [{ _ref: "channel", _property: "selection" }],
+          to: { _ref: "channel", _enum: "channel", _value: "RGB" },
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // Invert selection
+      await batchPlay([
+        {
+          _obj: "inverse",
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // Make layer mask revealing selection
+      await batchPlay([
+        {
+          _obj: "make",
+          new: { _class: "channel" },
+          at: { _ref: "channel", _enum: "channel", _value: "mask" },
+          using: { _enum: "userMaskOptions", _value: "revealSelection" },
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+
+      // 9. Select mask channel and apply exact Levels adjustment from Cast Shadow.ATN (input: [41, 255])
+      try {
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "channel", _enum: "ordinal", _value: "targetEnum" }],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+
+        await batchPlay([
+          {
+            _obj: "levels",
+            presetKind: { _enum: "presetKindType", _value: "presetKindCustom" },
+            adjustment: [
+              {
+                _obj: "levelAdjustment",
+                channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
+                input: [41, 255]
+              }
+            ],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (lvlErr) {
+        try {
+          await batchPlay([
+            {
+              _obj: "levels",
+              adjustment: [
+                {
+                  _obj: "levelAdjustment",
+                  channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
+                  input: [41, 255]
+                }
+              ],
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (lvlErr2) {}
+      }
+
+      // 10. Return to RGB channel
+      try {
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "channel", _enum: "channel", _value: "RGB" }],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (selErr) {}
+
+      // 11. Set layer name to "Cast Shadow"
+      shadowLayer.name = "Cast Shadow";
+
+      // 12. Set blend mode to Multiply
+      try {
+        shadowLayer.blendMode = "multiply";
+      } catch (bmErr) {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            to: { _obj: "layer", mode: { _enum: "blendMode", _value: "multiply" } },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      }
+
+
+
+      // 14. Clean up: remove marching ants selection
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _enum: "ordinal", _value: "none" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      // 15. Return active layer to subjectLayer so user can immediately continue work
+      if (subjectLayer) {
+        try { doc.activeLayers = [subjectLayer]; } catch (e) {}
+      }
+    }, "Adjustment: Cast Shadow");
+  },
+
+  /**
+   * Legacy contact shadow alias
+   */
+  async applyContactShadow() {
+    return await this.applyNaturalShadow();
+  },
+
+  /**
+   * White Balance:
+   * Fully integrated execution of "White balance action for PATH.atn":
+   * 1. Safely runs inside executeAsModal with interactive: true
+   * 2. Cleans up any prior broken helper layers (Threshold 1, Color Fill 1, White balance layer)
+   * 3. Plays the user's "WHITE BALANCE" action directly with dialog prompts
+   * 4. Seamless native fallback ensures Threshold & Color Fill helpers are auto-cleaned
+   *    so the canvas is never left black, leaving the balanced "White balance layer" active.
+   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
+   */
+  async applyWhiteBalance(applyToAll = false) {
+    const docs = applyToAll ? app.documents : (app.activeDocument ? [app.activeDocument] : []);
+    if (docs.length === 0) {
+      throw new Error("No open document found in Photoshop.");
+    }
 
     return await core.executeAsModal(async () => {
-      // 1. Auto Color / Levels
-      await batchPlay([
-        {
-          _obj: "autoLevels",
-          dialogOptions: "dontDisplay"
+      // Helper to find the action in Photoshop's actionTree
+      const findAction = () => {
+        if (app.actionTree && app.actionTree.length > 0) {
+          for (const set of app.actionTree) {
+            const setName = (set.name || "").toLowerCase();
+            if (setName.includes("white balance") || setName.includes("path")) {
+              const act = set.actions && set.actions.find(a => (a.name || "").toLowerCase().includes("white balance"));
+              if (act) return act;
+            }
+          }
         }
-      ], { synchronousExecution: true });
+        return null;
+      };
 
-      // 2. Convert to sRGB IEC61966-2.1
-      await batchPlay([
-        {
-          _obj: "convertToProfile",
-          destination: "sRGB IEC61966-2.1",
-          intent: { _enum: "intent", _value: "colorimetric" },
-          blackPointCompensation: true,
-          dither: true,
-          dialogOptions: "dontDisplay"
+      // Try loading action from plugin folder if not in actionTree
+      let act = findAction();
+      if (!act) {
+        try {
+          const uxp = require("uxp");
+          if (uxp && uxp.storage && uxp.storage.localFileSystem) {
+            const lfs = uxp.storage.localFileSystem;
+            const pluginDir = await lfs.getPluginFolder();
+            const atnFile = await pluginDir.getEntry("White balance action for PATH.atn");
+            if (atnFile) {
+              const token = lfs.createSessionToken(atnFile);
+              try {
+                await batchPlay([
+                  {
+                    _obj: "open",
+                    _target: [{ _ref: "file", _token: token }],
+                    dialogOptions: "dontDisplay"
+                  }
+                ], { synchronousExecution: true });
+              } catch (opErr) {
+                try {
+                  await batchPlay([
+                    {
+                      _obj: "load",
+                      _target: [{ _ref: "actionSet" }],
+                      from: { _ref: "file", _token: token },
+                      dialogOptions: "dontDisplay"
+                    }
+                  ], { synchronousExecution: true });
+                } catch (ldErr) {}
+              }
+              act = findAction();
+            }
+          }
+        } catch (loadErr) {}
+      }
+
+      for (let i = 0; i < docs.length; i++) {
+        app.activeDocument = docs[i];
+
+        // 1. Clean up any previous broken helper layers first
+        try {
+          const layers = docs[i].layers || [];
+          const oldThresh = layers.find(l => l.name === "Threshold 1" || l.name === "Threshold");
+          if (oldThresh) { try { await oldThresh.delete(); } catch (e) {} }
+          const oldColorFill = layers.find(l => l.name === "Color Fill 1" || (l.name || "").startsWith("Color Fill"));
+          if (oldColorFill && oldColorFill.blendMode === "difference") { try { await oldColorFill.delete(); } catch (e) {} }
+          const oldWB = layers.find(l => l.name === "White balance layer");
+          if (oldWB) { try { await oldWB.delete(); } catch (e) {} }
+        } catch (cleanupErr) {}
+
+        // 2. Try playing the action directly
+        let played = false;
+        try {
+          await batchPlay([
+            {
+              _obj: "play",
+              _target: [
+                { _ref: "action", _name: "WHITE BALANCE" },
+                { _ref: "actionSet", _name: "White balance action for PATH" }
+              ],
+              dialogOptions: "display"
+            }
+          ], { synchronousExecution: true });
+          played = true;
+        } catch (bpErr) {
+          if (act) {
+            try {
+              await act.play();
+              played = true;
+            } catch (actErr) {}
+          }
         }
-      ], { synchronousExecution: true });
-    }, { commandName: "Adjustment: Color Correction" });
+
+        if (played) {
+          // Make sure no leftover helper layers are obscuring the screen
+          const checkLayers = docs[i].layers || [];
+          const leftoverThresh = checkLayers.find(l => l.name === "Threshold 1");
+          const leftoverFill = checkLayers.find(l => l.name === "Color Fill 1" && l.blendMode === "difference");
+          if (leftoverThresh && leftoverFill) {
+            try { await leftoverThresh.delete(); } catch (e) {}
+            try { await leftoverFill.delete(); } catch (e) {}
+          }
+          continue;
+        }
+
+        // 3. Seamless native fallback for "White balance action for PATH.atn"
+        // Step A: 50% Gray Solid Color Fill Layer (Difference mode)
+        try {
+          await batchPlay([
+            {
+              _obj: "make",
+              _target: [{ _ref: "contentLayer" }],
+              using: {
+                _obj: "contentLayer",
+                type: {
+                  _obj: "solidColorLayer",
+                  color: { _obj: "RGBColor", red: 128, grain: 128, blue: 128 }
+                }
+              },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+
+          await batchPlay([
+            {
+              _obj: "set",
+              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+              to: { _obj: "layer", mode: { _enum: "blendMode", _value: "difference" } },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (e) {}
+
+        // Step B: Threshold layer
+        try {
+          await batchPlay([
+            {
+              _obj: "make",
+              _target: [{ _ref: "adjustmentLayer" }],
+              using: {
+                _obj: "adjustmentLayer",
+                type: { _obj: "thresholdClassEvent", level: 128 }
+              },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (e) {
+          try {
+            await batchPlay([
+              {
+                _obj: "make",
+                _target: [{ _ref: "adjustmentLayer" }],
+                using: { _obj: "adjustmentLayer", type: { _obj: "threshold", level: 128 } },
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (e2) {}
+        }
+
+        // Step C: Curves Adjustment Layer
+        try {
+          await batchPlay([
+            {
+              _obj: "make",
+              _target: [{ _ref: "adjustmentLayer" }],
+              using: {
+                _obj: "adjustmentLayer",
+                type: {
+                  _obj: "curves",
+                  presetKind: { _enum: "presetKindType", _value: "presetKindDefault" }
+                }
+              },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (e) {}
+
+        // Step D: Move Curves layer below helper layers
+        try {
+          await batchPlay([
+            {
+              _obj: "move",
+              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+              to: { _ref: "layer", _enum: "ordinal", _value: "previous" },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (e) {}
+
+        // Step E: Rename Curves layer to "White balance layer"
+        try {
+          await batchPlay([
+            {
+              _obj: "set",
+              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+              to: { _obj: "layer", name: "White balance layer" },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (e) {}
+
+        // Step F: Auto neutral white balance on Curves layer
+        try {
+          await batchPlay([
+            {
+              _obj: "autoColor",
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (e) {}
+
+        // Step G: CLEANUP HELPER LAYERS (Per action steps 11-13)
+        // Threshold 1 and Color Fill 1 are deleted so the image is fully visible!
+        try {
+          const finalLayers = docs[i].layers || [];
+          const t1 = finalLayers.find(l => l.name === "Threshold 1" || l.name === "Threshold");
+          if (t1) { try { await t1.delete(); } catch (e) {} }
+          const cf1 = finalLayers.find(l => l.name === "Color Fill 1" || (l.name || "").startsWith("Color Fill"));
+          if (cf1 && cf1.blendMode === "difference") { try { await cf1.delete(); } catch (e) {} }
+        } catch (delErr) {}
+      }
+    }, { commandName: "White Balance", interactive: true });
+  },
+
+  /**
+   * EXPORT: Save Working File
+   * Saves a PSD copy (all layers preserved) into a "Working File" subfolder
+   * inside the same folder where the source document lives.
+   * Filename: same as original (with .psd extension). Non-destructive.
+   */
+  async saveWorkingFile() {
+    const doc = app.activeDocument;
+    if (!doc) throw new Error("No active document open in Photoshop.");
+
+    // 1. Resolve document path via doc.path or batchPlay
+    let rawPath = "";
+    try { rawPath = doc.path || ""; } catch (e) {}
+
+    if (!rawPath) {
+      try {
+        const res = await batchPlay([
+          {
+            _obj: "get",
+            _target: [
+              { _property: "fileReference" },
+              { _ref: "document", _id: doc.id }
+            ]
+          }
+        ], { synchronousExecution: true });
+        if (res && res[0] && res[0].fileReference) {
+          const ref = res[0].fileReference;
+          rawPath = typeof ref === "string" ? ref : (ref._path || ref.path || "");
+        }
+      } catch (e) {}
+    }
+
+    if (!rawPath) {
+      throw new Error("Document is not saved on disk. Please save the PSD first.");
+    }
+
+    // 2. Normalise parent folder path
+    let folderPath = rawPath.replace(/\\/g, "/");
+    if (/\.[a-zA-Z0-9]{2,5}$/.test(folderPath)) {
+      folderPath = folderPath.substring(0, folderPath.lastIndexOf("/"));
+    }
+
+    // Output filename = original name (no extension) + .psd
+    const title = doc.title || doc.name || "untitled";
+    const baseName = title.replace(/\.[^/.]+$/, "");
+    const outFileName = baseName + ".psd";
+    const subFolderName = "Working File";
+
+    // 3. UXP storage – resolve parent folder entry
+    const uxp = require("uxp");
+    const localFS = uxp.storage.localFileSystem;
+    const types = uxp.storage.types;
+
+    const normalized = folderPath.replace(/^\/+/, "");
+    const encodedClean = normalized.split("/")
+      .map(p => /^[a-zA-Z]:$/.test(p) ? p : encodeURIComponent(p))
+      .join("/");
+
+    const candidates = [
+      "file:/" + encodedClean,
+      "file:///" + encodedClean,
+      "file:" + normalized,
+      "file:/" + normalized,
+      "file:///" + normalized
+    ];
+
+    let parentEntry = null;
+    let lastErr = null;
+    for (const url of candidates) {
+      try {
+        parentEntry = await localFS.getEntryWithUrl(url);
+        if (parentEntry) break;
+      } catch (err) { lastErr = err; }
+    }
+
+    if (!parentEntry) throw new Error("Cannot access folder: " + (lastErr ? lastErr.message : "Not found"));
+    if (parentEntry.isFile) parentEntry = await parentEntry.parent;
+
+    // 4. Create or reuse "Working File" subfolder
+    let subFolder = null;
+    try {
+      const children = await parentEntry.getEntries();
+      subFolder = children.find(e => e.isFolder && e.name === subFolderName) || null;
+    } catch (e) {}
+
+    if (!subFolder) {
+      try {
+        if (typeof parentEntry.createFolder === "function") {
+          subFolder = await parentEntry.createFolder(subFolderName);
+        } else {
+          subFolder = await parentEntry.createEntry(subFolderName, { type: types.folder });
+        }
+      } catch (mkErr) {
+        throw new Error("Failed to create 'Working File' folder: " + (mkErr.message || mkErr));
+      }
+    }
+
+    if (!subFolder) throw new Error("Could not resolve 'Working File' subfolder.");
+
+    // 5. Create output file entry inside subfolder
+    let fileEntry = null;
+    try {
+      if (typeof subFolder.createFile === "function") {
+        fileEntry = await subFolder.createFile(outFileName, { overwrite: true });
+      } else {
+        fileEntry = await subFolder.createEntry(outFileName, { type: types.file, overwrite: true });
+      }
+    } catch (fileErr) {
+      throw new Error("Failed to create file: " + (fileErr.message || fileErr));
+    }
+
+    const token = await localFS.createSessionToken(fileEntry);
+
+    // 6. Save as PSD – all layers preserved
+    let saved = false;
+    let saveErr = "";
+
+    await core.executeAsModal(async () => {
+      app.activeDocument = doc;
+
+      // Try DOM saveAs.psd first
+      try {
+        if (doc.saveAs && typeof doc.saveAs.psd === "function") {
+          await doc.saveAs.psd(fileEntry, {
+            embedColorProfile: true,
+            maximizeCompatibility: true
+          }, true);
+          saved = true;
+        }
+      } catch (domErr) {
+        saveErr = domErr.message || String(domErr);
+      }
+
+      // batchPlay fallback
+      if (!saved) {
+        try {
+          await batchPlay([
+            {
+              _obj: "save",
+              as: {
+                _obj: "photoshop35Format",
+                embedColorProfile: true,
+                maximizeCompatibility: true,
+                saveAlpha: true,
+                layers: true
+              },
+              in: { _path: token, _kind: "local" },
+              documentID: doc.id,
+              copy: true,
+              lowerCase: true,
+              saveStage: { _enum: "saveStageType", _value: "saveSucceeded" },
+              _options: { dialogOptions: "dontDisplay" }
+            }
+          ], { synchronousExecution: true });
+          saved = true;
+        } catch (bpErr) {
+          saveErr = bpErr.message || String(bpErr);
+        }
+      }
+
+      if (!saved) throw new Error("PSD save failed: " + (saveErr || "Unknown error"));
+
+    }, { commandName: "Save Working File (PSD)" });
+
+    return subFolderName + "/" + outFileName;
+  },
+
+  /**
+   * Color Correction:
+   * Balanced auto-contrast and tonal levels correction (without sRGB conversion)
+   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
+   */
+  async applyColorCorrection(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      // 1. Deselect any active selection first
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "channel", _property: "selection" }],
+            to: { _enum: "ordinal", _value: "none" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (e) {}
+
+      // 2. Auto Levels (balanced contrast and tonal dynamic range)
+      try {
+        await batchPlay([
+          {
+            _obj: "autoLevels",
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (alErr) {}
+
+      // 3. Auto Contrast
+      try {
+        await batchPlay([
+          {
+            _obj: "autoContrast",
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (acErr) {}
+    }, "Adjustment: Color Correction");
   }
 
 };
