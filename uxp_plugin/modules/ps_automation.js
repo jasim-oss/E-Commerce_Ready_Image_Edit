@@ -1825,7 +1825,7 @@ const PSAutomation = {
 
       let dnbLayer = null;
 
-      // 1. Create a new layer with Soft Light blend mode & 50% neutral gray fill named "Dodge & Burn"
+      // 1. Create a clean, empty transparent layer with Soft Light blend mode named "Dodge & Burn"
       try {
         await batchPlay([
           {
@@ -1834,8 +1834,7 @@ const PSAutomation = {
             using: {
               _obj: "layer",
               name: "Dodge & Burn",
-              mode: { _enum: "blendMode", _value: "softLight" },
-              fillNeutral: true
+              mode: { _enum: "blendMode", _value: "softLight" }
             },
             dialogOptions: "dontDisplay"
           }
@@ -1843,9 +1842,10 @@ const PSAutomation = {
         dnbLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
       } catch (e1) {
         try {
-          dnbLayer = await currentLayer.duplicate();
-          dnbLayer.name = "Dodge & Burn";
-          try { dnbLayer.blendMode = "softLight"; } catch (bmErr) {}
+          if (doc.createLayer) {
+            dnbLayer = await doc.createLayer({ name: "Dodge & Burn" });
+            try { dnbLayer.blendMode = "softLight"; } catch (bmErr) {}
+          }
         } catch (e2) {}
       }
 
