@@ -2884,222 +2884,120 @@ const PSAutomation = {
    */
   async applyContactShadow() {
     return await this.applyNaturalShadow();
-  },
-
   /**
    * White Balance:
-   * Fully integrated execution of "White balance action for PATH.atn":
-   * 1. Safely runs inside executeAsModal with interactive: true
-   * 2. Cleans up any prior broken helper layers (Threshold 1, Color Fill 1, White balance layer)
-   * 3. Plays the user's "WHITE BALANCE" action directly with dialog prompts
-   * 4. Seamless native fallback ensures Threshold & Color Fill helpers are auto-cleaned
-   *    so the canvas is never left black, leaving the balanced "White balance layer" active.
+   * 1. Safely loads and runs "White balance action for PATH.atn" if available
+   * 2. Fallback: Creates a professional Curves adjustment layer named "White balance layer",
+   *    applies Auto Find Neutral Colors (Auto Color Balance), and leaves the layer active for tweaking.
    * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
   async applyWhiteBalance(applyToAll = false) {
-    const docs = applyToAll ? app.documents : (app.activeDocument ? [app.activeDocument] : []);
-    if (docs.length === 0) {
-      throw new Error("No open document found in Photoshop.");
-    }
-
-    return await core.executeAsModal(async () => {
-      // Helper to find the action in Photoshop's actionTree
-      const findAction = () => {
-        if (app.actionTree && app.actionTree.length > 0) {
-          for (const set of app.actionTree) {
-            const setName = (set.name || "").toLowerCase();
-            if (setName.includes("white balance") || setName.includes("path")) {
-              const act = set.actions && set.actions.find(a => (a.name || "").toLowerCase().includes("white balance"));
-              if (act) return act;
-            }
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      // 1. Try to load & execute user's "White balance action for PATH.atn"
+      let actionPlayed = false;
+      try {
+        const uxp = require("uxp");
+        if (uxp && uxp.storage && uxp.storage.localFileSystem) {
+          const lfs = uxp.storage.localFileSystem;
+          const pluginDir = await lfs.getPluginFolder();
+          let atnFile = null;
+          try { atnFile = await pluginDir.getEntry("White balance action for PATH.atn"); } catch (e) {}
+          if (atnFile) {
+            const token = lfs.createSessionToken(atnFile);
+            try {
+              await batchPlay([
+                {
+                  _obj: "open",
+                  _target: [{ _ref: "file", _token: token }],
+                  dialogOptions: "dontDisplay"
+                }
+              ], { synchronousExecution: true });
+            } catch (opErr) {}
           }
         }
-        return null;
-      };
 
-      // Try loading action from plugin folder if not in actionTree
-      let act = findAction();
-      if (!act) {
-        try {
-          const uxp = require("uxp");
-          if (uxp && uxp.storage && uxp.storage.localFileSystem) {
-            const lfs = uxp.storage.localFileSystem;
-            const pluginDir = await lfs.getPluginFolder();
-            const atnFile = await pluginDir.getEntry("White balance action for PATH.atn");
-            if (atnFile) {
-              const token = lfs.createSessionToken(atnFile);
-              try {
+        // Search for action in app.actionTree
+        if (app.actionTree && app.actionTree.length > 0) {
+          for (const set of app.actionTree) {
+            const setName = set.name || "";
+            const setNameLower = setName.toLowerCase();
+            if (setNameLower.includes("white balance") || setNameLower.includes("path")) {
+              const act = set.actions && set.actions.find(a => (a.name || "").toLowerCase().includes("white balance"));
+              if (act) {
                 await batchPlay([
                   {
-                    _obj: "open",
-                    _target: [{ _ref: "file", _token: token }],
+                    _obj: "play",
+                    _target: [
+                      { _ref: "action", _name: act.name },
+                      { _ref: "actionSet", _name: setName }
+                    ],
                     dialogOptions: "dontDisplay"
                   }
                 ], { synchronousExecution: true });
-              } catch (opErr) {
-                try {
-                  await batchPlay([
-                    {
-                      _obj: "load",
-                      _target: [{ _ref: "actionSet" }],
-                      from: { _ref: "file", _token: token },
-                      dialogOptions: "dontDisplay"
-                    }
-                  ], { synchronousExecution: true });
-                } catch (ldErr) {}
+                actionPlayed = true;
+                break;
               }
-              act = findAction();
             }
           }
-        } catch (loadErr) {}
+        }
+      } catch (atErr) {
+        console.warn("ATN Action execution failed, using native Curves WB", atErr);
       }
 
-      for (let i = 0; i < docs.length; i++) {
-        app.activeDocument = docs[i];
+      // Cleanup any leftover temporary helper layers from previous runs
+      try {
+        const layers = doc.layers || [];
+        const oldThresh = layers.find(l => l.name === "Threshold 1" || l.name === "Threshold");
+        if (oldThresh) { try { await oldThresh.delete(); } catch (e) {} }
+        const oldFill = layers.find(l => l.name === "Color Fill 1" || (l.name || "").startsWith("Color Fill"));
+        if (oldFill && oldFill.blendMode === "difference") { try { await oldFill.delete(); } catch (e) {} }
+      } catch (cleanupErr) {}
 
-        // 1. Clean up any previous broken helper layers first
-        try {
-          const layers = docs[i].layers || [];
-          const oldThresh = layers.find(l => l.name === "Threshold 1" || l.name === "Threshold");
-          if (oldThresh) { try { await oldThresh.delete(); } catch (e) {} }
-          const oldColorFill = layers.find(l => l.name === "Color Fill 1" || (l.name || "").startsWith("Color Fill"));
-          if (oldColorFill && oldColorFill.blendMode === "difference") { try { await oldColorFill.delete(); } catch (e) {} }
-          const oldWB = layers.find(l => l.name === "White balance layer");
-          if (oldWB) { try { await oldWB.delete(); } catch (e) {} }
-        } catch (cleanupErr) {}
+      if (actionPlayed) return;
 
-        // 2. Try playing the action directly
-        let played = false;
-        try {
-          await batchPlay([
-            {
-              _obj: "play",
-              _target: [
-                { _ref: "action", _name: "WHITE BALANCE" },
-                { _ref: "actionSet", _name: "White balance action for PATH" }
-              ],
-              dialogOptions: "display"
-            }
-          ], { synchronousExecution: true });
-          played = true;
-        } catch (bpErr) {
-          if (act) {
-            try {
-              await act.play();
-              played = true;
-            } catch (actErr) {}
-          }
-        }
+      // 2. High-precision Native Curves White Balance Adjustment
+      let wbLayer = null;
 
-        if (played) {
-          // Make sure no leftover helper layers are obscuring the screen
-          const checkLayers = docs[i].layers || [];
-          const leftoverThresh = checkLayers.find(l => l.name === "Threshold 1");
-          const leftoverFill = checkLayers.find(l => l.name === "Color Fill 1" && l.blendMode === "difference");
-          if (leftoverThresh && leftoverFill) {
-            try { await leftoverThresh.delete(); } catch (e) {}
-            try { await leftoverFill.delete(); } catch (e) {}
-          }
-          continue;
-        }
-
-        // 3. Seamless native fallback for "White balance action for PATH.atn"
-        // Step A: 50% Gray Solid Color Fill Layer (Difference mode)
-        try {
-          await batchPlay([
-            {
-              _obj: "make",
-              _target: [{ _ref: "contentLayer" }],
-              using: {
-                _obj: "contentLayer",
-                type: {
-                  _obj: "solidColorLayer",
-                  color: { _obj: "RGBColor", red: 128, grain: 128, blue: 128 }
-                }
-              },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-
-          await batchPlay([
-            {
-              _obj: "set",
-              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-              to: { _obj: "layer", mode: { _enum: "blendMode", _value: "difference" } },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (e) {}
-
-        // Step B: Threshold layer
-        try {
-          await batchPlay([
-            {
-              _obj: "make",
-              _target: [{ _ref: "adjustmentLayer" }],
-              using: {
-                _obj: "adjustmentLayer",
-                type: { _obj: "thresholdClassEvent", level: 128 }
-              },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (e) {
-          try {
-            await batchPlay([
-              {
-                _obj: "make",
-                _target: [{ _ref: "adjustmentLayer" }],
-                using: { _obj: "adjustmentLayer", type: { _obj: "threshold", level: 128 } },
-                dialogOptions: "dontDisplay"
+      // Step A: Create Curves Adjustment Layer named "White balance layer"
+      try {
+        await batchPlay([
+          {
+            _obj: "make",
+            _target: [{ _ref: "adjustmentLayer" }],
+            using: {
+              _obj: "adjustmentLayer",
+              name: "White balance layer",
+              type: {
+                _obj: "curves",
+                presetKind: { _enum: "presetKindType", _value: "presetKindDefault" }
               }
-            ], { synchronousExecution: true });
-          } catch (e2) {}
-        }
-
-        // Step C: Curves Adjustment Layer
+            },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+        wbLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+      } catch (e1) {
         try {
-          await batchPlay([
-            {
-              _obj: "make",
-              _target: [{ _ref: "adjustmentLayer" }],
-              using: {
-                _obj: "adjustmentLayer",
-                type: {
-                  _obj: "curves",
-                  presetKind: { _enum: "presetKindType", _value: "presetKindDefault" }
-                }
-              },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (e) {}
+          if (doc.createAdjustmentLayer) {
+            wbLayer = await doc.createAdjustmentLayer("curves", { name: "White balance layer" });
+          }
+        } catch (e2) {}
+      }
 
-        // Step D: Move Curves layer below helper layers
-        try {
-          await batchPlay([
-            {
-              _obj: "move",
-              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-              to: { _ref: "layer", _enum: "ordinal", _value: "previous" },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (e) {}
-
-        // Step E: Rename Curves layer to "White balance layer"
-        try {
-          await batchPlay([
-            {
-              _obj: "set",
-              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-              to: { _obj: "layer", name: "White balance layer" },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (e) {}
-
-        // Step F: Auto neutral white balance on Curves layer
+      // Step B: Auto Color / Auto Neutralize White Balance on Curves Layer
+      try {
+        await batchPlay([
+          {
+            _obj: "autoColor",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            using: {
+              _enum: "autoCutOptions",
+              _value: "autoFindNeutral"
+            },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (acErr1) {
         try {
           await batchPlay([
             {
@@ -3107,19 +3005,16 @@ const PSAutomation = {
               dialogOptions: "dontDisplay"
             }
           ], { synchronousExecution: true });
-        } catch (e) {}
-
-        // Step G: CLEANUP HELPER LAYERS (Per action steps 11-13)
-        // Threshold 1 and Color Fill 1 are deleted so the image is fully visible!
-        try {
-          const finalLayers = docs[i].layers || [];
-          const t1 = finalLayers.find(l => l.name === "Threshold 1" || l.name === "Threshold");
-          if (t1) { try { await t1.delete(); } catch (e) {} }
-          const cf1 = finalLayers.find(l => l.name === "Color Fill 1" || (l.name || "").startsWith("Color Fill"));
-          if (cf1 && cf1.blendMode === "difference") { try { await cf1.delete(); } catch (e) {} }
-        } catch (delErr) {}
+        } catch (acErr2) {}
       }
-    }, { commandName: "White Balance", interactive: true });
+
+      // Step C: Ensure "White balance layer" is active and selected
+      if (wbLayer) {
+        try {
+          doc.activeLayers = [wbLayer];
+        } catch (sErr) {}
+      }
+    }, "White Balance");
   },
 
   /**
