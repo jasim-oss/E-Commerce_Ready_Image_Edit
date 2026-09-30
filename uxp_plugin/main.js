@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Panel Controller: Accordion & Event Dispatcher
  */
 document.addEventListener("DOMContentLoaded", () => {
@@ -450,9 +450,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } else if (method === "dnb") {
       try {
-        setStatus(`Creating Dodge and Burn Curves layers${allStr}...`, "working");
+        setStatus(`Creating Dodge & Burn Soft Light layer${allStr}...`, "working");
         await mod.applyDodgeAndBurn(applyAll);
-        setStatus(`Dodge & Burn ready (Curves with black masks)${allStr}`, "online");
+        setStatus(`Dodge & Burn ready (Soft Light layer, Brush Flow 5%)${allStr}`, "online");
       } catch (err) {
         setStatus(`Error: ${err.message}`, "error");
       }
