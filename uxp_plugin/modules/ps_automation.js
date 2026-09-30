@@ -2888,9 +2888,9 @@ const PSAutomation = {
 
   /**
    * White Balance:
-   * 1. Safely loads and runs "White balance action for PATH.atn" if available
-   * 2. Fallback: Creates a professional Curves adjustment layer named "White balance layer",
-   *    applies Auto Find Neutral Colors (Auto Color Balance), and leaves the layer active for tweaking.
+   * 1. Loads and executes "White balance action for PATH.atn" if available
+   * 2. Fallback: Creates a Curves adjustment layer named "White balance layer"
+   *    and applies Auto Find Neutral Colors to automatically balance white & color cast.
    * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
   async applyWhiteBalance(applyToAll = false) {
@@ -2909,35 +2909,61 @@ const PSAutomation = {
             try {
               await batchPlay([
                 {
-                  _obj: "open",
-                  _target: [{ _ref: "file", _token: token }],
+                  _obj: "load",
+                  _target: [{ _ref: "actionSet" }],
+                  from: { _ref: "file", _token: token },
                   dialogOptions: "dontDisplay"
                 }
               ], { synchronousExecution: true });
-            } catch (opErr) {}
-          }
-        }
-
-        // Search for action in app.actionTree
-        if (app.actionTree && app.actionTree.length > 0) {
-          for (const set of app.actionTree) {
-            const setName = set.name || "";
-            const setNameLower = setName.toLowerCase();
-            if (setNameLower.includes("white balance") || setNameLower.includes("path")) {
-              const act = set.actions && set.actions.find(a => (a.name || "").toLowerCase().includes("white balance"));
-              if (act) {
+            } catch (ldErr) {
+              try {
                 await batchPlay([
                   {
-                    _obj: "play",
-                    _target: [
-                      { _ref: "action", _name: act.name },
-                      { _ref: "actionSet", _name: setName }
-                    ],
+                    _obj: "open",
+                    _target: [{ _ref: "file", _token: token }],
                     dialogOptions: "dontDisplay"
                   }
                 ], { synchronousExecution: true });
-                actionPlayed = true;
-                break;
+              } catch (opErr) {}
+            }
+          }
+        }
+
+        // Try playing action directly
+        try {
+          await batchPlay([
+            {
+              _obj: "play",
+              _target: [
+                { _ref: "action", _name: "WHITE BALANCE" },
+                { _ref: "actionSet", _name: "White balance action for PATH" }
+              ],
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+          actionPlayed = true;
+        } catch (playErr) {
+          // Search in app.actionTree if exact name differed
+          if (app.actionTree && app.actionTree.length > 0) {
+            for (const set of app.actionTree) {
+              const setName = set.name || "";
+              const setNameLower = setName.toLowerCase();
+              if (setNameLower.includes("white balance") || setNameLower.includes("path")) {
+                const act = set.actions && set.actions.find(a => (a.name || "").toLowerCase().includes("white balance"));
+                if (act) {
+                  await batchPlay([
+                    {
+                      _obj: "play",
+                      _target: [
+                        { _ref: "action", _name: act.name },
+                        { _ref: "actionSet", _name: setName }
+                      ],
+                      dialogOptions: "dontDisplay"
+                    }
+                  ], { synchronousExecution: true });
+                  actionPlayed = true;
+                  break;
+                }
               }
             }
           }
@@ -2986,28 +3012,43 @@ const PSAutomation = {
         } catch (e2) {}
       }
 
-      // Step B: Auto Color / Auto Neutralize White Balance on Curves Layer
-      try {
-        await batchPlay([
-          {
-            _obj: "autoColor",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            using: {
-              _enum: "autoCutOptions",
-              _value: "autoFindNeutral"
-            },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (acErr1) {
-        try {
-          await batchPlay([
-            {
-              _obj: "autoColor",
-              dialogOptions: "dontDisplay"
+      // Step B: Calculate & Apply Auto White Balance on the Curves Layer
+      const autoDescriptors = [
+        {
+          _obj: "set",
+          _target: [{ _ref: "adjustmentLayer", _enum: "ordinal", _value: "targetEnum" }],
+          to: {
+            _obj: "curves",
+            autoCutOptions: {
+              _obj: "autoCutOptions",
+              targetNeutralExtrema: true
             }
-          ], { synchronousExecution: true });
-        } catch (acErr2) {}
+          },
+          dialogOptions: "dontDisplay"
+        },
+        {
+          _obj: "autoColor",
+          dialogOptions: "dontDisplay"
+        },
+        {
+          _obj: "autoLevels",
+          dialogOptions: "dontDisplay"
+        },
+        {
+          _obj: "set",
+          _target: [{ _ref: "adjustmentLayer", _enum: "ordinal", _value: "targetEnum" }],
+          to: {
+            _obj: "curves",
+            auto: true
+          },
+          dialogOptions: "dontDisplay"
+        }
+      ];
+
+      for (const desc of autoDescriptors) {
+        try {
+          await batchPlay([desc], { synchronousExecution: true });
+        } catch (acErr) {}
       }
 
       // Step C: Ensure "White balance layer" is active and selected
