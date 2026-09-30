@@ -1849,45 +1849,64 @@ const PSAutomation = {
         } catch (e2) {}
       }
 
-      // 2. Select Brush Tool (pbush)
+      // 2. Select Brush Tool (paintbrushTool)
       try {
         await batchPlay([
           {
             _obj: "select",
-            _target: [{ _ref: "pbush" }]
+            _target: [{ _ref: "paintbrushTool" }]
           }
         ], { synchronousExecution: true });
-      } catch (bErr) {}
-
-      // 3. Set Brush Tool Options: Opacity 100%, Flow 5%
-      try {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "currentToolOptions" }],
-            to: {
-              _obj: "currentToolOptions",
-              flow: 5,
-              opacity: 100
-            },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (tErr) {
+      } catch (bErr1) {
         try {
           await batchPlay([
             {
-              _obj: "set",
-              _target: [{ _ref: "pbush" }],
-              to: {
-                _obj: "pbush",
-                flow: 5,
-                opacity: 100
-              },
-              dialogOptions: "dontDisplay"
+              _obj: "select",
+              _target: [{ _ref: "pbush" }]
             }
           ], { synchronousExecution: true });
-        } catch (tErr2) {}
+        } catch (bErr2) {}
+      }
+
+      // 3. Set Brush Tool Options: Opacity 100%, Flow 5%
+      const flowDescriptors = [
+        // Exact Photoshop action descriptor for setting Brush Flow 5% and Opacity 100%
+        {
+          _obj: "set",
+          _target: [{ _ref: "paintbrushTool" }],
+          to: {
+            _obj: "paintbrushTool",
+            flow: { _unit: "percentUnit", _value: 5 },
+            opacity: { _unit: "percentUnit", _value: 100 }
+          },
+          dialogOptions: "dontDisplay"
+        },
+        {
+          _obj: "set",
+          _target: [{ _ref: "currentToolOptions" }],
+          to: {
+            _obj: "currentToolOptions",
+            flow: { _unit: "percentUnit", _value: 5 },
+            opacity: { _unit: "percentUnit", _value: 100 }
+          },
+          dialogOptions: "dontDisplay"
+        },
+        {
+          _obj: "set",
+          _target: [{ _ref: "paintbrushTool" }],
+          to: {
+            _obj: "paintbrushTool",
+            flow: 5,
+            opacity: 100
+          },
+          dialogOptions: "dontDisplay"
+        }
+      ];
+
+      for (const desc of flowDescriptors) {
+        try {
+          await batchPlay([desc], { synchronousExecution: true });
+        } catch (fErr) {}
       }
     }, "Dodge and Burn (Clothing)");
   },
