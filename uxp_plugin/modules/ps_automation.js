@@ -2888,105 +2888,47 @@ const PSAutomation = {
 
   /**
    * White Balance:
-   * 1. Loads and executes "White balance action for PATH.atn" if available
-   * 2. Fallback: Creates a Curves adjustment layer named "White balance layer"
-   *    and applies Auto Find Neutral Colors to automatically balance white & color cast.
+   * Creates a duplicate layer named "White balance layer", applies Photoshop Auto Color & Auto Levels
+   * to automatically neutralize color casts & balance whites, and adds a Curves layer for fine-tuning.
    * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
   async applyWhiteBalance(applyToAll = false) {
     return await this.executeOnTargetDocs(applyToAll, async (doc) => {
-      // 1. Try to load & execute user's "White balance action for PATH.atn"
-      let actionPlayed = false;
-      try {
-        const uxp = require("uxp");
-        if (uxp && uxp.storage && uxp.storage.localFileSystem) {
-          const lfs = uxp.storage.localFileSystem;
-          const pluginDir = await lfs.getPluginFolder();
-          let atnFile = null;
-          try { atnFile = await pluginDir.getEntry("White balance action for PATH.atn"); } catch (e) {}
-          if (atnFile) {
-            const token = lfs.createSessionToken(atnFile);
-            try {
-              await batchPlay([
-                {
-                  _obj: "load",
-                  _target: [{ _ref: "actionSet" }],
-                  from: { _ref: "file", _token: token },
-                  dialogOptions: "dontDisplay"
-                }
-              ], { synchronousExecution: true });
-            } catch (ldErr) {
-              try {
-                await batchPlay([
-                  {
-                    _obj: "open",
-                    _target: [{ _ref: "file", _token: token }],
-                    dialogOptions: "dontDisplay"
-                  }
-                ], { synchronousExecution: true });
-              } catch (opErr) {}
-            }
-          }
-        }
-
-        // Try playing action directly
-        try {
-          await batchPlay([
-            {
-              _obj: "play",
-              _target: [
-                { _ref: "action", _name: "WHITE BALANCE" },
-                { _ref: "actionSet", _name: "White balance action for PATH" }
-              ],
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-          actionPlayed = true;
-        } catch (playErr) {
-          // Search in app.actionTree if exact name differed
-          if (app.actionTree && app.actionTree.length > 0) {
-            for (const set of app.actionTree) {
-              const setName = set.name || "";
-              const setNameLower = setName.toLowerCase();
-              if (setNameLower.includes("white balance") || setNameLower.includes("path")) {
-                const act = set.actions && set.actions.find(a => (a.name || "").toLowerCase().includes("white balance"));
-                if (act) {
-                  await batchPlay([
-                    {
-                      _obj: "play",
-                      _target: [
-                        { _ref: "action", _name: act.name },
-                        { _ref: "actionSet", _name: setName }
-                      ],
-                      dialogOptions: "dontDisplay"
-                    }
-                  ], { synchronousExecution: true });
-                  actionPlayed = true;
-                  break;
-                }
-              }
-            }
-          }
-        }
-      } catch (atErr) {
-        console.warn("ATN Action execution failed, using native Curves WB", atErr);
+      let currentLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+      if (!currentLayer) {
+        currentLayer = doc.layers && doc.layers.length > 0 ? doc.layers[0] : null;
       }
+      if (!currentLayer) return;
 
-      // Cleanup any leftover temporary helper layers from previous runs
-      try {
-        const layers = doc.layers || [];
-        const oldThresh = layers.find(l => l.name === "Threshold 1" || l.name === "Threshold");
-        if (oldThresh) { try { await oldThresh.delete(); } catch (e) {} }
-        const oldFill = layers.find(l => l.name === "Color Fill 1" || (l.name || "").startsWith("Color Fill"));
-        if (oldFill && oldFill.blendMode === "difference") { try { await oldFill.delete(); } catch (e) {} }
-      } catch (cleanupErr) {}
-
-      if (actionPlayed) return;
-
-      // 2. High-precision Native Curves White Balance Adjustment
+      // 1. Duplicate active layer as "White balance layer"
       let wbLayer = null;
+      try {
+        wbLayer = await currentLayer.duplicate();
+        wbLayer.name = "White balance layer";
+        doc.activeLayers = [wbLayer];
+      } catch (e) {}
 
-      // Step A: Create Curves Adjustment Layer named "White balance layer"
+      // 2. Apply Auto Color (Removes yellow/green color casts & balances white point)
+      try {
+        await batchPlay([
+          {
+            _obj: "autoColor",
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (acErr) {}
+
+      // 3. Apply Auto Levels (Optimizes tonal contrast across RGB channels)
+      try {
+        await batchPlay([
+          {
+            _obj: "autoLevels",
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (alErr) {}
+
+      // 4. Create Curves Adjustment Layer for optional manual fine-tuning
       try {
         await batchPlay([
           {
@@ -2994,7 +2936,7 @@ const PSAutomation = {
             _target: [{ _ref: "adjustmentLayer" }],
             using: {
               _obj: "adjustmentLayer",
-              name: "White balance layer",
+              name: "White Balance Curves",
               type: {
                 _obj: "curves",
                 presetKind: { _enum: "presetKindType", _value: "presetKindDefault" }
@@ -3003,59 +2945,11 @@ const PSAutomation = {
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-        wbLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
-      } catch (e1) {
-        try {
-          if (doc.createAdjustmentLayer) {
-            wbLayer = await doc.createAdjustmentLayer("curves", { name: "White balance layer" });
-          }
-        } catch (e2) {}
-      }
+      } catch (cErr) {}
 
-      // Step B: Calculate & Apply Auto White Balance on the Curves Layer
-      const autoDescriptors = [
-        {
-          _obj: "set",
-          _target: [{ _ref: "adjustmentLayer", _enum: "ordinal", _value: "targetEnum" }],
-          to: {
-            _obj: "curves",
-            autoCutOptions: {
-              _obj: "autoCutOptions",
-              targetNeutralExtrema: true
-            }
-          },
-          dialogOptions: "dontDisplay"
-        },
-        {
-          _obj: "autoColor",
-          dialogOptions: "dontDisplay"
-        },
-        {
-          _obj: "autoLevels",
-          dialogOptions: "dontDisplay"
-        },
-        {
-          _obj: "set",
-          _target: [{ _ref: "adjustmentLayer", _enum: "ordinal", _value: "targetEnum" }],
-          to: {
-            _obj: "curves",
-            auto: true
-          },
-          dialogOptions: "dontDisplay"
-        }
-      ];
-
-      for (const desc of autoDescriptors) {
-        try {
-          await batchPlay([desc], { synchronousExecution: true });
-        } catch (acErr) {}
-      }
-
-      // Step C: Ensure "White balance layer" is active and selected
+      // Keep white balance layer selected
       if (wbLayer) {
-        try {
-          doc.activeLayers = [wbLayer];
-        } catch (sErr) {}
+        try { doc.activeLayers = [wbLayer]; } catch (sErr) {}
       }
     }, "White Balance");
   },
