@@ -2888,8 +2888,9 @@ const PSAutomation = {
 
   /**
    * White Balance:
-   * Creates a duplicate layer named "White balance layer", applies Photoshop Auto Color & Auto Levels
-   * to automatically neutralize color casts & balance whites, and adds a Curves layer for fine-tuning.
+   * 1. Duplicates layer as "White balance layer" & executes targeted Auto Color & Auto Levels
+   * 2. Creates a Curves adjustment layer named "White Balance Curves" and applies
+   *    Auto Neutral Extrema / Auto Levels to modify Curves RGB channels automatically.
    * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
   async applyWhiteBalance(applyToAll = false) {
@@ -2900,7 +2901,7 @@ const PSAutomation = {
       }
       if (!currentLayer) return;
 
-      // 1. Duplicate active layer as "White balance layer"
+      // Step 1: Duplicate base layer as "White balance layer"
       let wbLayer = null;
       try {
         wbLayer = await currentLayer.duplicate();
@@ -2908,27 +2909,40 @@ const PSAutomation = {
         doc.activeLayers = [wbLayer];
       } catch (e) {}
 
-      // 2. Apply Auto Color (Removes yellow/green color casts & balances white point)
-      try {
-        await batchPlay([
-          {
-            _obj: "autoColor",
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (acErr) {}
+      // Step 2: Target wbLayer explicitly and execute Auto Color & Auto Levels
+      if (wbLayer) {
+        try {
+          doc.activeLayers = [wbLayer];
+          await batchPlay([
+            {
+              _obj: "autoColor",
+              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (acErr1) {
+          try {
+            await batchPlay([{ _obj: "autoColor", dialogOptions: "dontDisplay" }], { synchronousExecution: true });
+          } catch (e) {}
+        }
 
-      // 3. Apply Auto Levels (Optimizes tonal contrast across RGB channels)
-      try {
-        await batchPlay([
-          {
-            _obj: "autoLevels",
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (alErr) {}
+        try {
+          await batchPlay([
+            {
+              _obj: "autoLevels",
+              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (alErr1) {
+          try {
+            await batchPlay([{ _obj: "autoLevels", dialogOptions: "dontDisplay" }], { synchronousExecution: true });
+          } catch (e) {}
+        }
+      }
 
-      // 4. Create Curves Adjustment Layer for optional manual fine-tuning
+      // Step 3: Create Curves Adjustment Layer named "White Balance Curves"
+      let curvesLayer = null;
       try {
         await batchPlay([
           {
@@ -2945,10 +2959,60 @@ const PSAutomation = {
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
+        curvesLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
       } catch (cErr) {}
 
-      // Keep white balance layer selected
-      if (wbLayer) {
+      // Step 4: Apply Auto-Correction on the Curves Adjustment Layer (modifies Red, Green, Blue curve points)
+      if (curvesLayer) {
+        const curvesAutoCommands = [
+          // A: Target Neutral Extrema autoCutOptions
+          {
+            _obj: "set",
+            _target: [{ _ref: "adjustmentLayer", _enum: "ordinal", _value: "targetEnum" }],
+            to: {
+              _obj: "curves",
+              autoCutOptions: {
+                _obj: "autoCutOptions",
+                targetNeutralExtrema: true
+              }
+            },
+            dialogOptions: "dontDisplay"
+          },
+          // B: Auto Levels on adjustment layer
+          {
+            _obj: "autoLevels",
+            _target: [{ _ref: "adjustmentLayer", _enum: "ordinal", _value: "targetEnum" }],
+            dialogOptions: "dontDisplay"
+          },
+          // C: Auto Color on adjustment layer
+          {
+            _obj: "autoColor",
+            _target: [{ _ref: "adjustmentLayer", _enum: "ordinal", _value: "targetEnum" }],
+            dialogOptions: "dontDisplay"
+          },
+          // D: Curves auto property
+          {
+            _obj: "set",
+            _target: [{ _ref: "adjustmentLayer", _enum: "ordinal", _value: "targetEnum" }],
+            to: {
+              _obj: "curves",
+              auto: true
+            },
+            dialogOptions: "dontDisplay"
+          }
+        ];
+
+        for (const cmd of curvesAutoCommands) {
+          try {
+            await batchPlay([cmd], { synchronousExecution: true });
+          } catch (e) {}
+        }
+      }
+
+      // Step 5: Keep Curves layer selected for fine-tuning
+      if (curvesLayer) {
+        try { doc.activeLayers = [curvesLayer]; } catch (sErr) {}
+      } else if (wbLayer) {
         try { doc.activeLayers = [wbLayer]; } catch (sErr) {}
       }
     }, "White Balance");
