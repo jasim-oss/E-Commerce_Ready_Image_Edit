@@ -2884,6 +2884,8 @@ const PSAutomation = {
    */
   async applyContactShadow() {
     return await this.applyNaturalShadow();
+  },
+
   /**
    * White Balance:
    * 1. Safely loads and runs "White balance action for PATH.atn" if available
