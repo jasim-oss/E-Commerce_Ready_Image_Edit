@@ -73,4 +73,9 @@ if (fs.existsSync(zipTemp)) fs.unlinkSync(zipTemp);
 execSync(`powershell -Command "Compress-Archive -Path 'dist_protected\\*' -DestinationPath '${zipTemp}' -Force; Move-Item '${zipTemp}' '${ccxPath}' -Force"`);
 console.log('Protected .ccx generated successfully!');
 
-console.log('--- Build Finished! ---');
+console.log('--- Step 4: Updating Installer .zip File ---');
+const zipFile = path.join(__dirname, 'E-Commerce-Ready-Edit-Installer.zip');
+execSync(`powershell -Command "Compress-Archive -Path 'E-Commerce-Ready-Edit-Installer' -DestinationPath '${zipFile}' -Force"`);
+console.log('E-Commerce-Ready-Edit-Installer.zip updated successfully!');
+
+console.log('--- Build Finished! Both Folder and ZIP are 100% Updated! ---');
