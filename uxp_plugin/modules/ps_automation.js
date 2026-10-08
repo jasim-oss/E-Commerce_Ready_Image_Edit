@@ -10,7 +10,7 @@ const PSAutomation = {
   /**
    * Helper to iterate across either active document or ALL open documents
    */
-  async executeOnTargetDocs(applyToAll, taskFn, commandName = "Batch Task") {
+  async executeOnTargetDocs(applyToAll, taskFn, commandName = "Batch Task", options = {}) {
     const docs = applyToAll ? app.documents : (app.activeDocument ? [app.activeDocument] : []);
     if (docs.length === 0) {
       throw new Error("No open document found in Photoshop.");
@@ -21,7 +21,7 @@ const PSAutomation = {
         app.activeDocument = docs[i];
         await taskFn(docs[i], i + 1, docs.length);
       }
-    }, { commandName });
+    }, { commandName, ...options });
   },
 
   /**
@@ -34,77 +34,38 @@ const PSAutomation = {
    * @param {number} dpi - Target resolution in DPI
    * @param {boolean} applyToAll - Apply to all open documents
    */
-  async resizeForMarketplace(width, height, dpi = 72, applyToAll = false, smartAnchor = false) {
+  async resizeForMarketplace(width, height, dpi = 72, applyToAll = false, smartAnchor = true) {
     return await this.executeOnTargetDocs(applyToAll, async (doc) => {
       const docW = doc.width;
       const docH = doc.height;
+      const edgeThreshold = Math.max(16, Math.round(Math.min(docW, docH) * 0.025));
 
-      let vAnchor = "MIDDLE";
-      let hAnchor = "CENTER";
+      let touchBottom = false;
+      let touchTop = false;
+      let touchLeft = false;
+      let touchRight = false;
 
       if (smartAnchor) {
-        // Robust thresholds for width and height (3.5% of dimension, at least 16px)
-        const edgeThresholdX = Math.max(16, Math.round(docW * 0.035));
-        const edgeThresholdY = Math.max(16, Math.round(docH * 0.035));
-
-        let touchBottom = false;
-        let touchTop = false;
-        let touchLeft = false;
-        let touchRight = false;
-        let subjectBounds = null;
-
-        // Safe helper to read selection bounds
-        function readSelectionBounds() {
-          try {
-            if (doc.selection && doc.selection.bounds) {
-              const b = doc.selection.bounds;
-              const left = (b.left && b.left._value !== undefined) ? b.left._value : b.left;
-              const top = (b.top && b.top._value !== undefined) ? b.top._value : b.top;
-              const right = (b.right && b.right._value !== undefined) ? b.right._value : b.right;
-              const bottom = (b.bottom && b.bottom._value !== undefined) ? b.bottom._value : b.bottom;
-              if (typeof left === "number" && typeof right === "number" && right > left && bottom > top) {
-                return { left, top, right, bottom };
-              }
-            }
-          } catch (e) {}
-          return null;
+        // 1. Detect edge contact from subject layer or mask
+        let layer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+        if (!layer || layer.isBackgroundLayer || layer.name === "BG Color" || layer.name === "BG Image") {
+          const nonBg = (doc.layers || []).filter(l => !l.isBackgroundLayer && l.name !== "BG Color" && l.name !== "BG Image");
+          layer = nonBg.length > 0 ? nonBg[0] : null;
         }
 
-        // Safe helper to clear selection
-        async function clearSelection() {
-          try {
-            await batchPlay([
-              {
-                _obj: "set",
-                _target: [{ _ref: "channel", _property: "selection" }],
-                to: { _enum: "ordinal", _value: "none" },
-                dialogOptions: "dontDisplay"
-              }
-            ], { synchronousExecution: true });
-          } catch (e) {}
-        }
-
-        // Method A: Check for existing layer mask on subject layer
-        const layers = doc.layers || [];
-        let candidateLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
-        if (!candidateLayer || candidateLayer.isBackgroundLayer || candidateLayer.name === "BG Color" || candidateLayer.name === "BG Image") {
-          const nonBg = layers.filter(l => !l.isBackgroundLayer && l.name !== "BG Color" && l.name !== "BG Image");
-          if (nonBg.length > 0) candidateLayer = nonBg[0];
-        }
-
-        if (candidateLayer && !candidateLayer.isBackgroundLayer) {
+        if (layer) {
+          let b = null;
           try {
             const res = await batchPlay([
               {
                 _obj: "get",
                 _target: [
                   { _ref: "property", _property: "hasUserMask" },
-                  { _ref: "layer", _id: candidateLayer.id }
+                  { _ref: "layer", _id: layer.id }
                 ],
                 dialogOptions: "dontDisplay"
               }
             ], { synchronousExecution: true });
-
             if (res && res[0] && res[0].hasUserMask) {
               await batchPlay([
                 {
@@ -114,55 +75,49 @@ const PSAutomation = {
                   dialogOptions: "dontDisplay"
                 }
               ], { synchronousExecution: true });
-              subjectBounds = readSelectionBounds();
-              await clearSelection();
-            }
-          } catch (mErr) {}
-
-          // If no mask, check if layer bounds do not fill the whole canvas (transparent background cutout)
-          if (!subjectBounds) {
-            try {
-              const lb = candidateLayer.bounds;
-              if (lb) {
-                const left = (lb.left && lb.left._value !== undefined) ? lb.left._value : lb.left;
-                const top = (lb.top && lb.top._value !== undefined) ? lb.top._value : lb.top;
-                const right = (lb.right && lb.right._value !== undefined) ? lb.right._value : lb.right;
-                const bottom = (lb.bottom && lb.bottom._value !== undefined) ? lb.bottom._value : lb.bottom;
-                const fillsCanvas = (
-                  left <= edgeThresholdX &&
-                  right >= docW - edgeThresholdX &&
-                  top <= edgeThresholdY &&
-                  bottom >= docH - edgeThresholdY
-                );
-                if (!fillsCanvas && right > left && bottom > top) {
-                  subjectBounds = { left, top, right, bottom };
+              if (doc.selection && doc.selection.bounds) {
+                const sb = doc.selection.bounds;
+                const sbL = (sb.left && sb.left._value !== undefined) ? sb.left._value : sb.left;
+                const sbT = (sb.top && sb.top._value !== undefined) ? sb.top._value : sb.top;
+                const sbR = (sb.right && sb.right._value !== undefined) ? sb.right._value : sb.right;
+                const sbB = (sb.bottom && sb.bottom._value !== undefined) ? sb.bottom._value : sb.bottom;
+                if (sbR > sbL && sbB > sbT) {
+                  b = { left: sbL, top: sbT, right: sbR, bottom: sbB };
                 }
               }
-            } catch (lbErr) {}
-          }
-        }
-
-        // Method B: For flat images (camera shots / locked Background layer / opaque canvas), run autoCutout
-        if (!subjectBounds) {
-          const isBg = (doc.activeLayers && doc.activeLayers.length > 0 && doc.activeLayers[0].isBackgroundLayer) ||
-                       (layers.length === 1 && layers[0].isBackgroundLayer);
-          let tempLayerCreated = false;
-
-          if (isBg) {
-            try {
               await batchPlay([
                 {
-                  _obj: "duplicate",
-                  _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                  name: "_temp_subject_detect",
+                  _obj: "set",
+                  _target: [{ _ref: "channel", _property: "selection" }],
+                  to: { _enum: "ordinal", _value: "none" },
                   dialogOptions: "dontDisplay"
                 }
               ], { synchronousExecution: true });
-              tempLayerCreated = true;
-            } catch (dupErr) {}
+            }
+          } catch (mErr) {}
+
+          if (!b && layer.bounds) {
+            const lb = layer.bounds;
+            const lbL = (lb.left && lb.left._value !== undefined) ? lb.left._value : lb.left;
+            const lbT = (lb.top && lb.top._value !== undefined) ? lb.top._value : lb.top;
+            const lbR = (lb.right && lb.right._value !== undefined) ? lb.right._value : lb.right;
+            const lbB = (lb.bottom && lb.bottom._value !== undefined) ? lb.bottom._value : lb.bottom;
+            b = { left: lbL, top: lbT, right: lbR, bottom: lbB };
           }
 
-          // Run autoCutout (AI Select Subject)
+          if (b) {
+            const fillsCanvas = (b.left <= edgeThreshold && b.right >= docW - edgeThreshold && b.top <= edgeThreshold && b.bottom >= docH - edgeThreshold);
+            if (!fillsCanvas) {
+              if (b.bottom >= docH - edgeThreshold) touchBottom = true;
+              if (b.top <= edgeThreshold) touchTop = true;
+              if (b.left <= edgeThreshold) touchLeft = true;
+              if (b.right >= docW - edgeThreshold) touchRight = true;
+            }
+          }
+        }
+
+        // 2. If touches not found (e.g. flat background photo like raw camera exports), run autoCutout (Select Subject)
+        if (!touchBottom && !touchTop && !touchLeft && !touchRight) {
           try {
             await batchPlay([
               {
@@ -171,115 +126,123 @@ const PSAutomation = {
                 dialogOptions: "dontDisplay"
               }
             ], { synchronousExecution: true });
-            subjectBounds = readSelectionBounds();
+
+            if (doc.selection && doc.selection.bounds) {
+              const sb = doc.selection.bounds;
+              const sbL = (sb.left && sb.left._value !== undefined) ? sb.left._value : sb.left;
+              const sbT = (sb.top && sb.top._value !== undefined) ? sb.top._value : sb.top;
+              const sbR = (sb.right && sb.right._value !== undefined) ? sb.right._value : sb.right;
+              const sbB = (sb.bottom && sb.bottom._value !== undefined) ? sb.bottom._value : sb.bottom;
+              if (sbR > sbL && sbB > sbT) {
+                if (sbB >= docH - edgeThreshold) touchBottom = true;
+                if (sbT <= edgeThreshold) touchTop = true;
+                if (sbL <= edgeThreshold) touchLeft = true;
+                if (sbR >= docW - edgeThreshold) touchRight = true;
+              }
+            }
+
+            await batchPlay([
+              {
+                _obj: "set",
+                _target: [{ _ref: "channel", _property: "selection" }],
+                to: { _enum: "ordinal", _value: "none" },
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
           } catch (acErr) {}
-
-          // If a temp layer was created, delete it
-          if (tempLayerCreated) {
-            try {
-              await batchPlay([
-                {
-                  _obj: "delete",
-                  _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                  dialogOptions: "dontDisplay"
-                }
-              ], { synchronousExecution: true });
-            } catch (delErr) {}
-          }
-
-          // Clear selection
-          await clearSelection();
-        }
-
-        // 3. Determine edge contact on all sides
-        if (subjectBounds) {
-          const { left: sL, top: sT, right: sR, bottom: sB } = subjectBounds;
-          if (sB >= docH - edgeThresholdY) touchBottom = true;
-          if (sT <= edgeThresholdY) touchTop = true;
-          if (sL <= edgeThresholdX) touchLeft = true;
-          if (sR >= docW - edgeThresholdX) touchRight = true;
-        }
-
-        // 4. Determine Vertical Anchor (Top, Bottom, or Middle)
-        if (touchBottom && !touchTop) {
-          vAnchor = "BOTTOM";
-        } else if (touchTop && !touchBottom) {
-          vAnchor = "TOP";
-        } else {
-          // Touching both top & bottom (full height), or touching neither -> Centered vertically
-          vAnchor = "MIDDLE";
-        }
-
-        // 4. Determine Horizontal Anchor (Left, Right, or Center)
-        if (touchRight && !touchLeft) {
-          hAnchor = "RIGHT";
-        } else if (touchLeft && !touchRight) {
-          hAnchor = "LEFT";
-        } else {
-          // Touching both left & right (full width), or touching neither -> Centered horizontally
-          hAnchor = "CENTER";
         }
       }
 
-      // 5. Exact Anchor Position for UXP DOM resizeCanvas
-      const anchorKey = `${vAnchor}${hAnchor}`;
-      const targetAnchor = (constants && constants.AnchorPosition && constants.AnchorPosition[anchorKey]) ||
-                           (AnchorPosition && AnchorPosition[anchorKey]);
+      // 3. Determine Canvas Expansion Anchor
+      let vLoc = "center";
+      let vAnchor = "MIDDLE";
+      if (touchBottom && !touchTop) {
+        vLoc = "bottom";
+        vAnchor = "BOTTOM";
+      } else if (touchTop && !touchBottom) {
+        vLoc = "top";
+        vAnchor = "TOP";
+      }
 
-      // 6. Proportional Scale dimensions to fit inside width x height
+      let hLoc = "center";
+      let hAnchor = "CENTER";
+      if (touchLeft && !touchRight) {
+        hLoc = "left";
+        hAnchor = "LEFT";
+      } else if (touchRight && !touchLeft) {
+        hLoc = "right";
+        hAnchor = "RIGHT";
+      }
+
+      const anchorMap = {
+        "TOPLEFT": AnchorPosition.TOPLEFT,
+        "TOPCENTER": AnchorPosition.TOPCENTER,
+        "TOPRIGHT": AnchorPosition.TOPRIGHT,
+        "MIDDLELEFT": AnchorPosition.MIDDLELEFT,
+        "MIDDLECENTER": AnchorPosition.MIDDLECENTER,
+        "MIDDLERIGHT": AnchorPosition.MIDDLERIGHT,
+        "BOTTOMLEFT": AnchorPosition.BOTTOMLEFT,
+        "BOTTOMCENTER": AnchorPosition.BOTTOMCENTER,
+        "BOTTOMRIGHT": AnchorPosition.BOTTOMRIGHT
+      };
+      const anchorKey = `${vAnchor}${hAnchor}`;
+      const targetAnchor = anchorMap[anchorKey] || AnchorPosition.MIDDLECENTER;
+
+      // 4. Proportional Scale to fit inside width x height
       const scale = Math.min(width / docW, height / docH);
       const fitW = Math.max(1, Math.round(docW * scale));
       const fitH = Math.max(1, Math.round(docH * scale));
 
-      // Step A: Image Size scaling (BatchPlay imageSize)
-      await batchPlay([
-        {
-          _obj: "imageSize",
-          width: { _unit: "pixelsUnit", _value: fitW },
-          height: { _unit: "pixelsUnit", _value: fitH },
-          resolution: { _unit: "densityUnit", _value: dpi },
-          scaleStyles: true,
-          constrainProportions: true,
-          interfaceIconFrameDimmed: {
-            _enum: "interpolationType",
-            _value: "bicubicAutomatic"
+      // Ensure background color is pure white
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "color", _property: "backgroundColor" }],
+            to: {
+              _obj: "RGBColor",
+              red: 255,
+              grain: 255,
+              blue: 255
+            },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (colErr) {}
+
+      try {
+        await batchPlay([
+          {
+            _obj: "imageSize",
+            width: { _unit: "pixelsUnit", _value: fitW },
+            height: { _unit: "pixelsUnit", _value: fitH },
+            resolution: { _unit: "densityUnit", _value: dpi },
+            scaleStyles: true,
+            constrainProportions: true,
+            interfaceIconFrameDimmed: {
+              _enum: "interpolationType",
+              _value: "bicubicAutomatic"
+            },
+            dialogOptions: "dontDisplay"
           },
-          dialogOptions: "dontDisplay"
+          {
+            _obj: "canvasSize",
+            width: { _unit: "pixelsUnit", _value: width },
+            height: { _unit: "pixelsUnit", _value: height },
+            horizontal: { _enum: "horizontalLocation", _value: hLoc },
+            vertical: { _enum: "verticalLocation", _value: vLoc },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (bpErr) {
+        if (doc.resizeImage) {
+          try {
+            await doc.resizeImage(fitW, fitH, dpi);
+          } catch (e1) {}
         }
-      ], { synchronousExecution: true });
-
-      // Step B: Canvas Size expansion (Direct UXP doc.resizeCanvas with targetAnchor)
-      let canvasResized = false;
-      if (targetAnchor && doc.resizeCanvas) {
-        try {
+        if (doc.resizeCanvas) {
           await doc.resizeCanvas(width, height, targetAnchor);
-          canvasResized = true;
-        } catch (rcErr) {}
-      }
-
-      // Fallback: batchPlay canvasSize with modern anchor and coordinates
-      if (!canvasResized) {
-        const camelMap = {
-          "TOPLEFT": "topLeft", "TOPCENTER": "topCenter", "TOPRIGHT": "topRight",
-          "MIDDLELEFT": "middleLeft", "MIDDLECENTER": "middleCenter", "MIDDLERIGHT": "middleRight",
-          "BOTTOMLEFT": "bottomLeft", "BOTTOMCENTER": "bottomCenter", "BOTTOMRIGHT": "bottomRight"
-        };
-        const bpHorizontal = { "LEFT": "left", "CENTER": "center", "RIGHT": "right" };
-        const bpVertical = { "TOP": "top", "MIDDLE": "center", "BOTTOM": "bottom" };
-
-        try {
-          await batchPlay([
-            {
-              _obj: "canvasSize",
-              width: { _unit: "pixelsUnit", _value: width },
-              height: { _unit: "pixelsUnit", _value: height },
-              horizontal: { _enum: "horizontalLocation", _value: bpHorizontal[hAnchor] || "center" },
-              vertical: { _enum: "verticalLocation", _value: bpVertical[vAnchor] || "center" },
-              anchor: { _enum: "anchor", _value: camelMap[anchorKey] || "middleCenter" },
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (bpErr) {}
+        }
       }
     }, `Resize to ${width}x${height} @ ${dpi}DPI`);
   },
@@ -2109,11 +2072,97 @@ const PSAutomation = {
   },
 
   /**
+   * Helper: Load and play ATN action from plugin directory if available
+   */
+  async playAtnActionIfExists(atnFileName, possibleActionNames = []) {
+    try {
+      const uxp = require("uxp");
+      if (uxp && uxp.storage && uxp.storage.localFileSystem) {
+        const lfs = uxp.storage.localFileSystem;
+        const pluginDir = await lfs.getPluginFolder();
+        let atnFile = null;
+        try { atnFile = await pluginDir.getEntry(atnFileName); } catch(e) {}
+        if (atnFile) {
+          const token = lfs.createSessionToken(atnFile);
+          try {
+            await batchPlay([
+              {
+                _obj: "open",
+                _target: [{ _ref: "file", _token: token }],
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (opErr) {}
+        }
+      }
+
+      if (app.actionTree && app.actionTree.length > 0) {
+        for (const set of app.actionTree) {
+          for (const act of (set.actions || [])) {
+            const actName = act.name || "";
+            const actNameLower = actName.toLowerCase();
+            const match = possibleActionNames.some(p => actNameLower.includes(p.toLowerCase()));
+            if (match) {
+              await batchPlay([
+                {
+                  _obj: "play",
+                  _target: [
+                    { _ref: "action", _name: actName },
+                    { _ref: "actionSet", _name: set.name }
+                  ],
+                  dialogOptions: "dontDisplay"
+                }
+              ], { synchronousExecution: true });
+              return true;
+            }
+          }
+        }
+      }
+    } catch(e) {}
+    return false;
+  },
+
+  /**
    * Shadow 1: Drop Shadow
-   * Soft, floating ambient shadow below and slightly offset
+   * Soft, floating ambient shadow applied directly to the subject cutout layer (e.g. Layer 1)
    */
   async applyDropShadow(applyToAll = false) {
     return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      const layers = doc.layers || [];
+      if (layers.length === 0) return;
+
+      // 1. Identify Subject cutout layer (e.g. "Layer 1")
+      let subjectLayer = layers.find(l => {
+        const n = (l.name || "").trim().toLowerCase();
+        return !l.isBackgroundLayer && n !== "background" && n !== "original bg" && n !== "bg color" && n !== "bg image" && !n.includes("shadow") && !n.startsWith("color fill");
+      });
+
+      if (!subjectLayer && doc.activeLayers && doc.activeLayers.length > 0) {
+        subjectLayer = doc.activeLayers[0];
+      }
+
+      if (!subjectLayer) return;
+
+      // 2. Select the subject cutout layer explicitly so Drop Shadow applies to it
+      doc.activeLayers = [subjectLayer];
+
+      // 3. Remove Drop Shadow effect from BG Color / BG Image if accidentally applied earlier
+      for (const l of layers) {
+        const n = (l.name || "").trim().toLowerCase();
+        if (l !== subjectLayer && (n === "bg color" || n === "bg image" || n.startsWith("color fill") || l.isBackgroundLayer)) {
+          try {
+            await batchPlay([
+              {
+                _obj: "disableLayerStyle",
+                _target: [{ _ref: "layer", _id: l.id }],
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (e) {}
+        }
+      }
+
+      // 4. Apply Drop Shadow to the subject cutout layer
       await batchPlay([
         {
           _obj: "set",
@@ -2140,148 +2189,266 @@ const PSAutomation = {
           dialogOptions: "dontDisplay"
         }
       ], { synchronousExecution: true });
+
+      // Keep subject cutout layer active
+      try { doc.activeLayers = [subjectLayer]; } catch (e) {}
     }, "Adjustment: Drop Shadow");
   },
 
   /**
-   * Shadow 2: Natural Shadow
-   * Fully automated implementation of Natural_Shadow.ATN that works regardless of which layer is selected:
-   * 1. Deselects any marching ants first to ensure clean state
-   * 2. Auto-identifies Background layer and cutout Subject layer
-   * 3. Duplicates Background layer as "Shadow" & removes any pre-existing mask
-   * 4. Positions "Shadow" directly below Subject layer
-   * 5. Inverted luminosity mask & exact curves contrast from action
-   * 6. Sets Multiply blend mode, Desaturates, and clears selection
-   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
+   * Core Helper: Create non-destructive shadow layer duplicated from bottom Background layer.
+   * Works regardless of which layer is currently selected.
+   * Always positions the created shadow layer directly ABOVE 'BG Color' and BELOW 'Layer 1' / subject layer.
    */
-  async applyNaturalShadow(applyToAll = false) {
-    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
-      const layers = doc.layers || [];
-      if (layers.length === 0) return;
+  async _createShadowFromBackground(doc, shadowName, maskAdjustFn, desaturate = true) {
+    const layers = doc.layers || [];
+    if (layers.length === 0) return;
 
-      // 1. Deselect any active selection first so duplicate/copy is clean
+    // 1. Deselect any active selection first
+    try {
+      await batchPlay([
+        {
+          _obj: "set",
+          _target: [{ _ref: "channel", _property: "selection" }],
+          to: { _enum: "ordinal", _value: "none" },
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+    } catch (e) {}
+
+    // 2. Remove any previously created shadow layer if re-applying
+    const oldShadow = layers.find(l => l.name === "Shadow" || l.name === "Natural Shadow" || l.name === "Existing Shadow" || l.name === "Cast Shadow");
+    if (oldShadow) {
+      try { await oldShadow.delete(); } catch (e) {}
+    }
+
+    const currentLayers = doc.layers || layers;
+
+    // 3. Intelligently identify Background layer at the bottom of layer stack
+    let bgLayer = null;
+    for (let i = currentLayers.length - 1; i >= 0; i--) {
+      const l = currentLayers[i];
+      if (!l) continue;
+      const n = (l.name || "").trim().toLowerCase();
+      if (l.isBackgroundLayer || n === "background" || n === "original bg") {
+        bgLayer = l;
+        break;
+      }
+    }
+    if (!bgLayer) {
+      for (let i = currentLayers.length - 1; i >= 0; i--) {
+        const l = currentLayers[i];
+        if (!l) continue;
+        const n = (l.name || "").trim().toLowerCase();
+        if (n !== "bg color" && n !== "bg image" && !n.includes("shadow") && !n.startsWith("color fill")) {
+          bgLayer = l;
+          break;
+        }
+      }
+    }
+    if (!bgLayer && currentLayers.length > 0) {
+      bgLayer = currentLayers[currentLayers.length - 1];
+    }
+    if (!bgLayer) return;
+
+    // 4. Identify Subject layer (e.g. "Layer 1") and BG Color layer
+    let subjectLayer = currentLayers.find(l => {
+      const n = (l.name || "").trim().toLowerCase();
+      return !l.isBackgroundLayer && n !== "background" && n !== "original bg" && n !== "bg color" && n !== "bg image" && !n.includes("shadow") && !n.startsWith("color fill");
+    });
+    if (!subjectLayer && doc.activeLayers && doc.activeLayers.length > 0) {
+      subjectLayer = doc.activeLayers[0];
+    }
+
+    let bgColorLayer = currentLayers.find(l => {
+      const n = (l.name || "").trim().toLowerCase();
+      return n === "bg color" || n === "bg image" || n.startsWith("color fill");
+    });
+
+    // 5. Non-destructive Cleanup Shadow processing & Shadow Layer Creation
+    const cleanupLayer = (doc.layers || []).find(l => {
+      const n = (l.name || "").trim().toLowerCase();
+      return n === "cleanup shadow" || n.includes("cleanup shadow");
+    });
+
+    let shadowLayer = null;
+
+    if (cleanupLayer) {
+      // Restore visibility of all document layers
+      (doc.layers || []).forEach(l => {
+        try { l.visible = true; } catch (e) {}
+      });
+
+      // Duplicate original bgLayer non-destructively so original Background remains 100% untouched
+      let tempCleanLayer = null;
       try {
+        const tempBgCopy = await bgLayer.duplicate();
+        try {
+          await cleanupLayer.move(tempBgCopy, constants.ElementPlacement ? constants.ElementPlacement.PLACEBEFORE : "before");
+        } catch (e) {}
+
+        doc.activeLayers = [cleanupLayer];
         await batchPlay([
           {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _enum: "ordinal", _value: "none" },
+            _obj: "mergeLayersNew",
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (e) {}
 
-      // 2. Remove any previously created "Shadow" layer if re-applying
-      const oldShadow = layers.find(l => l.name === "Shadow" || l.name === "Natural Shadow" || l.name === "Existing Shadow" || l.name === "Cast Shadow");
-      if (oldShadow) {
-        try { await oldShadow.delete(); } catch (e) {}
+        tempCleanLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+      } catch (mergeErr) {
+        tempCleanLayer = cleanupLayer;
       }
 
-      // 3. Intelligently identify Background layer (source of real floor shadow)
-      let bgLayer = layers.find(l => l.isBackgroundLayer || l.name === "Background" || l.name === "Original BG");
-      if (!bgLayer) {
-        // Find the lowest pixel layer that isn't solid BG Color
-        for (let i = layers.length - 1; i >= 0; i--) {
-          const name = layers[i].name || "";
-          if (name !== "BG Color" && name !== "Shadow" && name !== "Natural Shadow" && name !== "Existing Shadow" && name !== "Cast Shadow" && !name.startsWith("Color Fill")) {
-            bgLayer = layers[i];
-            break;
+      // Create shadow layer from the clean merged temp layer
+      if (tempCleanLayer) {
+        try {
+          shadowLayer = await tempCleanLayer.duplicate();
+          shadowLayer.name = shadowName;
+        } catch (e) {}
+
+        // Delete temporary clean layer to leave original Background untouched!
+        try {
+          if (tempCleanLayer !== bgLayer) {
+            await tempCleanLayer.delete();
           }
-        }
+        } catch (delTempErr) {}
       }
-      if (!bgLayer) bgLayer = layers[layers.length - 1]; // bottom-most layer fallback
-      if (!bgLayer) return;
+    }
 
-      // 4. Intelligently identify Subject cutout layer
-      let subjectLayer = layers.find(l => !l.isBackgroundLayer && l.name !== "Background" && l.name !== "Original BG" && l.name !== "BG Color" && l.name !== "Shadow" && !l.name.startsWith("Color Fill"));
-      if (!subjectLayer && doc.activeLayers && doc.activeLayers.length > 0) {
-        subjectLayer = doc.activeLayers[0];
-      }
-
-      // 5. Select Background layer & duplicate it as "Shadow"
+    // Standard fallback if no Cleanup Shadow layer existed or if duplication above wasn't done
+    if (!shadowLayer) {
       doc.activeLayers = [bgLayer];
-
-      let shadowLayer = null;
       try {
         shadowLayer = await bgLayer.duplicate();
-        shadowLayer.name = "Shadow";
+        shadowLayer.name = shadowName;
       } catch (dupErr) {
         await batchPlay([
           { _obj: "copyToLayer", dialogOptions: "dontDisplay" }
         ], { synchronousExecution: true });
         shadowLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
-        if (shadowLayer) shadowLayer.name = "Shadow";
+        if (shadowLayer) shadowLayer.name = shadowName;
       }
+    }
 
-      if (!shadowLayer) return;
+    if (!shadowLayer) return;
 
-      // Ensure shadowLayer is unlocked and not a background layer
-      if (shadowLayer.isBackgroundLayer) shadowLayer.isBackgroundLayer = false;
-      if (shadowLayer.locked) shadowLayer.locked = false;
+    if (shadowLayer.isBackgroundLayer) shadowLayer.isBackgroundLayer = false;
+    if (shadowLayer.locked) shadowLayer.locked = false;
 
-      // 6. CRITICAL: Remove any pre-existing layer mask from the duplicated layer
-      // This prevents "The command 'Make' is not currently available" error when adding new mask!
+    // 6. CRITICAL: Remove any pre-existing layer mask from the duplicated layer
+    // Prevents "The command 'Make' is not currently available" error when adding new mask!
+    try {
+      await batchPlay([
+        {
+          _obj: "delete",
+          _target: [{ _ref: "channel", _enum: "channel", _value: "mask" }],
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+    } catch (delMaskErr) {}
+
+    // 7. CRITICAL: Shadow layer must ALWAYS be directly ABOVE 'BG Color'
+    const fixShadowPlacement = async () => {
       try {
-        await batchPlay([
-          {
-            _obj: "delete",
-            _target: [{ _ref: "channel", _enum: "channel", _value: "mask" }],
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (delMaskErr) {}
+        const liveDoc = app.activeDocument;
+        if (!liveDoc) return;
+        const liveLayers = Array.from(liveDoc.layers || []);
 
-      // 7. Move Shadow layer directly below the subjectLayer
-      if (subjectLayer && shadowLayer !== subjectLayer) {
-        try {
-          await shadowLayer.move(subjectLayer, constants.ElementPlacement ? constants.ElementPlacement.PLACEAFTER : "after");
-        } catch (mvErr) {
+        const sIdx = liveLayers.findIndex(l => (l.name || "").trim().toLowerCase() === shadowName.toLowerCase());
+        const bIdx = liveLayers.findIndex(l => {
+          const n = (l.name || "").trim().toLowerCase();
+          return n === "bg color" || n === "bg image" || n.startsWith("color fill") || n.includes("solid color");
+        });
+
+        if (sIdx !== -1 && bIdx !== -1 && sIdx > bIdx) {
+          // Shadow is currently BELOW BG Color in layer stack (index 0 is top)
+          // Try DOM move first
           try {
-            await batchPlay([
-              {
-                _obj: "move",
-                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                to: { _ref: "layer", _id: subjectLayer.id },
-                dialogOptions: "dontDisplay"
-              }
-            ], { synchronousExecution: true });
-          } catch (e) {}
+            const shadowL = liveLayers[sIdx];
+            const bgL = liveLayers[bIdx];
+            const placement = (constants && constants.ElementPlacement && constants.ElementPlacement.PLACEBEFORE) || "placeBefore";
+            shadowL.move(bgL, placement);
+          } catch (domErr) {}
+
+          // Bring Forward via batchPlay until shadow index is less than BG Color index
+          let curLayers = Array.from(liveDoc.layers || []);
+          let curS = curLayers.findIndex(l => (l.name || "").trim().toLowerCase() === shadowName.toLowerCase());
+          let curB = curLayers.findIndex(l => {
+            const n = (l.name || "").trim().toLowerCase();
+            return n === "bg color" || n === "bg image" || n.startsWith("color fill") || n.includes("solid color");
+          });
+
+          let attempts = 0;
+          while (curS !== -1 && curB !== -1 && curS > curB && attempts < 5) {
+            attempts++;
+            try {
+              await batchPlay([
+                {
+                  _obj: "select",
+                  _target: [{ _ref: "layer", _name: shadowName }],
+                  dialogOptions: "dontDisplay"
+                },
+                {
+                  _obj: "move",
+                  _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+                  to: { _ref: "layer", _enum: "ordinal", _value: "previous" },
+                  dialogOptions: "dontDisplay"
+                }
+              ], { synchronousExecution: true });
+            } catch (bpErr) {
+              break;
+            }
+
+            curLayers = Array.from(liveDoc.layers || []);
+            curS = curLayers.findIndex(l => (l.name || "").trim().toLowerCase() === shadowName.toLowerCase());
+            curB = curLayers.findIndex(l => {
+              const n = (l.name || "").trim().toLowerCase();
+              return n === "bg color" || n === "bg image" || n.startsWith("color fill") || n.includes("solid color");
+            });
+          }
         }
+      } catch (err) {
+        console.error("fixShadowPlacement error:", err);
       }
+    };
 
-      // 8. Create luminosity selection (Inverted RGB) and Mask on shadowLayer
-      doc.activeLayers = [shadowLayer];
+    await fixShadowPlacement();
 
-      // Step A: Set selection to RGB channel luminosity
-      await batchPlay([
-        {
-          _obj: "set",
-          _target: [{ _ref: "channel", _property: "selection" }],
-          to: { _ref: "channel", _enum: "channel", _value: "RGB" },
-          dialogOptions: "dontDisplay"
-        }
-      ], { synchronousExecution: true });
+    // 8. Create luminosity selection (Inverted RGB) and Mask on shadowLayer
+    doc.activeLayers = [shadowLayer];
 
-      // Step B: Invert selection
-      await batchPlay([
-        {
-          _obj: "inverse",
-          dialogOptions: "dontDisplay"
-        }
-      ], { synchronousExecution: true });
+    // Set selection to RGB channel luminosity
+    await batchPlay([
+      {
+        _obj: "set",
+        _target: [{ _ref: "channel", _property: "selection" }],
+        to: { _ref: "channel", _enum: "channel", _value: "RGB" },
+        dialogOptions: "dontDisplay"
+      }
+    ], { synchronousExecution: true });
 
-      // Step C: Make layer mask revealing selection
-      await batchPlay([
-        {
-          _obj: "make",
-          new: { _class: "channel" },
-          at: { _ref: "channel", _enum: "channel", _value: "mask" },
-          using: { _enum: "userMaskOptions", _value: "revealSelection" },
-          dialogOptions: "dontDisplay"
-        }
-      ], { synchronousExecution: true });
+    // Invert selection
+    await batchPlay([
+      {
+        _obj: "inverse",
+        dialogOptions: "dontDisplay"
+      }
+    ], { synchronousExecution: true });
 
-      // 9. Select mask channel and apply exact contrast Curve from Natural_Shadow.ATN
+    // Make layer mask revealing selection
+    await batchPlay([
+      {
+        _obj: "make",
+        new: { _class: "channel" },
+        at: { _ref: "channel", _enum: "channel", _value: "mask" },
+        using: { _enum: "userMaskOptions", _value: "revealSelection" },
+        dialogOptions: "dontDisplay"
+      }
+    ], { synchronousExecution: true });
+
+    // 9. Apply contrast adjustment to mask channel & auto-clean floor dust/specks (Plan 1)
+    try {
       await batchPlay([
         {
           _obj: "select",
@@ -2290,6 +2457,118 @@ const PSAutomation = {
         }
       ], { synchronousExecution: true });
 
+      if (typeof maskAdjustFn === "function") {
+        await maskAdjustFn();
+      }
+
+      // Plan 1: Dust & Scratches filter to eliminate high-frequency floor specks, scratches & dust from shadow mask
+      try {
+        await batchPlay([
+          {
+            _obj: "dustAndScratches",
+            radius: 10,
+            threshold: 2,
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (dustErr) {
+        try {
+          await batchPlay([
+            {
+              _obj: "median",
+              radius: { _unit: "pixelsUnit", _value: 3 },
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+        } catch (medErr) {}
+      }
+    } catch (mErr) {}
+
+    // 10. Select RGB channel
+    try {
+      await batchPlay([
+        {
+          _obj: "select",
+          _target: [{ _ref: "channel", _enum: "channel", _value: "RGB" }],
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+    } catch (e) {}
+
+    shadowLayer.name = shadowName;
+
+    // 11. Set Multiply blend mode
+    try {
+      shadowLayer.blendMode = "multiply";
+    } catch (bmErr) {
+      await batchPlay([
+        {
+          _obj: "set",
+          _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+          to: { _obj: "layer", mode: { _enum: "blendMode", _value: "multiply" } },
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+    }
+
+    // 12. Desaturate if requested
+    if (desaturate) {
+      try {
+        await batchPlay([
+          {
+            _obj: "desaturate",
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (dsErr) {}
+    }
+
+    // 13. Clean up: remove marching ants selection
+    try {
+      await batchPlay([
+        {
+          _obj: "set",
+          _target: [{ _ref: "channel", _property: "selection" }],
+          to: { _enum: "ordinal", _value: "none" },
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+    } catch (e) {}
+
+    // 14. Final Guarantee: ensure Shadow layer is positioned directly above BG Color
+    await fixShadowPlacement();
+
+    // 15. Explicitly select the Shadow layer and its Layer Mask so user can immediately paint/retouch
+    try {
+      doc.activeLayers = [shadowLayer];
+      await batchPlay([
+        {
+          _obj: "select",
+          _target: [{ _ref: "layer", _name: shadowName }],
+          dialogOptions: "dontDisplay"
+        },
+        {
+          _obj: "select",
+          _target: [{ _ref: "channel", _enum: "channel", _value: "mask" }],
+          dialogOptions: "dontDisplay"
+        }
+      ], { synchronousExecution: true });
+    } catch (selMaskErr) {
+      try { doc.activeLayers = [shadowLayer]; } catch (e) {}
+    }
+  },
+
+  /**
+   * Shadow 2: Natural Shadow
+   * Fully automated Natural Shadow algorithm that works regardless of active layer:
+   * 1. Duplicates original Background layer from the bottom
+   * 2. Positions Shadow layer directly ABOVE 'BG Color' and BELOW 'Layer 1'
+   * 3. Applies inverted RGB luminosity mask with Natural Shadow contrast Curve
+   * 4. Desaturates and sets Multiply blend mode
+   * @param {boolean} applyToAll - Apply to all open documents in Photoshop
+   */
+  async applyNaturalShadow(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
       const naturalShadowCurveLut = [
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,3,4,5,6,8,9,10,12,13,14,16,17,18,19,
         21,22,23,25,26,27,28,30,31,32,34,35,36,38,39,40,41,43,44,45,47,48,49,50,52,53,54,56,
@@ -2304,247 +2583,58 @@ const PSAutomation = {
         255,255,255,255,255,255,255,255,255,255,255,255,255,255,255
       ];
 
-      try {
-        await batchPlay([
-          {
-            _obj: "curves",
-            presetKind: { _enum: "presetKindType", _value: "presetKindCustom" },
-            adjustment: [
-              {
-                _obj: "curveAdjustment",
-                channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
-                mapping: naturalShadowCurveLut
-              }
-            ],
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (cErr) {
+      await this._createShadowFromBackground(doc, "Shadow", async () => {
         try {
           await batchPlay([
             {
               _obj: "curves",
+              presetKind: { _enum: "presetKindType", _value: "presetKindCustom" },
               adjustment: [
                 {
                   _obj: "curveAdjustment",
                   channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
-                  curve: [
-                    { _obj: "point", horizontal: 22, vertical: 0 },
-                    { _obj: "point", horizontal: 235, vertical: 255 }
-                  ]
+                  mapping: naturalShadowCurveLut
                 }
               ],
               dialogOptions: "dontDisplay"
             }
           ], { synchronousExecution: true });
-        } catch (cErr2) {}
-      }
-
-      // Return to RGB channel
-      await batchPlay([
-        {
-          _obj: "select",
-          _target: [{ _ref: "channel", _enum: "channel", _value: "RGB" }],
-          dialogOptions: "dontDisplay"
+        } catch (cErr) {
+          try {
+            await batchPlay([
+              {
+                _obj: "curves",
+                adjustment: [
+                  {
+                    _obj: "curveAdjustment",
+                    channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
+                    curve: [
+                      { _obj: "point", horizontal: 22, vertical: 0 },
+                      { _obj: "point", horizontal: 235, vertical: 255 }
+                    ]
+                  }
+                ],
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (cErr2) {}
         }
-      ], { synchronousExecution: true });
-
-      // 10. Set layer name to "Shadow"
-      shadowLayer.name = "Shadow";
-
-      // 11. Set blend mode to Multiply
-      try {
-        shadowLayer.blendMode = "multiply";
-      } catch (bmErr) {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            to: { _obj: "layer", mode: { _enum: "blendMode", _value: "multiply" } },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      }
-
-      // 12. Desaturate layer pixels (clean neutral shadow, removes color casts)
-      try {
-        await batchPlay([
-          {
-            _obj: "desaturate",
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (dsErr) {}
-
-      // 13. Clean up: remove marching ants selection
-      try {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _enum: "ordinal", _value: "none" },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (e) {}
-
-      // 14. Return active layer to subjectLayer so user can immediately continue work
-      if (subjectLayer) {
-        try { doc.activeLayers = [subjectLayer]; } catch (e) {}
-      }
+      }, true);
     }, "Adjustment: Natural Shadow");
   },
 
   /**
    * Shadow 3: Existing Shadow
-   * Fully automated implementation of Existing Shadow.ATN:
-   * 1. Deselects any active selection first
-   * 2. Cleans up any previous shadow layers ("Existing Shadow", "Shadow", "Cast Shadow", "Natural Shadow")
-   * 3. Intelligently identifies Background layer and cutout Subject layer
-   * 4. Duplicates Background layer as "Existing Shadow" & removes any pre-existing mask
-   * 5. Positions "Existing Shadow" directly below Subject layer
-   * 6. Creates inverted luminosity selection (RGB -> inverse -> revealSelection layer mask)
-   * 7. Selects mask channel and applies exact Levels adjustment from action (input: [41, 255])
-   * 8. Selects RGB channel and applies Levels adjustment (input: [41, 255])
-   * 9. Sets layer blend mode to Multiply
-   * 10. Desaturates layer pixels for neutral authentic shadow
-   * 11. Clears selection and restores focus to Subject layer
+   * Creates a natural, soft existing shadow by isolating the floor shadow from the background image:
+   * 1. Duplicates original Background layer from the bottom
+   * 2. Positions Shadow layer directly ABOVE 'BG Color' and BELOW 'Layer 1'
+   * 3. Applies inverted RGB luminosity mask with Levels (input: [41, 255]) on mask channel
+   * 4. Desaturates and sets Multiply blend mode
    * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
   async applyExistingShadow(applyToAll = false) {
     return await this.executeOnTargetDocs(applyToAll, async (doc) => {
-      const layers = doc.layers || [];
-      if (layers.length === 0) return;
-
-      // 1. Deselect any active selection first
-      try {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _enum: "ordinal", _value: "none" },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (e) {}
-
-      // 2. Remove any previously created shadow layer if re-applying
-      const oldShadow = layers.find(l => l.name === "Existing Shadow" || l.name === "Shadow" || l.name === "Natural Shadow" || l.name === "Cast Shadow");
-      if (oldShadow) {
-        try { await oldShadow.delete(); } catch (e) {}
-      }
-
-      // 3. Intelligently identify Background layer (source of real floor shadow)
-      let bgLayer = layers.find(l => l.isBackgroundLayer || l.name === "Background" || l.name === "Original BG");
-      if (!bgLayer) {
-        for (let i = layers.length - 1; i >= 0; i--) {
-          const name = layers[i].name || "";
-          if (name !== "BG Color" && name !== "Shadow" && name !== "Natural Shadow" && name !== "Existing Shadow" && name !== "Cast Shadow" && !name.startsWith("Color Fill")) {
-            bgLayer = layers[i];
-            break;
-          }
-        }
-      }
-      if (!bgLayer) bgLayer = layers[layers.length - 1];
-      if (!bgLayer) return;
-
-      // 4. Intelligently identify Subject cutout layer
-      let subjectLayer = layers.find(l => !l.isBackgroundLayer && l.name !== "Background" && l.name !== "Original BG" && l.name !== "BG Color" && l.name !== "Shadow" && l.name !== "Natural Shadow" && l.name !== "Existing Shadow" && l.name !== "Cast Shadow" && !l.name.startsWith("Color Fill"));
-      if (!subjectLayer && doc.activeLayers && doc.activeLayers.length > 0) {
-        subjectLayer = doc.activeLayers[0];
-      }
-
-      // 5. Select Background layer & duplicate it as "Existing Shadow"
-      doc.activeLayers = [bgLayer];
-
-      let shadowLayer = null;
-      try {
-        shadowLayer = await bgLayer.duplicate();
-        shadowLayer.name = "Existing Shadow";
-      } catch (dupErr) {
-        await batchPlay([
-          { _obj: "copyToLayer", dialogOptions: "dontDisplay" }
-        ], { synchronousExecution: true });
-        shadowLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
-        if (shadowLayer) shadowLayer.name = "Existing Shadow";
-      }
-
-      if (!shadowLayer) return;
-
-      if (shadowLayer.isBackgroundLayer) shadowLayer.isBackgroundLayer = false;
-      if (shadowLayer.locked) shadowLayer.locked = false;
-
-      // 6. Remove any pre-existing layer mask from the duplicated layer
-      try {
-        await batchPlay([
-          {
-            _obj: "delete",
-            _target: [{ _ref: "channel", _enum: "channel", _value: "mask" }],
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (delMaskErr) {}
-
-      // 7. Move Shadow layer directly below the subjectLayer
-      if (subjectLayer && shadowLayer !== subjectLayer) {
-        try {
-          await shadowLayer.move(subjectLayer, constants.ElementPlacement ? constants.ElementPlacement.PLACEAFTER : "after");
-        } catch (mvErr) {
-          try {
-            await batchPlay([
-              {
-                _obj: "move",
-                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                to: { _ref: "layer", _id: subjectLayer.id },
-                dialogOptions: "dontDisplay"
-              }
-            ], { synchronousExecution: true });
-          } catch (e) {}
-        }
-      }
-
-      // 8. Create luminosity selection (Inverted RGB) and Mask on shadowLayer
-      doc.activeLayers = [shadowLayer];
-
-      // Set selection to RGB channel luminosity
-      await batchPlay([
-        {
-          _obj: "set",
-          _target: [{ _ref: "channel", _property: "selection" }],
-          to: { _ref: "channel", _enum: "channel", _value: "RGB" },
-          dialogOptions: "dontDisplay"
-        }
-      ], { synchronousExecution: true });
-
-      // Invert selection
-      await batchPlay([
-        {
-          _obj: "inverse",
-          dialogOptions: "dontDisplay"
-        }
-      ], { synchronousExecution: true });
-
-      // Make layer mask revealing selection
-      await batchPlay([
-        {
-          _obj: "make",
-          new: { _class: "channel" },
-          at: { _ref: "channel", _enum: "channel", _value: "mask" },
-          using: { _enum: "userMaskOptions", _value: "revealSelection" },
-          dialogOptions: "dontDisplay"
-        }
-      ], { synchronousExecution: true });
-
-      // 9. Select mask channel and apply Levels adjustment from Existing Shadow.ATN (input: [41, 255])
-      try {
-        await batchPlay([
-          {
-            _obj: "select",
-            _target: [{ _ref: "channel", _enum: "ordinal", _value: "targetEnum" }],
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-
+      await this._createShadowFromBackground(doc, "Existing Shadow", async () => {
         await batchPlay([
           {
             _obj: "levels",
@@ -2559,245 +2649,22 @@ const PSAutomation = {
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (lvlErr) {
-        try {
-          await batchPlay([
-            {
-              _obj: "levels",
-              adjustment: [
-                {
-                  _obj: "levelAdjustment",
-                  channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
-                  input: [41, 255]
-                }
-              ],
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (lvlErr2) {}
-      }
-
-      // 10. Return to RGB channel and apply Levels adjustment to deepen shadow pixels
-      try {
-        await batchPlay([
-          {
-            _obj: "select",
-            _target: [{ _ref: "channel", _enum: "channel", _value: "RGB" }],
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-
-        await batchPlay([
-          {
-            _obj: "levels",
-            presetKind: { _enum: "presetKindType", _value: "presetKindCustom" },
-            adjustment: [
-              {
-                _obj: "levelAdjustment",
-                channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
-                input: [41, 255]
-              }
-            ],
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (lvlRgbErr) {}
-
-      // 11. Set layer name to "Existing Shadow"
-      shadowLayer.name = "Existing Shadow";
-
-      // 12. Set blend mode to Multiply
-      try {
-        shadowLayer.blendMode = "multiply";
-      } catch (bmErr) {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            to: { _obj: "layer", mode: { _enum: "blendMode", _value: "multiply" } },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      }
-
-      // 13. Desaturate layer pixels (clean neutral shadow, removes color casts)
-      try {
-        await batchPlay([
-          {
-            _obj: "desaturate",
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (dsErr) {}
-
-      // 14. Clean up: remove marching ants selection
-      try {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _enum: "ordinal", _value: "none" },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (e) {}
-
-      // 15. Return active layer to subjectLayer so user can immediately continue work
-      if (subjectLayer) {
-        try { doc.activeLayers = [subjectLayer]; } catch (e) {}
-      }
+      }, true);
     }, "Adjustment: Existing Shadow");
   },
 
   /**
    * Shadow 4: Cast Shadow
-   * Fully automated implementation of Cast Shadow.ATN:
-   * 1. Deselects any active selection first
-   * 2. Cleans up any previous shadow layers ("Cast Shadow", "Shadow", "Existing Shadow", "Natural Shadow")
-   * 3. Intelligently identifies Background layer and cutout Subject layer
-   * 4. Duplicates Background layer as "Cast Shadow" & removes any pre-existing mask
-   * 5. Positions "Cast Shadow" directly below Subject layer
-   * 6. Creates inverted luminosity selection (RGB -> inverse -> revealSelection layer mask)
-   * 7. Selects mask channel and applies exact Levels adjustment from Cast Shadow.ATN (input: [41, 255])
-   * 8. Returns to RGB channel
-   * 9. Sets Multiply blend mode while preserving natural colors & reflections (NO desaturate)
-   * 10. Clears selection and restores focus to Subject layer
+   * Fully automated implementation of Cast Shadow:
+   * 1. Duplicates original Background layer from the bottom
+   * 2. Positions Shadow layer directly ABOVE 'BG Color' and BELOW 'Layer 1'
+   * 3. Applies inverted RGB luminosity mask with Levels (input: [41, 255]) on mask channel
+   * 4. Sets Multiply blend mode while preserving original colors/reflections
    * @param {boolean} applyToAll - Apply to all open documents in Photoshop
    */
   async applyCastShadow(applyToAll = false) {
     return await this.executeOnTargetDocs(applyToAll, async (doc) => {
-      const layers = doc.layers || [];
-      if (layers.length === 0) return;
-
-      // 1. Deselect any active selection first
-      try {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _enum: "ordinal", _value: "none" },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (e) {}
-
-      // 2. Remove any previously created shadow layer if re-applying
-      const oldShadow = layers.find(l => l.name === "Cast Shadow" || l.name === "Shadow" || l.name === "Natural Shadow" || l.name === "Existing Shadow");
-      if (oldShadow) {
-        try { await oldShadow.delete(); } catch (e) {}
-      }
-
-      // 3. Intelligently identify Background layer (source of real floor shadow)
-      let bgLayer = layers.find(l => l.isBackgroundLayer || l.name === "Background" || l.name === "Original BG");
-      if (!bgLayer) {
-        for (let i = layers.length - 1; i >= 0; i--) {
-          const name = layers[i].name || "";
-          if (name !== "BG Color" && name !== "Shadow" && name !== "Natural Shadow" && name !== "Existing Shadow" && name !== "Cast Shadow" && !name.startsWith("Color Fill")) {
-            bgLayer = layers[i];
-            break;
-          }
-        }
-      }
-      if (!bgLayer) bgLayer = layers[layers.length - 1];
-      if (!bgLayer) return;
-
-      // 4. Intelligently identify Subject cutout layer
-      let subjectLayer = layers.find(l => !l.isBackgroundLayer && l.name !== "Background" && l.name !== "Original BG" && l.name !== "BG Color" && l.name !== "Shadow" && l.name !== "Natural Shadow" && l.name !== "Existing Shadow" && l.name !== "Cast Shadow" && !l.name.startsWith("Color Fill"));
-      if (!subjectLayer && doc.activeLayers && doc.activeLayers.length > 0) {
-        subjectLayer = doc.activeLayers[0];
-      }
-
-      // 5. Select Background layer & duplicate it as "Cast Shadow"
-      doc.activeLayers = [bgLayer];
-
-      let shadowLayer = null;
-      try {
-        shadowLayer = await bgLayer.duplicate();
-        shadowLayer.name = "Cast Shadow";
-      } catch (dupErr) {
-        await batchPlay([
-          { _obj: "copyToLayer", dialogOptions: "dontDisplay" }
-        ], { synchronousExecution: true });
-        shadowLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
-        if (shadowLayer) shadowLayer.name = "Cast Shadow";
-      }
-
-      if (!shadowLayer) return;
-
-      if (shadowLayer.isBackgroundLayer) shadowLayer.isBackgroundLayer = false;
-      if (shadowLayer.locked) shadowLayer.locked = false;
-
-      // 6. Remove any pre-existing layer mask from the duplicated layer
-      try {
-        await batchPlay([
-          {
-            _obj: "delete",
-            _target: [{ _ref: "channel", _enum: "channel", _value: "mask" }],
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (delMaskErr) {}
-
-      // 7. Move Shadow layer directly below the subjectLayer
-      if (subjectLayer && shadowLayer !== subjectLayer) {
-        try {
-          await shadowLayer.move(subjectLayer, constants.ElementPlacement ? constants.ElementPlacement.PLACEAFTER : "after");
-        } catch (mvErr) {
-          try {
-            await batchPlay([
-              {
-                _obj: "move",
-                _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-                to: { _ref: "layer", _id: subjectLayer.id },
-                dialogOptions: "dontDisplay"
-              }
-            ], { synchronousExecution: true });
-          } catch (e) {}
-        }
-      }
-
-      // 8. Create luminosity selection (Inverted RGB) and Mask on shadowLayer
-      doc.activeLayers = [shadowLayer];
-
-      // Set selection to RGB channel luminosity
-      await batchPlay([
-        {
-          _obj: "set",
-          _target: [{ _ref: "channel", _property: "selection" }],
-          to: { _ref: "channel", _enum: "channel", _value: "RGB" },
-          dialogOptions: "dontDisplay"
-        }
-      ], { synchronousExecution: true });
-
-      // Invert selection
-      await batchPlay([
-        {
-          _obj: "inverse",
-          dialogOptions: "dontDisplay"
-        }
-      ], { synchronousExecution: true });
-
-      // Make layer mask revealing selection
-      await batchPlay([
-        {
-          _obj: "make",
-          new: { _class: "channel" },
-          at: { _ref: "channel", _enum: "channel", _value: "mask" },
-          using: { _enum: "userMaskOptions", _value: "revealSelection" },
-          dialogOptions: "dontDisplay"
-        }
-      ], { synchronousExecution: true });
-
-      // 9. Select mask channel and apply exact Levels adjustment from Cast Shadow.ATN (input: [41, 255])
-      try {
-        await batchPlay([
-          {
-            _obj: "select",
-            _target: [{ _ref: "channel", _enum: "ordinal", _value: "targetEnum" }],
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-
+      await this._createShadowFromBackground(doc, "Cast Shadow", async () => {
         await batchPlay([
           {
             _obj: "levels",
@@ -2812,70 +2679,7 @@ const PSAutomation = {
             dialogOptions: "dontDisplay"
           }
         ], { synchronousExecution: true });
-      } catch (lvlErr) {
-        try {
-          await batchPlay([
-            {
-              _obj: "levels",
-              adjustment: [
-                {
-                  _obj: "levelAdjustment",
-                  channel: { _ref: "channel", _enum: "ordinal", _value: "targetEnum" },
-                  input: [41, 255]
-                }
-              ],
-              dialogOptions: "dontDisplay"
-            }
-          ], { synchronousExecution: true });
-        } catch (lvlErr2) {}
-      }
-
-      // 10. Return to RGB channel
-      try {
-        await batchPlay([
-          {
-            _obj: "select",
-            _target: [{ _ref: "channel", _enum: "channel", _value: "RGB" }],
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (selErr) {}
-
-      // 11. Set layer name to "Cast Shadow"
-      shadowLayer.name = "Cast Shadow";
-
-      // 12. Set blend mode to Multiply
-      try {
-        shadowLayer.blendMode = "multiply";
-      } catch (bmErr) {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
-            to: { _obj: "layer", mode: { _enum: "blendMode", _value: "multiply" } },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      }
-
-
-
-      // 14. Clean up: remove marching ants selection
-      try {
-        await batchPlay([
-          {
-            _obj: "set",
-            _target: [{ _ref: "channel", _property: "selection" }],
-            to: { _enum: "ordinal", _value: "none" },
-            dialogOptions: "dontDisplay"
-          }
-        ], { synchronousExecution: true });
-      } catch (e) {}
-
-      // 15. Return active layer to subjectLayer so user can immediately continue work
-      if (subjectLayer) {
-        try { doc.activeLayers = [subjectLayer]; } catch (e) {}
-      }
+      }, false);
     }, "Adjustment: Cast Shadow");
   },
 
@@ -2884,6 +2688,323 @@ const PSAutomation = {
    */
   async applyContactShadow() {
     return await this.applyNaturalShadow();
+  },
+
+  /**
+   * Cleanup Shadow Workflow:
+   * 1. Duplicates bottom-most layer (or active layer) as "Cleanup Shadow"
+   * 2. Displays interactive "Dust & Scratches" dialog box for user to adjust parameters
+   * 3. Upon user clicking OK:
+   *    - Applies a Black Layer Mask (Hide All) to "Cleanup Shadow" layer
+   *    - Hides visibility (turns off eye icon) of all layers ABOVE "Cleanup Shadow"
+   *    - Sets foreground color to White (#FFFFFF) & activates Brush Tool (PBBrush)
+   * @param {boolean} applyToAll - Apply to all open documents
+   */
+  async cleanUpShadow(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      // Restore visibility of all document layers if previously hidden
+      (doc.layers || []).forEach(l => {
+        try { l.visible = true; } catch (e) {}
+      });
+
+      // Remove previous Cleanup Shadow draft if re-running
+      const oldCleanup = (doc.layers || []).find(l => (l.name || "").trim().toLowerCase() === "cleanup shadow");
+      if (oldCleanup) {
+        try { await oldCleanup.delete(); } catch (e) {}
+      }
+
+      // 1. Find bottom layer (or fallback to active layer)
+      let sourceLayer = null;
+      if (doc.layers && doc.layers.length > 0) {
+        sourceLayer = doc.layers[doc.layers.length - 1]; // Bottom-most layer
+      } else if (doc.activeLayers && doc.activeLayers.length > 0) {
+        sourceLayer = doc.activeLayers[0];
+      }
+
+      if (!sourceLayer) return;
+
+      // Make source layer active
+      doc.activeLayers = [sourceLayer];
+
+      // Duplicate bottom layer as "Cleanup Shadow"
+      let cleanupLayer = null;
+      try {
+        cleanupLayer = await sourceLayer.duplicate();
+        cleanupLayer.name = "Cleanup Shadow";
+        doc.activeLayers = [cleanupLayer];
+      } catch (dupErr) {
+        return;
+      }
+
+      // 2. Hide visibility of all upper layers BEFORE displaying Dust & Scratches dialog
+      // Uses native batchPlay "hide" action to guarantee Photoshop UI eye icons turn off immediately!
+      const currentDocLayers = doc.layers || [];
+      const cleanupId = cleanupLayer ? cleanupLayer.id : null;
+      const sourceId = sourceLayer ? sourceLayer.id : null;
+
+      for (let i = 0; i < currentDocLayers.length; i++) {
+        const l = currentDocLayers[i];
+        if (!l) continue;
+        const isCleanup = (cleanupId && l.id === cleanupId) || (l.name || "").trim().toLowerCase() === "cleanup shadow";
+        const isSource = (sourceId && l.id === sourceId) || l.isBackgroundLayer || (l.name || "").trim().toLowerCase() === "background";
+
+        // Hide all layers above Cleanup Shadow (e.g. Layer 1 copy, BG Color)
+        if (!isCleanup && !isSource) {
+          try { l.visible = false; } catch (e) {}
+          try {
+            const targetRef = l.id ? { _ref: "layer", _id: l.id } : { _ref: "layer", _name: l.name };
+            await batchPlay([
+              {
+                _obj: "hide",
+                _target: [targetRef],
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (hideErr) {}
+        }
+      }
+
+      // 3. Display Dust & Scratches dialog interactively for user to fit values
+      let userConfirmed = false;
+      try {
+        await batchPlay([
+          {
+            _obj: "dustAndScratches",
+            radius: 10,
+            threshold: 2,
+            _options: { dialogOptions: "display" }
+          }
+        ], {
+          synchronousExecution: true,
+          modalBehavior: "execute"
+        });
+        userConfirmed = true;
+      } catch (dialogErr) {
+        console.log("Dust & Scratches cancelled by user:", dialogErr);
+      }
+
+      if (!userConfirmed) {
+        // If user cancelled, restore visibility of all layers and clean up the draft layer
+        const resetLayers = doc.layers || [];
+        for (let i = 0; i < resetLayers.length; i++) {
+          const l = resetLayers[i];
+          try { l.visible = true; } catch (e) {}
+          try {
+            const targetRef = l.id ? { _ref: "layer", _id: l.id } : { _ref: "layer", _name: l.name };
+            await batchPlay([
+              {
+                _obj: "show",
+                _target: [targetRef],
+                dialogOptions: "dontDisplay"
+              }
+            ], { synchronousExecution: true });
+          } catch (e) {}
+        }
+        try { await cleanupLayer.delete(); } catch (delErr) {}
+        return;
+      }
+
+      // 4. Add Black Mask (Hide All) to "Cleanup Shadow" layer
+      try {
+        await batchPlay([
+          {
+            _obj: "make",
+            new: { _class: "channel" },
+            at: { _ref: "channel", _enum: "channel", _value: "mask" },
+            using: { _enum: "userMaskOptions", _value: "hideAll" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (maskErr) {}
+
+      // 5. Set Foreground Color to White (#FFFFFF) so user can paint to reveal on black mask
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "color", _property: "foregroundColor" }],
+            to: {
+              _obj: "RGBColor",
+              red: 255,
+              grain: 255,
+              blue: 255
+            },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (colorErr) {}
+
+      // 6. Activate Brush Tool (PBBrush)
+      try {
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "broadClass", _value: "PBBrush" }],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (toolErr) {}
+    }, "Cleanup Shadow", { interactive: true });
+  },
+
+  /**
+   * Dedicated Dust & Scratches Automation:
+   * 1. Duplicates target layer as "Dust & Scratches Clean"
+   * 2. Displays interactive "Dust & Scratches" dialog window for user to adjust parameters live
+   * 3. Adds Black Mask (Hide All) for non-destructive retouching
+   * 4. Sets Foreground to White (#FFFFFF) & Activates Brush Tool (PBBrush)
+   * @param {boolean} applyToAll - Apply to all open documents
+   */
+  async applyDustAndScratches(applyToAll = false) {
+    return await this.executeOnTargetDocs(applyToAll, async (doc) => {
+      // 1. Target the source image as the bottom-most / main original image layer
+      const allDocLayers = doc.layers || [];
+      let sourceLayer = null;
+      const bgLayer = allDocLayers.find(l => l.isBackgroundLayer || (l.name || "").trim().toLowerCase() === "background");
+      if (bgLayer) {
+        sourceLayer = bgLayer;
+      } else if (allDocLayers.length > 0) {
+        sourceLayer = allDocLayers[allDocLayers.length - 1]; // Bottom-most layer (main image)
+      } else if (doc.activeLayers && doc.activeLayers.length > 0) {
+        sourceLayer = doc.activeLayers[0];
+      }
+
+      if (!sourceLayer) {
+        throw new Error("No open image or layer found in Photoshop.");
+      }
+
+      // Convert Background layer or unlock layer so duplication succeeds smoothly
+      try {
+        if (sourceLayer.isBackgroundLayer) {
+          sourceLayer.isBackgroundLayer = false;
+        }
+      } catch (e) {}
+      try {
+        if (sourceLayer.locked) {
+          sourceLayer.locked = false;
+        }
+      } catch (e) {}
+
+      // Make source layer active before duplicating
+      doc.activeLayers = [sourceLayer];
+
+      // 2. Duplicate source layer as "Dust & Scratches Clean"
+      let cleanLayer = null;
+      try {
+        cleanLayer = await sourceLayer.duplicate();
+        cleanLayer.name = "Dust & Scratches Clean";
+      } catch (dupErr) {
+        // Fallback: Duplicate via batchPlay
+        try {
+          await batchPlay([
+            {
+              _obj: "select",
+              _target: [{ _ref: "layer", _id: sourceLayer.id }],
+              dialogOptions: "dontDisplay"
+            },
+            {
+              _obj: "duplicate",
+              _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+              name: "Dust & Scratches Clean",
+              dialogOptions: "dontDisplay"
+            }
+          ], { synchronousExecution: true });
+          cleanLayer = doc.activeLayers && doc.activeLayers.length > 0 ? doc.activeLayers[0] : null;
+        } catch (bpErr) {
+          throw new Error("Could not duplicate layer: " + bpErr.message);
+        }
+      }
+
+      if (!cleanLayer) {
+        throw new Error("Failed to create Dust & Scratches Clean layer.");
+      }
+
+      doc.activeLayers = [cleanLayer];
+
+      // 3. Move "Dust & Scratches Clean" layer to the VERY TOP of the document stack
+      try {
+        await batchPlay([
+          {
+            _obj: "move",
+            _target: [{ _ref: "layer", _enum: "ordinal", _value: "targetEnum" }],
+            to: { _ref: "layer", _enum: "ordinal", _value: "front" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (moveErr) {
+        try {
+          if (doc.layers && doc.layers.length > 0 && cleanLayer.id !== doc.layers[0].id) {
+            cleanLayer.move(doc.layers[0], (constants && constants.ElementPlacement && constants.ElementPlacement.PLACEBEFORE) || "placeBefore");
+          }
+        } catch (domMoveErr) {}
+      }
+
+      // Ensure cleanLayer remains active and visible on top
+      try {
+        cleanLayer.visible = true;
+        doc.activeLayers = [cleanLayer];
+      } catch (e) {}
+
+      // Display native Dust & Scratches dialog window interactively
+      let userConfirmed = false;
+      try {
+        await batchPlay([
+          {
+            _obj: "dustAndScratches",
+            radius: 10,
+            threshold: 2,
+            dialogOptions: "display",
+            _options: { dialogOptions: "display" }
+          }
+        ], { synchronousExecution: true, modalBehavior: "execute" });
+        userConfirmed = true;
+      } catch (dialogErr) {
+        console.log("Dust & Scratches dialog cancelled by user:", dialogErr);
+      }
+
+      if (!userConfirmed) {
+        if (cleanLayer) {
+          try { await cleanLayer.delete(); } catch (e) {}
+        }
+        return;
+      }
+
+      // Add Black Layer Mask (Hide All)
+      try {
+        await batchPlay([
+          {
+            _obj: "make",
+            new: { _class: "channel" },
+            at: { _ref: "channel", _enum: "channel", _value: "mask" },
+            using: { _enum: "userMaskOptions", _value: "hideAll" },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (mErr) {}
+
+      // Set Foreground Color to White (#FFFFFF)
+      try {
+        await batchPlay([
+          {
+            _obj: "set",
+            _target: [{ _ref: "color", _property: "foregroundColor" }],
+            to: { _obj: "RGBColor", red: 255, grain: 255, blue: 255 },
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (cErr) {}
+
+      // Activate Brush Tool (PBBrush)
+      try {
+        await batchPlay([
+          {
+            _obj: "select",
+            _target: [{ _ref: "broadClass", _value: "PBBrush" }],
+            dialogOptions: "dontDisplay"
+          }
+        ], { synchronousExecution: true });
+      } catch (tErr) {}
+    }, "Dust & Scratches", { interactive: true });
   },
 
   /**
@@ -3023,9 +3144,38 @@ const PSAutomation = {
    * Saves a PSD copy (all layers preserved) into a "Working File" subfolder
    * inside the same folder where the source document lives.
    * Filename: same as original (with .psd extension). Non-destructive.
+   * @param {boolean} applyToAll - Save working file for all open documents
    */
-  async saveWorkingFile() {
-    const doc = app.activeDocument;
+  async saveWorkingFile(applyToAll = false) {
+    const docs = applyToAll ? app.documents : (app.activeDocument ? [app.activeDocument] : []);
+    if (!docs || docs.length === 0) throw new Error("No active document open in Photoshop.");
+
+    let count = 0;
+    let lastSummary = "";
+    const errors = [];
+    for (let i = 0; i < docs.length; i++) {
+      try {
+        lastSummary = await this.saveSingleDocWorkingFile(docs[i]);
+        count++;
+      } catch (err) {
+        errors.push(`${docs[i].title || 'Doc ' + (i + 1)}: ${err.message}`);
+      }
+    }
+
+    if (errors.length > 0 && count === 0) {
+      throw new Error(errors.join("; "));
+    }
+
+    if (applyToAll) {
+      return `${count} of ${docs.length} Working Files (PSD) saved` + (errors.length ? ` (${errors.length} skipped)` : "");
+    }
+    return lastSummary;
+  },
+
+  /**
+   * Saves a single document as Working File (PSD)
+   */
+  async saveSingleDocWorkingFile(doc) {
     if (!doc) throw new Error("No active document open in Photoshop.");
 
     // 1. Resolve document path via doc.path or batchPlay

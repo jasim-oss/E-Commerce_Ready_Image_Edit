@@ -26,6 +26,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Keyboard accessibility for div role="button" action buttons
+  document.querySelectorAll('.action-btn[role="button"]').forEach((el) => {
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        el.click();
+      }
+    });
+  });
+
   // 1. RESIZE Handlers (Marketplace, Custom & Edit Box)
   const marketplaceSelect = document.getElementById("selectMarketplaceResize");
   const resizeControlsGroup = document.getElementById("resizeControlsGroup");
@@ -38,8 +48,38 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnToggleEdit = document.getElementById("btnToggleEdit");
   const btnApplyResize = document.getElementById("btnApplyResize");
   const lblApplyResize = document.getElementById("lblApplyResize");
+  const btnLinkDimensions = document.getElementById("btnLinkDimensions");
+
+  const linkedSVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="stroke: #ffffff !important;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" style="stroke: #ffffff !important;"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" style="stroke: #ffffff !important;"></path></svg>`;
+  const unlinkedSVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="stroke: #71717a !important;"><path d="M15 7h2a5 5 0 0 1 0 10h-2" style="stroke: #71717a !important;"></path><path d="M9 17H7A5 5 0 0 1 7 7h2" style="stroke: #71717a !important;"></path><line x1="4" y1="20" x2="20" y2="4" stroke="#ff3b30" stroke-width="3" style="stroke: #ff3b30 !important;"></line></svg>`;
 
   let isEditMode = false;
+  let isDimensionsLinked = true;
+  let currentAspectRatio = 1.0;
+
+  function updateAspectRatioFromInputs() {
+    const w = parseFloat(inputW ? inputW.value : 0);
+    const h = parseFloat(inputH ? inputH.value : 0);
+    if (w > 0 && h > 0) {
+      currentAspectRatio = w / h;
+    }
+  }
+
+  function updateDimensionLinkState(linked) {
+    isDimensionsLinked = linked;
+    updateAspectRatioFromInputs();
+    if (btnLinkDimensions) {
+      if (isDimensionsLinked) {
+        btnLinkDimensions.classList.add("active");
+        btnLinkDimensions.title = "Constrain Proportions (Linked)";
+        btnLinkDimensions.innerHTML = linkedSVG;
+      } else {
+        btnLinkDimensions.classList.remove("active");
+        btnLinkDimensions.title = "Do Not Constrain Proportions (Unlinked)";
+        btnLinkDimensions.innerHTML = unlinkedSVG;
+      }
+    }
+  }
 
   function setEditMode(editable) {
     isEditMode = editable;
@@ -94,14 +134,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const name = selectedOption.getAttribute("data-name") || "Custom";
-    const w = selectedOption.getAttribute("data-w") || "2000";
-    const h = selectedOption.getAttribute("data-h") || "2000";
-    const dpi = selectedOption.getAttribute("data-dpi") || "72";
+    let w = selectedOption.getAttribute("data-w") || "2000";
+    let h = selectedOption.getAttribute("data-h") || "2000";
+    let dpi = selectedOption.getAttribute("data-dpi") || "72";
+
+    if (val === "custom") {
+      try {
+        const photoshop = require('photoshop');
+        const activeDoc = photoshop && photoshop.app ? photoshop.app.activeDocument : null;
+        if (activeDoc) {
+          const docW = Math.round(activeDoc.width);
+          const docH = Math.round(activeDoc.height);
+          const docDpi = Math.round(activeDoc.resolution);
+          if (docW && !isNaN(docW)) w = String(docW);
+          if (docH && !isNaN(docH)) h = String(docH);
+          if (docDpi && !isNaN(docDpi)) dpi = String(docDpi);
+        }
+      } catch (e) {
+        console.log("Could not read active document original dimensions:", e);
+      }
+    }
 
     if (inputW) inputW.value = w;
     if (inputH) inputH.value = h;
     if (inputDpi) inputDpi.value = dpi;
     if (lblApplyResize) lblApplyResize.textContent = `Apply Resize (${w}×${h})`;
+
+    // Default to LINKED state so aspect ratio is preserved automatically (e.g. 1553x2048)
+    updateDimensionLinkState(true);
 
     if (val === "custom") {
       setEditMode(true);
@@ -131,11 +191,43 @@ document.addEventListener("DOMContentLoaded", () => {
     lblApplyResize.textContent = isSmart ? `Apply Smart Resize (${w}x${h})` : `Apply Resize (${w}x${h})`;
   }
 
-  [inputW, inputH].forEach(input => {
-    if (input) {
-      input.addEventListener("input", updateApplyResizeLabel);
-    }
-  });
+  if (btnLinkDimensions) {
+    const toggleLink = () => {
+      const nextState = !isDimensionsLinked;
+      updateDimensionLinkState(nextState);
+    };
+    btnLinkDimensions.addEventListener("click", toggleLink);
+    btnLinkDimensions.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleLink();
+      }
+    });
+  }
+
+  if (inputW) {
+    inputW.addEventListener("input", () => {
+      if (isDimensionsLinked && inputH && currentAspectRatio > 0) {
+        const wVal = parseFloat(inputW.value);
+        if (wVal > 0) {
+          inputH.value = String(Math.round(wVal / currentAspectRatio));
+        }
+      }
+      updateApplyResizeLabel();
+    });
+  }
+
+  if (inputH) {
+    inputH.addEventListener("input", () => {
+      if (isDimensionsLinked && inputW && currentAspectRatio > 0) {
+        const hVal = parseFloat(inputH.value);
+        if (hVal > 0) {
+          inputW.value = String(Math.round(hVal * currentAspectRatio));
+        }
+      }
+      updateApplyResizeLabel();
+    });
+  }
 
   if (toggleSmartAnchor) {
     toggleSmartAnchor.addEventListener("change", () => {
@@ -195,11 +287,34 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Background Option Drawer Toggle
+  const btnBgOptions = document.getElementById("btnBgOptions");
+  const bgOptionsBox = document.getElementById("bgOptionsBox");
+  const bgOptionsChevron = document.getElementById("bgOptionsChevron");
+
+  if (btnBgOptions) {
+    btnBgOptions.addEventListener("click", () => {
+      if (!bgOptionsBox) return;
+      const isOpen = bgOptionsBox.style.display !== "none";
+      if (isOpen) {
+        bgOptionsBox.style.display = "none";
+        btnBgOptions.classList.remove("active");
+        if (bgOptionsChevron) bgOptionsChevron.classList.remove("up");
+      } else {
+        bgOptionsBox.style.display = "flex";
+        btnBgOptions.classList.add("active");
+        if (bgOptionsChevron) bgOptionsChevron.classList.add("up");
+      }
+    });
+  }
+
   // 1) White BG
+  const customColorChevron = document.getElementById("customColorChevron");
     if (btnBgWhite) {
       btnBgWhite.addEventListener("click", async () => {
         if (customColorBox) customColorBox.style.display = "none";
         if (btnBgCustom) btnBgCustom.classList.remove("active");
+        if (customColorChevron) customColorChevron.classList.remove("up");
         const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
         try {
           setStatus(`Adding pure white #FFF BG ${applyAll ? "(ALL docs)" : ""}...`, "working");
@@ -219,9 +334,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isOpen) {
           customColorBox.style.display = "none";
           btnBgCustom.classList.remove("active");
+          if (customColorChevron) customColorChevron.classList.remove("up");
         } else {
           customColorBox.style.display = "block";
           btnBgCustom.classList.add("active");
+          if (customColorChevron) customColorChevron.classList.add("up");
           if (hexBgCustom) hexBgCustom.focus();
         }
       });
@@ -232,6 +349,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btnBgUpload.addEventListener("click", async () => {
         if (customColorBox) customColorBox.style.display = "none";
         if (btnBgCustom) btnBgCustom.classList.remove("active");
+        if (customColorChevron) customColorChevron.classList.remove("up");
         const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
         try {
           setStatus(`Opening file browser for background image ${applyAll ? "(ALL docs)" : ""}...`, "working");
@@ -335,9 +453,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 1) Product (10% Margin)
+    const customScsmChevron = document.getElementById("customScsmChevron");
     if (btnScsmProduct) {
       btnScsmProduct.addEventListener('click', async () => {
         if (customScsmBox) customScsmBox.style.display = 'none';
+        if (customScsmChevron) customScsmChevron.classList.remove('up');
         setActiveScsmBtn(btnScsmProduct);
         const applyAll = toggleScsmAll ? toggleScsmAll.checked : false;
         try {
@@ -354,6 +474,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnScsmModel) {
       btnScsmModel.addEventListener('click', async () => {
         if (customScsmBox) customScsmBox.style.display = 'none';
+        if (customScsmChevron) customScsmChevron.classList.remove('up');
         setActiveScsmBtn(btnScsmModel);
         const applyAll = toggleScsmAll ? toggleScsmAll.checked : false;
         try {
@@ -366,20 +487,27 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // 3) Custom Button: Expands drawer AND immediately executes custom margin
+    // 3) Custom Button: Expands drawer
     if (btnScsmCustom) {
-      btnScsmCustom.addEventListener('click', async () => {
-        setActiveScsmBtn(btnScsmCustom);
-        if (customScsmBox) {
+      btnScsmCustom.addEventListener('click', () => {
+        if (!customScsmBox) return;
+        const isOpen = customScsmBox.style.display !== 'none';
+        if (isOpen) {
+          customScsmBox.style.display = 'none';
+          btnScsmCustom.classList.remove('active');
+          if (customScsmChevron) customScsmChevron.classList.remove('up');
+        } else {
+          setActiveScsmBtn(btnScsmCustom);
           customScsmBox.style.display = 'block';
-        }
-        if (inputScsmCustomPercent) {
-          inputScsmCustomPercent.focus();
-          if (typeof inputScsmCustomPercent.select === 'function') {
-            inputScsmCustomPercent.select();
+          btnScsmCustom.classList.add('active');
+          if (customScsmChevron) customScsmChevron.classList.add('up');
+          if (inputScsmCustomPercent) {
+            inputScsmCustomPercent.focus();
+            if (typeof inputScsmCustomPercent.select === 'function') {
+              inputScsmCustomPercent.select();
+            }
           }
         }
-        await applyCustomMargin();
       });
     }
 
@@ -478,13 +606,31 @@ document.addEventListener("DOMContentLoaded", () => {
   // Wrinkle method now only executes on btnApplyWrinkle click
 
 
-    // Shadow Drawer and Handlers (Drop, Natural, Existing, Cast)
+  // Shadow Drawer and Handlers (Drop, Natural, Existing, Cast)
   const btnShadow = document.getElementById("btnShadow");
   const shadowOptionsBox = document.getElementById("shadowOptionsBox");
   const shadowChevron = document.getElementById("shadowChevron");
   const selectShadowMethod = document.getElementById("selectShadowMethod");
   const btnApplyShadow = document.getElementById("btnApplyShadow");
   const toggleShadowAll = document.getElementById("toggleShadowAll");
+  const btnCleanupShadow = document.getElementById("btnCleanupShadow");
+  const cleanupShadowRow = document.getElementById("cleanupShadowRow");
+
+  function updateCleanupShadowVisibility() {
+    const sel = document.getElementById("selectShadowMethod");
+    const row = document.getElementById("cleanupShadowRow");
+    const btn = document.getElementById("btnCleanupShadow");
+
+    const method = sel ? sel.value : "";
+    const hideCleanup = (!method || method === "drop");
+
+    if (row) {
+      row.style.setProperty("display", hideCleanup ? "none" : "flex", "important");
+    }
+    if (btn) {
+      btn.style.setProperty("display", hideCleanup ? "none" : "block", "important");
+    }
+  }
 
   if (btnShadow) {
     btnShadow.addEventListener("click", () => {
@@ -498,12 +644,23 @@ document.addEventListener("DOMContentLoaded", () => {
         shadowOptionsBox.style.display = "block";
         btnShadow.classList.add("active");
         if (shadowChevron) shadowChevron.classList.add("up");
+        updateCleanupShadowVisibility();
       }
     });
   }
 
+  if (selectShadowMethod) {
+    selectShadowMethod.addEventListener("change", updateCleanupShadowVisibility);
+    selectShadowMethod.addEventListener("input", updateCleanupShadowVisibility);
+    updateCleanupShadowVisibility();
+  }
+
   async function executeShadowMethod() {
-    const method = selectShadowMethod ? selectShadowMethod.value : "drop";
+    const method = selectShadowMethod ? selectShadowMethod.value : "";
+    if (!method) {
+      setStatus("Please select a shadow option from the dropdown", "error");
+      return;
+    }
     const applyAll = toggleShadowAll ? toggleShadowAll.checked : false;
     const mod = window.PSAutomation || window.AdjustmentModule;
     if (!mod) {
@@ -538,7 +695,25 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnApplyShadow) {
     btnApplyShadow.addEventListener("click", executeShadowMethod);
   }
-  // Shadow method now only executes on btnApplyShadow click
+
+  if (btnCleanupShadow) {
+    btnCleanupShadow.addEventListener("click", async () => {
+      const mod = window.PSAutomation || window.AdjustmentModule;
+      if (!mod) {
+        setStatus("Error: Automation module not ready", "error");
+        return;
+      }
+      const applyAll = toggleShadowAll ? toggleShadowAll.checked : false;
+      const allStr = applyAll ? " (All Docs)" : "";
+      try {
+        setStatus(`Cleaning up Shadow mask${allStr}...`, "working");
+        await mod.cleanUpShadow(applyAll);
+        setStatus(`Shadow mask cleaned & Brush activated${allStr}`, "online");
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, "error");
+      }
+    });
+  }
 
 
   // Color Correction Drawer and Handlers (White Balance, Auto Color)
@@ -592,6 +767,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (btnApplyColor) {
     btnApplyColor.addEventListener("click", executeColorMethod);
+  }
+
+  // Dust & Scratches Drawer and Handlers
+  const btnDustScratches = document.getElementById("btnDustScratches");
+  const dustOptionsBox = document.getElementById("dustOptionsBox");
+  const dustChevron = document.getElementById("dustChevron");
+  const btnApplyDust = document.getElementById("btnApplyDust");
+  const toggleDustAll = document.getElementById("toggleDustAll");
+
+  if (btnDustScratches) {
+    btnDustScratches.addEventListener("click", () => {
+      if (!dustOptionsBox) return;
+      const isOpen = dustOptionsBox.style.display !== "none";
+      if (isOpen) {
+        dustOptionsBox.style.display = "none";
+        btnDustScratches.classList.remove("active");
+        if (dustChevron) dustChevron.classList.remove("up");
+      } else {
+        dustOptionsBox.style.display = "block";
+        btnDustScratches.classList.add("active");
+        if (dustChevron) dustChevron.classList.add("up");
+      }
+    });
+  }
+
+  async function executeDustMethod() {
+    const applyAll = toggleDustAll ? toggleDustAll.checked : false;
+    const mod = window.PSAutomation || window.AdjustmentModule;
+    if (!mod) {
+      setStatus("Error: Automation module not ready", "error");
+      return;
+    }
+    const allStr = applyAll ? " (ALL docs)" : "";
+
+    try {
+      setStatus(`Opening Dust & Scratches window${allStr}...`, "working");
+      await mod.applyDustAndScratches(applyAll);
+      setStatus(`Dust & Scratches ready (Retouch Layer & Mask created)${allStr}`, "online");
+    } catch (err) {
+      setStatus("Error: " + err.message, "error");
+    }
+  }
+
+  if (btnApplyDust) {
+    btnApplyDust.addEventListener("click", executeDustMethod);
   }
 
   // 5. EXPORT Handlers (Ready for Delivery with Marketplace presets)
@@ -823,7 +1043,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
-    const btnWorkingFile = document.getElementById("btnWorkingFile");
+  const btnWorkingFile = document.getElementById("btnWorkingFile");
+  const toggleWorkingFileAll = document.getElementById("toggleWorkingFileAll");
   if (btnWorkingFile) {
     btnWorkingFile.addEventListener("click", async () => {
       const mod = window.PSAutomation || window.AdjustmentModule;
@@ -831,9 +1052,11 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus("Error: Automation module not ready", "error");
         return;
       }
+      const applyAll = toggleWorkingFileAll ? toggleWorkingFileAll.checked : false;
+      const allStr = applyAll ? " (ALL docs)" : "";
       try {
-        setStatus("Saving Working File (PSD)...", "working");
-        const result = await mod.saveWorkingFile();
+        setStatus("Saving Working File (PSD)" + allStr + "...", "working");
+        const result = await mod.saveWorkingFile(applyAll);
         setStatus("Working File saved: " + result, "online");
       } catch (err) {
         setStatus("Error: " + err.message, "error");

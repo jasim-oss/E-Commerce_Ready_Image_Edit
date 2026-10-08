@@ -31,6 +31,7 @@ The plugin features a custom **Apple Minimal Dark Theme** designed for pro image
    - **Wrinkle on Clothing:** Frequency Separation, Dodge & Burn (D&B), Save for Evoto.
    - **Shadow Generation:** Drop Shadow, Natural Shadow, Existing Shadow, Cast Shadow.
    - **Color Correction:** White Balance for PATH, Auto Color Correction.
+   - **Dust & Scratches:** Interactive Dialog Window & Retouch Mask (Radius & Threshold live control).
 
 4. **SCSM Margin Padding:**
    - Automatic percentage margin fitting for **Product**, **Model**, or **Custom Margins (1% - 45%)**.
@@ -38,7 +39,7 @@ The plugin features a custom **Apple Minimal Dark Theme** designed for pro image
 5. **Batch Processing & Export:**
    - Process single document or **ALL open documents** in Photoshop with one click.
    - Export for delivery in **JPG**, **PNG**, or **WebP** format with sRGB color profile & maximum file size rules.
-   - Export **Working File (PSD)**.
+   - Export **Working File (PSD)** (single document or **ALL open documents** in batch).
 
 ---
 

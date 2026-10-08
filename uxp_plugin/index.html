@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -59,11 +59,20 @@
               <!-- Single Row: Size | Dpi | Just Button -->
               <div class="dimension-row" id="dimensionRow">
                 <div class="dim-col dim-col-size">
-                  <span class="dim-label">Size</span>
+                  <div class="dim-labels-row">
+                    <span class="dim-label">Width</span>
+                    <span class="dim-label-spacer"></span>
+                    <span class="dim-label">Height</span>
+                  </div>
                   <div class="size-inputs-group">
-                    <input type="number" id="inputResizeW" value="2000" readonly />
-                    <span class="dim-times">&times;</span>
-                    <input type="number" id="inputResizeH" value="2000" readonly />
+                    <input type="number" id="inputResizeW" value="2000" title="Width (px)" readonly />
+                    <div class="btn-dim-link active" id="btnLinkDimensions" role="button" tabindex="0" title="Constrain Aspect Ratio (Linked)">
+                      <svg id="svgLinkIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="stroke: #ffffff !important;">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" style="stroke: #ffffff !important;"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" style="stroke: #ffffff !important;"></path>
+                      </svg>
+                    </div>
+                    <input type="number" id="inputResizeH" value="2000" title="Height (px)" readonly />
                   </div>
                 </div>
 
@@ -111,12 +120,9 @@
         </div>
         <div class="accordion-body" id="body-bg">
           <div class="action-row">
-            <button class="action-btn flex-1" id="btnBgRemove">
-              <span class="btn-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
-              </span>
+            <div class="action-btn flex-1" id="btnBgRemove" role="button" tabindex="0">
               <span class="btn-label">BG Remove</span>
-            </button>
+            </div>
             <div class="toggle-group" title="Process all open documents in Photoshop">
               <span class="toggle-text">ALL</span>
               <label class="switch">
@@ -126,24 +132,33 @@
             </div>
           </div>
 
-          <div class="bg-options-row">
-            <button type="button" class="action-btn bg-choice-btn" id="btnBgWhite">
-              <span class="btn-label-center">White</span>
-            </button>
-            <button type="button" class="action-btn bg-choice-btn" id="btnBgCustom">
-              <span class="btn-label-center">Custom</span>
-            </button>
-            <button type="button" class="action-btn bg-choice-btn" id="btnBgUpload">
-              <span class="btn-label-center">Upload Image</span>
-            </button>
+          <!-- Background Option -->
+          <div class="action-btn" id="btnBgOptions" role="button" tabindex="0">
+            <span class="btn-label">Background Option</span>
+            <span class="btn-chevron" id="bgOptionsChevron"></span>
           </div>
 
-          <!-- Custom Color Picker Drawer (Expands when Custom is clicked) -->
-          <div id="customColorBox" class="custom-color-box" style="display: none;">
-            <div class="custom-color-row">
-              
-              <input type="text" id="hexBgCustom" value="#FFFFFF" placeholder="#FFFFFF" maxlength="7" class="hex-color-input" />
-              <button type="button" class="btn-apply-color" id="btnApplyCustomColor">Apply</button>
+          <!-- Background Option Drawer -->
+          <div id="bgOptionsBox" class="sub-drawer drawer-mb" style="display: none;">
+            <div class="action-btn" id="btnBgWhite" role="button" tabindex="0">
+              <span class="btn-label">White</span>
+            </div>
+
+            <div class="action-btn" id="btnBgCustom" role="button" tabindex="0">
+              <span class="btn-label">Custom</span>
+              <span class="btn-chevron" id="customColorChevron"></span>
+            </div>
+
+            <!-- Custom Color Picker Drawer (Expands when Custom is clicked) -->
+            <div id="customColorBox" class="custom-scsm-box drawer-mb" style="display: none;">
+              <div class="custom-color-row">
+                <input type="text" id="hexBgCustom" value="#FFFFFF" placeholder="#FFFFFF" maxlength="7" class="hex-color-input" />
+                <button type="button" class="btn-apply-color" id="btnApplyCustomColor">Apply</button>
+              </div>
+            </div>
+
+            <div class="action-btn" id="btnBgUpload" role="button" tabindex="0">
+              <span class="btn-label">Upload Image</span>
             </div>
           </div>
         </div>
@@ -159,13 +174,10 @@
         </div>
         <div class="accordion-body" id="body-adjustment">
           <!-- Wrinkle on Clothing -->
-          <button type="button" class="action-btn" id="btnWrinkleClothing">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line><line x1="17.5" y1="15" x2="9" y2="15"></line></svg>
-            </span>
+          <div class="action-btn" id="btnWrinkleClothing" role="button" tabindex="0">
             <span class="btn-label">Wrinkle on clothing</span>
             <span class="btn-chevron" id="wrinkleChevron"></span>
-          </button>
+          </div>
 
           <!-- Wrinkle Options Drawer (Dropdown) -->
           <div id="wrinkleOptionsBox" class="custom-scsm-box drawer-mb" style="display: none;">
@@ -192,14 +204,34 @@
             </div>
           </div>
 
+          <!-- Dust & Scratches -->
+          <div class="action-btn" id="btnDustScratches" role="button" tabindex="0">
+            <span class="btn-label" id="lblDustScratches">Dust &amp; Scratches</span>
+            <span class="btn-chevron" id="dustChevron"></span>
+          </div>
+
+          <!-- Dust & Scratches Options Drawer -->
+          <div id="dustOptionsBox" class="custom-scsm-box drawer-mb" style="display: none;">
+            <div class="drawer-content">
+              <!-- ALL toggle + Apply button -->
+              <div class="drawer-row">
+                <div class="toggle-group" title="Process all open documents in Photoshop">
+                  <span class="toggle-text">ALL</span>
+                  <label class="switch">
+                    <input type="checkbox" id="toggleDustAll" />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <button type="button" class="btn-apply-scsm" id="btnApplyDust" style="flex: 1;">Apply</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Shadow -->
-          <button type="button" class="action-btn" id="btnShadow">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="17" rx="9" ry="4"></ellipse><circle cx="12" cy="8" r="5"></circle></svg>
-            </span>
+          <div class="action-btn" id="btnShadow" role="button" tabindex="0">
             <span class="btn-label" id="lblShadow">Shadow</span>
             <span class="btn-chevron" id="shadowChevron"></span>
-          </button>
+          </div>
 
           <!-- Shadow Options Drawer (Dropdown) -->
           <div id="shadowOptionsBox" class="custom-scsm-box drawer-mb" style="display: none;">
@@ -207,7 +239,8 @@
               <!-- Row 1: Dropdown -->
               <div class="custom-select-wrap">
                 <select id="selectShadowMethod" class="custom-select select-compact">
-                  <option value="drop" selected>Drop Shadow</option>
+                  <option value="" selected disabled hidden>Select Shadow</option>
+                  <option value="drop">Drop Shadow</option>
                   <option value="natural">Natural Shadow</option>
                   <option value="existing">Existing Shadow</option>
                   <option value="cast">Cast Shadow</option>
@@ -224,17 +257,18 @@
                 </div>
                 <button type="button" class="btn-apply-scsm" id="btnApplyShadow" style="flex: 1;">Apply</button>
               </div>
+              <!-- Row 3: Cleanup Shadow button -->
+              <div class="drawer-row" id="cleanupShadowRow" style="margin-top: 6px; display: none !important;">
+                <button type="button" class="btn-apply-scsm" id="btnCleanupShadow" style="flex: 1; background: #2c2e33; border-color: #4a4c54;" title="Clean shadow noise/dust & activate retouch brush on shadow mask">Cleanup Shadow</button>
+              </div>
             </div>
           </div>
 
           <!-- Color Correction -->
-          <button type="button" class="action-btn" id="btnColorCorrection">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-            </span>
+          <div class="action-btn" id="btnColorCorrection" role="button" tabindex="0">
             <span class="btn-label" id="lblColorCorrection">Color Correction</span>
             <span class="btn-chevron" id="colorChevron"></span>
-          </button>
+          </div>
 
           <!-- Color Correction Options Drawer (Dropdown) -->
           <div id="colorOptionsBox" class="custom-scsm-box drawer-mb" style="display: none;">
@@ -277,20 +311,21 @@
           <span class="chevron down"></span>
         </div>
         <div class="accordion-body" id="body-scsm">
-          <div class="scsm-options-row">
-            <button type="button" class="action-btn scsm-choice-btn" id="btnScsmProduct">
-              <span class="btn-label-center">Product</span>
-            </button>
-            <button type="button" class="action-btn scsm-choice-btn" id="btnScsmModel">
-              <span class="btn-label-center">Model</span>
-            </button>
-            <button type="button" class="action-btn scsm-choice-btn" id="btnScsmCustom">
-              <span class="btn-label-center">Custom</span>
-            </button>
+          <div class="action-btn" id="btnScsmProduct" role="button" tabindex="0">
+            <span class="btn-label">Product</span>
+          </div>
+
+          <div class="action-btn" id="btnScsmModel" role="button" tabindex="0">
+            <span class="btn-label">Model</span>
+          </div>
+
+          <div class="action-btn" id="btnScsmCustom" role="button" tabindex="0">
+            <span class="btn-label">Custom</span>
+            <span class="btn-chevron" id="customScsmChevron"></span>
           </div>
 
           <!-- Custom SCSM Drawer (Expands when Custom is clicked) -->
-          <div id="customScsmBox" class="custom-scsm-box" style="display: none;">
+          <div id="customScsmBox" class="custom-scsm-box drawer-mb" style="display: none;">
             <div class="custom-scsm-row">
               <div class="scsm-input-wrap">
                 <input type="number" id="inputScsmCustomPercent" value="10" min="1" max="45" placeholder="10" class="scsm-percent-input" />
@@ -312,13 +347,10 @@
         <div class="accordion-body" id="body-export">
 
           <!-- Ready For Delivery -->
-          <button type="button" class="action-btn" id="btnReadyDelivery">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            </span>
+          <div class="action-btn" id="btnReadyDelivery" role="button" tabindex="0">
             <span class="btn-label">Ready For Delivery</span>
             <span class="btn-chevron" id="deliveryChevron"></span>
-          </button>
+          </div>
 
           <!-- Delivery Options Drawer -->
           <div id="deliveryOptionsBox" class="custom-scsm-box drawer-mb" style="display: none;">
@@ -385,12 +417,18 @@
             </div>
           </div>
 
-          <button class="action-btn" id="btnWorkingFile">
-            <span class="btn-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            </span>
-            <span class="btn-label">Working File (PSD)</span>
-          </button>
+          <div class="action-row">
+            <div class="action-btn flex-1" id="btnWorkingFile" role="button" tabindex="0">
+              <span class="btn-label">Working File (PSD)</span>
+            </div>
+            <div class="toggle-group" title="Save working file for all open documents in Photoshop">
+              <span class="toggle-text">ALL</span>
+              <label class="switch">
+                <input type="checkbox" id="toggleWorkingFileAll" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
         </div>
       </section>
     </div>
