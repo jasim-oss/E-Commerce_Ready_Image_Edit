@@ -433,18 +433,36 @@
       </section>
     </div>
 
-    <!-- Activity Status Footer with Compact Undo/Redo Icons -->
+    <!-- Update Notification Banner (Shown when new version is detected) -->
+    <div id="updateBanner" class="update-banner" style="display: none;">
+      <div class="update-banner-info">
+        <span class="update-badge">NEW</span>
+        <span id="updateBannerText" class="update-banner-text">Update v1.0.1 available!</span>
+      </div>
+      <button type="button" class="btn-update-now" id="btnUpdateNow">Update Now</button>
+    </div>
+
+    <!-- Unified Single-Row Footer -->
     <footer class="panel-footer">
       <div class="status-indicator">
         <span class="status-dot online"></span>
         <span class="status-msg" id="statusMsg">Ready</span>
       </div>
 
-      <div class="history-btns-group">
-          <button type="button" class="history-text-btn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
-          <button type="button" class="history-text-btn" id="btnRedo" title="Redo (Ctrl+Y)">Redo</button>
-        </div>
+      <div class="footer-actions">
+        <button type="button" class="footer-mini-btn" id="btnCheckUpdate" title="Check for remote updates">
+          <span class="update-spin-icon" id="updateSpinIcon">↻</span>
+          <span id="lblUpdateText">Update</span>
+        </button>
+        <button type="button" class="footer-mini-btn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+        <button type="button" class="footer-mini-btn" id="btnRedo" title="Redo (Ctrl+Y)">Redo</button>
+      </div>
     </footer>
+
+    <!-- Bottom Version Display -->
+    <div class="panel-bottom-version">
+      <span id="panelVersion">Version- 26.0.0.0</span>
+    </div>
   </div>
 
   <script src="modules/ps_automation.js"></script>

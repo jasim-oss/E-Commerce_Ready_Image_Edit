@@ -1,0 +1,7 @@
+{
+  "version": "26.0.0.0",
+  "name": "E-Commerce Ready Edit",
+  "releaseDate": "2026-10-08",
+  "downloadUrl": "https://github.com/jasim-oss/E-Commerce_Ready_Image_Edit/releases/latest",
+  "notes": "Initial release with Smart Resizing, Backgrounds, SCSM Margins, Retouch, and Batch Export."
+}

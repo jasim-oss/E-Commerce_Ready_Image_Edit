@@ -15,3 +15,7 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+ 
+# Build Artifacts
+dist_protected/
+*.sed

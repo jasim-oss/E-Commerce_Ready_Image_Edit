@@ -1091,4 +1091,98 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+
+  // 7. AUTO-UPDATE CHECKER
+  const CURRENT_VERSION = "26.0.0.0";
+  const GITHUB_VERSION_URL = "https://raw.githubusercontent.com/jasim-oss/E-Commerce_Ready_Image_Edit/main/version.json";
+  const DEFAULT_DOWNLOAD_URL = "https://github.com/jasim-oss/E-Commerce_Ready_Image_Edit/releases/latest";
+
+  const panelVersion = document.getElementById("panelVersion");
+  const btnCheckUpdate = document.getElementById("btnCheckUpdate");
+  const updateSpinIcon = document.getElementById("updateSpinIcon");
+  const lblUpdateText = document.getElementById("lblUpdateText");
+  const updateBanner = document.getElementById("updateBanner");
+  const updateBannerText = document.getElementById("updateBannerText");
+  const btnUpdateNow = document.getElementById("btnUpdateNow");
+
+  if (panelVersion) {
+    panelVersion.textContent = `Version- ${CURRENT_VERSION}`;
+  }
+
+  function compareVersions(v1, v2) {
+    const p1 = (v1 || "").replace(/^v/, "").split(".").map(Number);
+    const p2 = (v2 || "").replace(/^v/, "").split(".").map(Number);
+    for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+      const num1 = p1[i] || 0;
+      const num2 = p2[i] || 0;
+      if (num1 > num2) return 1;
+      if (num1 < num2) return -1;
+    }
+    return 0;
+  }
+
+  let latestDownloadUrl = DEFAULT_DOWNLOAD_URL;
+
+  async function checkRemoteUpdate(isManual = false) {
+    if (updateSpinIcon) updateSpinIcon.classList.add("spinning");
+    if (lblUpdateText && isManual) lblUpdateText.textContent = "Checking...";
+
+    try {
+      const response = await fetch(`${GITHUB_VERSION_URL}?t=${Date.now()}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      const remoteVer = data.version || "1.0.0";
+      latestDownloadUrl = data.downloadUrl || DEFAULT_DOWNLOAD_URL;
+
+      if (compareVersions(remoteVer, CURRENT_VERSION) > 0) {
+        if (updateBanner) {
+          if (updateBannerText) updateBannerText.textContent = `Update v${remoteVer} available!`;
+          updateBanner.style.display = "flex";
+        }
+        if (lblUpdateText) lblUpdateText.textContent = `v${remoteVer} available!`;
+        if (btnCheckUpdate) btnCheckUpdate.style.color = "#34c759";
+      } else {
+        if (isManual) {
+          if (lblUpdateText) lblUpdateText.textContent = "Up to date \u2713";
+          setTimeout(() => {
+            if (lblUpdateText) lblUpdateText.textContent = "Update";
+          }, 3000);
+        }
+      }
+    } catch (err) {
+      console.warn("Auto-update check failed:", err.message);
+      if (isManual) {
+        if (lblUpdateText) lblUpdateText.textContent = "Offline";
+        setTimeout(() => {
+          if (lblUpdateText) lblUpdateText.textContent = "Update";
+        }, 3000);
+      }
+    } finally {
+      if (updateSpinIcon) updateSpinIcon.classList.remove("spinning");
+    }
+  }
+
+  if (btnCheckUpdate) {
+    btnCheckUpdate.addEventListener("click", () => checkRemoteUpdate(true));
+  }
+
+  if (btnUpdateNow) {
+    btnUpdateNow.addEventListener("click", async () => {
+      try {
+        const uxp = window.require ? window.require("uxp") : null;
+        if (uxp && uxp.shell && typeof uxp.shell.openExternal === "function") {
+          await uxp.shell.openExternal(latestDownloadUrl);
+        } else {
+          window.open(latestDownloadUrl, "_blank");
+        }
+      } catch (e) {
+        console.error("Open update URL error:", e);
+      }
+    });
+  }
+
+  // Auto-check once silently 3 seconds after loading
+  setTimeout(() => checkRemoteUpdate(false), 3000);
 });
+

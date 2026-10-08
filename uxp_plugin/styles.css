@@ -821,7 +821,7 @@ input:checked+.slider:before {
    ═══════════════════════════════════════════════ */
 .panel-footer {
   flex-shrink: 0 !important;
-  padding: 6px 10px !important;
+  padding: 4px 8px !important;
   margin-top: 4px !important;
   border-top: none !important;
   display: flex !important;
@@ -837,18 +837,77 @@ input:checked+.slider:before {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 9.5px;
   color: #ffffff;
+  min-width: 0;
+  flex: 1;
 }
 
 .status-msg {
   color: #8e8e93 !important;
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 500;
-  max-width: 120px;
+  max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.panel-bottom-version {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding: 4px 0 1px 0 !important;
+  margin-top: 2px !important;
+}
+
+.panel-bottom-version span {
+  font-size: 9.5px !important;
+  font-weight: 500 !important;
+  color: #71717a !important;
+  letter-spacing: 0.3px !important;
+  user-select: none !important;
+}
+
+.footer-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex-shrink: 0 !important;
+}
+
+.footer-mini-btn {
+  font-family: inherit !important;
+  font-size: 8.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.2px !important;
+  color: #ffffff !important;
+  background: #26262a !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 5px !important;
+  padding: 2.5px 7px !important;
+  height: 20px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  transition: all 0.15s ease !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  white-space: nowrap !important;
+}
+
+.footer-mini-btn:hover {
+  background: #323238 !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.footer-mini-btn:active {
+  transform: scale(0.96) !important;
 }
 
 .status-dot {
@@ -1491,4 +1550,82 @@ input:checked+.slider:before {
   margin: 0 !important;
   padding: 2px 6px !important;
   width: 100% !important;
+}
+/* -----------------------------------------------
+   AUTO-UPDATE & NOTIFICATIONS
+   ----------------------------------------------- */
+
+.update-spin-icon {
+  font-size: 10px;
+  display: inline-block;
+}
+
+.update-spin-icon.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Update Notification Banner */
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.15), rgba(52, 199, 89, 0.12)) !important;
+  border: 1px solid rgba(0, 122, 255, 0.35) !important;
+  border-radius: 8px;
+  animation: slideDown 0.25s ease-out;
+}
+
+.update-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.update-badge {
+  background: #007aff !important;
+  color: #ffffff !important;
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  padding: 2px 5px !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.5px !important;
+}
+
+.update-banner-text {
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.btn-update-now {
+  background: #34c759 !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 0 8px rgba(52, 199, 89, 0.35) !important;
+  -webkit-appearance: none !important;
+}
+
+.btn-update-now:hover {
+  background: #2ebd50 !important;
+  transform: scale(1.02) !important;
 }
