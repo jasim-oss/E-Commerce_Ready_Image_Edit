@@ -973,9 +973,9 @@ input:checked+.slider:before {
    SUB-DRAWER (Nested Options Container)
    ═══════════════════════════════════════════════ */
 .sub-drawer {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
   padding: 5px 6px;
   background: #18181a !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -1655,4 +1655,18 @@ input:checked+.slider:before {
 .accordion-body > .sub-drawer {
   margin-top: 0px !important;
   margin-bottom: 8px !important;
+}
+
+
+/* Sub-Drawer Inner Spacing */
+.sub-drawer > *:not(:last-child) {
+  margin-bottom: 6px !important;
+}
+
+.sub-drawer .action-btn {
+  margin-bottom: 6px !important;
+}
+
+.sub-drawer .action-btn:last-child {
+  margin-bottom: 0px !important;
 }
