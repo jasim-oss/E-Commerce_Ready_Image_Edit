@@ -1631,3 +1631,25 @@ input:checked+.slider:before {
   background: #2ebd50 !important;
   transform: scale(1.02) !important;
 }
+
+
+/* Explicit Vertical Spacing Between Option Boxes */
+.accordion-body {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  padding: 2px 2px !important;
+}
+
+.accordion-body > *:not(:last-child) {
+  margin-bottom: 8px !important;
+}
+
+.accordion-body > .action-btn {
+  margin-bottom: 8px !important;
+}
+
+.accordion-body > .sub-drawer {
+  margin-top: 0px !important;
+  margin-bottom: 8px !important;
+}
