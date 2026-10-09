@@ -78,4 +78,15 @@ const zipFile = path.join(__dirname, 'E-Commerce-Ready-Edit-Installer.zip');
 execSync(`powershell -Command "Compress-Archive -Path 'E-Commerce-Ready-Edit-Installer' -DestinationPath '${zipFile}' -Force"`);
 console.log('E-Commerce-Ready-Edit-Installer.zip updated successfully!');
 
+
+console.log('--- Step 5: Deploying directly to Photoshop AppData UXP ---');
+const appData = process.env.APPDATA;
+if (appData) {
+  const psTarget1 = path.join(appData, 'Adobe', 'UXP', 'Plugins', 'External', 'com.ecommerce.photoshop.panel_1.0.0');
+  const psTarget2 = path.join(appData, 'Adobe', 'UXP', 'Plugins', 'External', 'E-Commerce-Ready-Edit');
+  copyRecursive(path.join(__dirname, 'uxp_plugin'), psTarget1);
+  copyRecursive(path.join(__dirname, 'uxp_plugin'), psTarget2);
+  console.log('Successfully deployed updated files directly to Photoshop AppData directory!');
+}
+
 console.log('--- Build Finished! Both Folder and ZIP are 100% Updated! ---');
