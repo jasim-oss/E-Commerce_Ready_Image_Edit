@@ -493,13 +493,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnScsmCustom) {
       btnScsmCustom.addEventListener('click', () => {
         if (!customScsmBox) return;
-        const isOpen = customScsmBox.style.display !== 'none';
+        const isOpen = customScsmBox.classList.contains('open') || (customScsmBox.style.display && customScsmBox.style.display !== 'none');
         if (isOpen) {
+          customScsmBox.classList.remove('open');
           customScsmBox.style.display = 'none';
           btnScsmCustom.classList.remove('active');
           if (customScsmChevron) customScsmChevron.classList.remove('up');
         } else {
           setActiveScsmBtn(btnScsmCustom);
+          customScsmBox.classList.add('open');
           customScsmBox.style.display = 'block';
           btnScsmCustom.classList.add('active');
           if (customScsmChevron) customScsmChevron.classList.add('up');
@@ -907,15 +909,20 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnReadyDelivery) {
     btnReadyDelivery.addEventListener("click", () => {
       if (!deliveryOptionsBox) return;
-      const isOpen = deliveryOptionsBox.style.display !== "none";
+      const isOpen = deliveryOptionsBox.classList.contains("open") || (deliveryOptionsBox.style.display && deliveryOptionsBox.style.display !== "none");
       if (isOpen) {
+        deliveryOptionsBox.classList.remove("open");
         deliveryOptionsBox.style.display = "none";
         btnReadyDelivery.classList.remove("active");
         if (deliveryChevron) deliveryChevron.classList.remove("up");
       } else {
+        deliveryOptionsBox.classList.add("open");
         deliveryOptionsBox.style.display = "block";
         btnReadyDelivery.classList.add("active");
         if (deliveryChevron) deliveryChevron.classList.add("up");
+        if (selectDeliveryMarketplace && !selectDeliveryMarketplace.value) {
+          selectDeliveryMarketplace.value = "amazon";
+        }
         updateDeliveryMarketplaceUI();
       }
     });
