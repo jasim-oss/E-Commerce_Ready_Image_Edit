@@ -280,7 +280,7 @@ body {
 }
 
 .accordion-body.collapsed {
-  display: none;
+  display: none !important;
 }
 
 /* ═══════════════════════════════════════════════
@@ -1634,11 +1634,14 @@ input:checked+.slider:before {
 
 
 /* Explicit Vertical Spacing Between Option Boxes */
-.accordion-body {
+.accordion-body:not(.collapsed) {
   display: flex !important;
   flex-direction: column !important;
   gap: 10px !important;
   padding: 2px 2px !important;
+}
+.accordion-body.collapsed {
+  display: none !important;
 }
 
 .accordion-body > *:not(:last-child) {
