@@ -1,7 +1,5 @@
 @echo off
-setlocal enabledelayedexpansion
-title E-Commerce Ready Edit - Uninstaller
-
+title Uninstalling E-Commerce Ready Edit Plugin...
 echo ======================================================
 echo    E-Commerce Ready Edit - Uninstaller
 echo ======================================================
@@ -22,8 +20,6 @@ $targetDir = Join-Path $appData 'Adobe\UXP\Plugins\External\com.ecommerce.photos
 if (Test-Path $targetDir) { Remove-Item -Path $targetDir -Recurse -Force -ErrorAction SilentlyContinue };
 $legacyDir = Join-Path $appData 'Adobe\UXP\Plugins\External\com.ecommerce.photoshop.panel';
 if (Test-Path $legacyDir) { Remove-Item -Path $legacyDir -Recurse -Force -ErrorAction SilentlyContinue };
-$legacyDir2 = Join-Path $appData 'Adobe\UXP\PluginsExternal\com.ecommerce.photoshop.panel';
-if (Test-Path $legacyDir2) { Remove-Item -Path $legacyDir2 -Recurse -Force -ErrorAction SilentlyContinue };
 
 $psJsonPath = Join-Path $appData 'Adobe\UXP\PluginsInfo\v1\PS.json';
 if (Test-Path $psJsonPath) {
@@ -39,7 +35,7 @@ if (Test-Path $psJsonPath) {
 
 echo.
 echo ======================================================
-echo   SUCCESS! Plugin has been uninstalled.
+echo   Plugin uninstalled successfully.
 echo ======================================================
 echo.
 pause
