@@ -973,8 +973,8 @@ input:checked+.slider:before {
    SUB-DRAWER (Nested Options Container)
    ═══════════════════════════════════════════════ */
 .sub-drawer {
-  display: flex !important;
-  flex-direction: column !important;
+  display: flex;
+  flex-direction: column;
   gap: 8px !important;
   padding: 5px 6px;
   background: #18181a !important;
@@ -1669,4 +1669,15 @@ input:checked+.slider:before {
 
 .sub-drawer .action-btn:last-child {
   margin-bottom: 0px !important;
+}
+
+/* Sub-Drawer display:none override fix */
+.sub-drawer[style*="display: none"] {
+  display: none !important;
+}
+.custom-color-box[style*="display: none"] {
+  display: none !important;
+}
+.custom-scsm-box[style*="display: none"] {
+  display: none !important;
 }
