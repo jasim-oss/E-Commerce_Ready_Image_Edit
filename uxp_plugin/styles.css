@@ -1710,3 +1710,115 @@ input:checked+.slider:before {
 .custom-scsm-box.active {
   display: block !important;
 }
+
+
+/* Compact Clean Dimension Row Styling */
+.dimension-row {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 4px !important;
+  background: #1c1c1e !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  padding: 5px 8px !important;
+  margin-top: 4px !important;
+  width: 100% !important;
+}
+
+.dim-col {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.dim-col-size {
+  flex: 0 0 auto !important;
+}
+
+.dim-col-dpi {
+  flex: 0 0 auto !important;
+}
+
+.dim-col-btn {
+  flex: 0 0 auto !important;
+  width: 44px !important;
+  min-width: 40px !important;
+}
+
+.dim-labels-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+}
+
+.dim-labels-row .dim-label {
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  color: #8e8e93 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+  height: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 44px !important;
+  justify-content: center !important;
+}
+
+.dim-labels-row .dim-label-spacer {
+  width: 16px !important;
+  height: 12px !important;
+}
+
+.dim-label {
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  color: #8e8e93 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+  height: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.size-inputs-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+}
+
+.size-inputs-group input,
+.dim-col-dpi input {
+  width: 44px !important;
+  min-width: 40px !important;
+  max-width: 48px !important;
+  height: 24px !important;
+  background: #141416 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 6px !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 0 2px !important;
+  text-align: center !important;
+  outline: none !important;
+}
+
+.btn-dim-link {
+  width: 16px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.btn-edit-just {
+  width: 100% !important;
+  height: 24px !important;
+  padding: 0 4px !important;
+  font-size: 10px !important;
+}
