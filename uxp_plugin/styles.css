@@ -1671,7 +1671,7 @@ input:checked+.slider:before {
   margin-bottom: 0px !important;
 }
 
-/* Sub-Drawer display:none override fix */
+
 .sub-drawer[style*="display: none"] {
   display: none !important;
 }
@@ -1680,4 +1680,33 @@ input:checked+.slider:before {
 }
 .custom-scsm-box[style*="display: none"] {
   display: none !important;
+}
+
+/* Bulletproof Sub-Drawer Open/Close Rules */
+.sub-drawer {
+  display: none;
+  flex-direction: column;
+  gap: 8px !important;
+  padding: 6px 6px !important;
+  background: #18181a !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  margin-top: 2px !important;
+  margin-bottom: 8px !important;
+  animation: slideDown 0.2s ease-out;
+}
+
+.sub-drawer.open,
+.sub-drawer.active {
+  display: flex !important;
+}
+
+.custom-color-box.open,
+.custom-color-box.active {
+  display: block !important;
+}
+
+.custom-scsm-box.open,
+.custom-scsm-box.active {
+  display: block !important;
 }

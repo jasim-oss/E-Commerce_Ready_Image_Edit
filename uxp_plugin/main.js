@@ -295,12 +295,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnBgOptions) {
     btnBgOptions.addEventListener("click", () => {
       if (!bgOptionsBox) return;
-      const isOpen = bgOptionsBox.style.display !== "none";
+      const isOpen = bgOptionsBox.classList.contains("open") || (bgOptionsBox.style.display && bgOptionsBox.style.display !== "none");
       if (isOpen) {
+        bgOptionsBox.classList.remove("open");
         bgOptionsBox.style.display = "none";
         btnBgOptions.classList.remove("active");
         if (bgOptionsChevron) bgOptionsChevron.classList.remove("up");
       } else {
+        bgOptionsBox.classList.add("open");
         bgOptionsBox.style.display = "flex";
         btnBgOptions.classList.add("active");
         if (bgOptionsChevron) bgOptionsChevron.classList.add("up");
