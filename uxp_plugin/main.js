@@ -539,12 +539,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnWrinkleClothing) {
     btnWrinkleClothing.addEventListener("click", () => {
       if (!wrinkleOptionsBox) return;
-      const isOpen = wrinkleOptionsBox.style.display !== "none";
+      const isOpen = wrinkleOptionsBox.classList.contains("open") || (wrinkleOptionsBox.style.display && wrinkleOptionsBox.style.display !== "none");
       if (isOpen) {
+        wrinkleOptionsBox.classList.remove("open");
         wrinkleOptionsBox.style.display = "none";
         btnWrinkleClothing.classList.remove("active");
         if (wrinkleChevron) wrinkleChevron.classList.remove("up");
       } else {
+        wrinkleOptionsBox.classList.add("open");
         wrinkleOptionsBox.style.display = "block";
         btnWrinkleClothing.classList.add("active");
         if (wrinkleChevron) wrinkleChevron.classList.add("up");
@@ -781,12 +783,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnDustScratches) {
     btnDustScratches.addEventListener("click", () => {
       if (!dustOptionsBox) return;
-      const isOpen = dustOptionsBox.style.display !== "none";
+      const isOpen = dustOptionsBox.classList.contains("open") || (dustOptionsBox.style.display && dustOptionsBox.style.display !== "none");
       if (isOpen) {
+        dustOptionsBox.classList.remove("open");
         dustOptionsBox.style.display = "none";
         btnDustScratches.classList.remove("active");
         if (dustChevron) dustChevron.classList.remove("up");
       } else {
+        dustOptionsBox.classList.add("open");
         dustOptionsBox.style.display = "block";
         btnDustScratches.classList.add("active");
         if (dustChevron) dustChevron.classList.add("up");
