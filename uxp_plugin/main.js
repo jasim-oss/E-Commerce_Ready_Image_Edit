@@ -641,15 +641,20 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnShadow) {
     btnShadow.addEventListener("click", () => {
       if (!shadowOptionsBox) return;
-      const isOpen = shadowOptionsBox.style.display !== "none";
+      const isOpen = shadowOptionsBox.classList.contains("open") || (shadowOptionsBox.style.display && shadowOptionsBox.style.display !== "none");
       if (isOpen) {
+        shadowOptionsBox.classList.remove("open");
         shadowOptionsBox.style.display = "none";
         btnShadow.classList.remove("active");
         if (shadowChevron) shadowChevron.classList.remove("up");
       } else {
+        shadowOptionsBox.classList.add("open");
         shadowOptionsBox.style.display = "block";
         btnShadow.classList.add("active");
         if (shadowChevron) shadowChevron.classList.add("up");
+        if (selectShadowMethod && !selectShadowMethod.value) {
+          selectShadowMethod.value = "drop";
+        }
         updateCleanupShadowVisibility();
       }
     });
@@ -1106,7 +1111,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 7. AUTO-UPDATE CHECKER
-  const CURRENT_VERSION = "26.0.0.0";
+  const CURRENT_VERSION = "26.0.0.1";
   const GITHUB_VERSION_URL = "https://raw.githubusercontent.com/jasim-oss/E-Commerce_Ready_Image_Edit/main/version.json";
   const DEFAULT_DOWNLOAD_URL = "https://github.com/jasim-oss/E-Commerce_Ready_Image_Edit/releases/latest";
 
