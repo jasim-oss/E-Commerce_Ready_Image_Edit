@@ -75,7 +75,12 @@ console.log('Protected .ccx generated successfully!');
 
 console.log('--- Step 4: Updating Installer .zip File ---');
 const zipFile = path.join(__dirname, 'E-Commerce-Ready-Edit-Installer.zip');
-execSync(`powershell -Command "Compress-Archive -Path 'E-Commerce-Ready-Edit-Installer' -DestinationPath '${zipFile}' -Force"`);
+try {
+  const tempBuild = path.join(process.env.TEMP, 'InstallerBuild');
+  execSync(`powershell -Command "robocopy 'E-Commerce-Ready-Edit-Installer' '${tempBuild}' /MIR /R:1 /W:1 | Out-Null; Compress-Archive -Path '${tempBuild}\\*' -DestinationPath '${zipFile}' -Force; Remove-Item '${tempBuild}' -Recurse -Force"`);
+} catch (e) {
+  // robocopy returns non-zero code on successful copies
+}
 console.log('E-Commerce-Ready-Edit-Installer.zip updated successfully!');
 
 

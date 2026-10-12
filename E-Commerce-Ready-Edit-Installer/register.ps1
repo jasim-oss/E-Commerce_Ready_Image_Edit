@@ -6,10 +6,10 @@ Write-Host "   Installing E-Commerce Ready Edit Plugin...          " -Foreground
 Write-Host "========================================================" -ForegroundColor Cyan
 
 # 1. Close Photoshop if running to ensure smooth registry write
-tasklist /FI "IMAGENAME eq Photoshop.exe" 2>$null | find /I "Photoshop.exe" >$null
-if ($LASTEXITCODE -eq 0) {
+$psProcesses = Get-Process -Name "Photoshop" -ErrorAction SilentlyContinue
+if ($psProcesses) {
     Write-Host "[*] Closing Photoshop to register plugin..." -ForegroundColor Yellow
-    taskkill /F /IM Photoshop.exe >$null 2>&1
+    $psProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 }
 
@@ -80,5 +80,31 @@ $outputObj = [ordered]@{
 $outputObj | ConvertTo-Json -Depth 5 | Set-Content -Path $psJsonPath -Encoding UTF8
 
 Write-Host "`n========================================================" -ForegroundColor Green
-Write-Host "  ✅ SUCCESS! Plugin permanently registered in Photoshop." -ForegroundColor Green
+Write-Host "  [OK] SUCCESS! Plugin permanently registered in Photoshop." -ForegroundColor Green
 Write-Host "========================================================" -ForegroundColor Green
+
+# 5. Find and launch Photoshop safely
+Write-Host "`n[*] Looking for Adobe Photoshop..." -ForegroundColor Cyan
+
+$psExePath = $null
+
+$regPath = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\Photoshop.exe' -ErrorAction SilentlyContinue).'(default)'
+if ($regPath -and (Test-Path $regPath)) {
+    $psExePath = $regPath
+}
+
+if (!$psExePath) {
+    $found = Get-ChildItem -Path "C:\Program Files\Adobe" -Filter "Photoshop.exe" -Recurse -Depth 2 -ErrorAction SilentlyContinue |
+             Sort-Object FullName -Descending | Select-Object -First 1
+    if ($found) {
+        $psExePath = $found.FullName
+    }
+}
+
+if ($psExePath) {
+    Write-Host "[*] Launching Photoshop: $psExePath" -ForegroundColor Green
+    Start-Process -FilePath $psExePath
+} else {
+    Write-Host "[i] Installation complete! Please open Adobe Photoshop manually." -ForegroundColor Yellow
+}
+

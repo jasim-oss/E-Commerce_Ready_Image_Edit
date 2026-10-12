@@ -6,10 +6,13 @@ echo ========================================================
 echo.
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0register.ps1"
+if %ERRORLEVEL% NEQ 0 (
+    powershell -NoProfile -Command "Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"\"%~dp0register.ps1\"\"' -Verb RunAs"
+)
 
 echo.
-echo Launching Photoshop...
-start "" "photoshop.exe" >nul 2>&1
+echo ========================================================
+echo   Done! You can close this window.
+echo ========================================================
+timeout /t 5
 
-echo Done.
-timeout /t 3
