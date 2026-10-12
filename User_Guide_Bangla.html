@@ -1,0 +1,1324 @@
+﻿<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>E-Commerce Ready Edit - ব্যবহারকারী নির্দেশিকা ও ইউজার গাইড</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+    @page {
+      size: A4;
+      margin: 14mm 14mm 14mm 14mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: 'Hind Siliguri', 'Vrinda', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #1e293b;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Cover Page */
+    .cover-page {
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 98vh;
+      padding: 40px 30px;
+      border: 2px solid #007aff;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #0f172a 0%, #1e293b 60%, #0a0f1d 100%);
+      color: #ffffff;
+    }
+
+    .cover-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cover-logo-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .cover-logo-img {
+      width: 48px;
+      height: 48px;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 4px;
+      object-fit: contain;
+    }
+
+    .brand-title-box {
+      line-height: 1.2;
+    }
+
+    .brand-main {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .brand-sub {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .cover-badge {
+      background: rgba(0, 122, 255, 0.2);
+      border: 1px solid #007aff;
+      color: #38bdf8;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .cover-center {
+      text-align: center;
+      margin: auto 0;
+    }
+
+    .cover-tagline {
+      display: inline-block;
+      background: #007aff;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .cover-title {
+      font-size: 38px;
+      font-weight: 700;
+      line-height: 1.25;
+      margin: 0 0 16px 0;
+      color: #ffffff;
+    }
+
+    .cover-subtitle {
+      font-size: 18px;
+      font-weight: 500;
+      color: #cbd5e1;
+      max-width: 600px;
+      margin: 0 auto 30px auto;
+      line-height: 1.5;
+    }
+
+    .cover-features-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    .feature-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f1f5f9;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .cover-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .cover-footer-left h4 {
+      margin: 0 0 4px 0;
+      color: #f8fafc;
+      font-size: 13px;
+    }
+
+    /* Page Layout */
+    .page {
+      page-break-after: always;
+      padding-top: 10px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1.5px solid #e2e8f0;
+      margin-bottom: 22px;
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .page-header-title {
+      color: #007aff;
+      font-weight: 600;
+    }
+
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      margin-top: 0;
+      font-weight: 700;
+    }
+
+    h1 {
+      font-size: 22px;
+      border-left: 5px solid #007aff;
+      padding-left: 12px;
+      margin-bottom: 16px;
+      color: #0f172a;
+    }
+
+    h2 {
+      font-size: 17px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #1e293b;
+    }
+
+    h3 {
+      font-size: 14.5px;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+
+    /* Table of Contents */
+    .toc-container {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+
+    .toc-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toc-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .toc-item {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed #cbd5e1;
+      padding-bottom: 3px;
+      font-size: 13px;
+      color: #334155;
+    }
+
+    .toc-item-title {
+      font-weight: 600;
+    }
+
+    .toc-page {
+      color: #007aff;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Cards & Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      break-inside: avoid;
+    }
+
+    .card-highlight {
+      border-left: 4px solid #007aff;
+      background: #f0f7ff;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Badges & Icons */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .badge-blue { background: #e0f2fe; color: #0284c7; }
+    .badge-green { background: #dcfce7; color: #16a34a; }
+    .badge-purple { background: #f3e8ff; color: #9333ea; }
+    .badge-amber { background: #fef3c7; color: #d97706; }
+
+    /* Number Step */
+    .step-box {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      break-inside: avoid;
+    }
+
+    .step-number {
+      width: 28px;
+      height: 28px;
+      background: #007aff;
+      color: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-content h4 {
+      margin: 0 0 4px 0;
+      font-size: 13.5px;
+      color: #0f172a;
+    }
+
+    /* Callout Alert Boxes */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 14px 0;
+      font-size: 13px;
+      break-inside: avoid;
+    }
+
+    .alert-info {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      color: #1e40af;
+    }
+
+    .alert-tip {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      color: #166534;
+    }
+
+    .alert-warning {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      color: #92400e;
+    }
+
+    .alert-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Clean Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 12.5px;
+      break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    /* Code & Keyboard Keys */
+    kbd {
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      font-family: 'Inter', monospace;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .code-pill {
+      background: #f1f5f9;
+      color: #0284c7;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Inter', monospace;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    /* Footer */
+    .page-footer {
+      margin-top: 30px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= COVER PAGE ================= -->
+  <div class="cover-page">
+    <div class="cover-header">
+      <div class="cover-logo-box">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPIAAADmCAYAAADvL9gpAAAQAElEQVR4Aexd+3ob1bVfa2Q7EI+/L36C2k9w7Ceo9ec5LcUupaeUAlZDAmkIsYBAEi6WgVwICTIJuZBApXApp1AqQ885/dPuE9jnCeI+gf19HpPGtmadtceSkG1J1kgz0hpp7W+WZzSavffavzU/rbUvM7ZAkyLQYgQuZZyRC5m1saK89+laqpK8z+c9ubM29n5BLt12RlqsbiSqUyJHwkzRUvJC5v5QgaQp3qcuZJ35ixlnkYWMuACLCDhvGSGcB8RpI8j7kgCfK4plzQMLslgWLl7+ZJ0KsvjBJz/MX7mznrpy54epNJM9nVk5FC20gtHWCqYYLaVbETjH3vXdz5ypc1knc/4zZ/581iHC/D1CLBGUsRkjgMA9KXKZBDQGCNMAlCaw5mmrb+WDO+srV26v59JMcENu6IKkRO4CIwfZxHNM3HfurqWYvPPn7jrMHVhEgjSTaRIIxkBGOoQI4wAwDWTNp2+vE8ti+uP1VKcSu5OJDJqaRyDFoerbnzmTTNwMywrFYBE5BAY5pK23kSPInhuZ2LO311dmP17PpW87k50SiiuR670Nuui6Innf+XwtF4v1rnAImyGASQDolP6nace4RZixNvpWrjKprzKpIcJJiRxh4wWteupLZ+TtL5yM1dN7j0PlDACa8BQ6PfGP1DgxqZnQK1dvrWfYU49Erc1K5KhZLAR93/7SmZz53Fm0XFgEgk7yvOAzHeIfsMmYi4vXbq0vXr3pGCx8FtGey5XI7cG92Vqbzm/C55nP11IzXzgrRMDeFyLnhSDExF6a+9SY+ejW+r1rN3mQjMcKQqyu6aKVyE1DGK0CDIFTTGDoNeEzTrP2h1h0q4IAE3qIvfR0z4O+bUKnZc5TK5GrGLATT6e+cKaUwA1b9hDydFbvwzIJrURu2K7RycgeeGz6S8cMYKVZa/XADELDG0GJ0NcF9aGVyNC5KfXV/aHpL9dyZOE8t3KIJQpbNHRkQgNg5sbNH+avX3faPr6gRIbOTG9yGE1ufhG6ZAoJ2pS2l4ji4vXr66k2qeBVq0T2YOicP8YLv/knZx4RNIxupVkRpq/fWGdCt8c7K5FbaeyQ60r9aX3cpfwiD8pIWfMccotlFc+4mymrxRs3fphqtWZK5FYjHlJ97IXTLlCOi9fBLAahvRulb9xYz6X3TlWFppYSOTRoW1OwmRd+408O94Wh5V4ANNVCYPzhvr6WDYQpkWuZQvh3Zm10/kCvCaXbPmoqHKq2qEcAIzHAlpBZidwWEzdf6RvcH87HQKeVmocy1BKYzIcswMWb151Q121bobZCCw8FgTe/4psCuT/szWWGUoUWGjgCmAmTzAKIHDhiHV2gITH/ypuHHDq6nZ3YOITwyKxEjtAdoySOkLGqqBoWmZXIVQCXdlpJLM0ijeuDFLxnViI3bo+W5TzLfWIXQMPpliEefkVBk1mJHKrNmi/ckBhRSdw8kvJKMGT++Np6IK9TUiLLs29Jo7NfOyNMYrNmunRODzoMAf6Rvh3A01NKZKH3hUdiF8w8sS65FGqjgNQ6RIS5TJPLOZXIAVkjyGJSuZVD4ILpEyuJgwRWbllDm70HzDr5hjVUIjcMXXgZNx70GBILX3YZXvu7sWQCGuP+cqrRtiuRG0UupHxnv1pjY2IgAyAhqajFhoQAAkzfubbW0COoSuSQjNJIsW98xUY0/46lkcyapyMQILBymQb6y0pkIeY3/WLXQhNSC9FI1WgTAoc2e/p83wdK5DZZa3e1Dza8frG+IG83MG353PZKx7m/7Kt7pURuu80AzvzZLApAX4YToHYzKixz5gUCyALRzLZAEpHiJXEpDgVBggkAmOHrZ4hgBgAXtgU6Npn1A35CbCVym28FE1IDkO9Qqs1q1109AiyxzAJAgoDipxM2sgyzmOPEa4cHUttiz55KDCyU5AgfF+SVZ/vnTh3uT3lypD/1yrMH40ZefrYfrZg1DEgJQMiymB8I6IhEMLTR01f3W1+UyG22eiGk7qT54lUmbpYIEg9oc/D0pD3KkjyTsLNnmKhBw51MPLz88mE7y6ROvPRs/zASjSLQbCeQmsk5fTN9v67uFl8bNLRaXr0IdFRITZAFCyfOTtqDZybtxOtM3FRicBVanJJH7aXkETtpSA3gxrn6OZbIbrEet64luvUTObJQyFS8EFLXZSSZLfC0YqLSzKa7Ofg6k/fsU/2iSJPk0Dx5tH8C8hx+m/64p3K0/nB0M17P3LISuU123djoMf2fusKmNqlYq9pVHoxJvP6MPfj6MwOpdnjeWsrt/i557OFlJnSC0Hho5IGy3VcI/0yx6f00VCLvh1AI35/+6v4QAe5rnBCqbrbIVeJR5q385vDrT9vZZgtrdX7joaeOHowTYpLr5miC/0Zio7H9vLISuR2GxHwESUxzsXxs9M0IeOD9TJo8cnCWXGsUMULeeR+vrEQ2Vm+hnP7GLMOEUF+NCsGmVUCcePPpgYkzPEIcbNHtK82E2y+yd2YNeF6a/4rfaKzWCLYSudUGpEiF1Et544WFDWIFabKTz/Wn0MxDA6yC8NQbc6tGckrkFhrP88YAYxCFhJB98yl7NNVBXrga7C8etbMukpmqEk1mApisttpLiVzNumGcj4o3Jki89Ts7EQYEUss08895Q2YC0WR2YwcqdsuUyNCa1DZv7Ld5hsQRHJH228xK13tktmR7ZkJ6ppLuSuRKqIRxLgreuItJXDS5ITMiyI1GCEZup52Ror7FvRK5iESI+yh4Y1QSl+6AE8/1z8H2XHPpnKQDjMEer6xEboWFCPcA34pq663DeKC3ujScrobRi88dnEWhyzoRcHy33krk3YgE/Nms4uIiKw5Q8Pm2bzwSOvvWk9FbpeUBF/KfzQMbSQSQ+Gjk0O7wWokM4Say8ifDraHx0nn+dC71O9ssV2y8kA7OmUwMrhK5IvvLsZi1YxrT6mA7yGgaglRvvOxubIm8SUFQOnFsYIHM882CdDKqcCT1qNkXRYlcRCKE/emvnUkOzWS+NABhQvpTSyGYpKEi8wc2zTJOYfPLpB65IWs2kIkAZIbVRDOpJ+2lBprUlVlMiA0EH7a08XVU9knavOtt+0L1yNs4BP731NeOmeszEnjZTRa4kHpqINVkGV2X/cSxfoOZqIEvQvpp0RBK5CISAe8tAplTTgg6uNWorQlFeWW0rJKjsBptk+bbBwGRg1waUu9jtZpfbz54kAUEMX1lJCr1k5XIEHx69c9e30XaINcybGzNBt/a7ikxmTQvE6SspBbfSa95ZI4UkSUBWEsXnp/dMTVQ69pWfcej5zM6St082jGKiQqvrRgOmVYpkQ0KwcueJXTBV+GrxCUepRblSXxpL+jiY8ceXubwekmMSi78m9FFiWxQCFBe/QuH1Qiiwmp0SQe4IMDk4t0AS2uqqOKAlxK5KRj3ZkYgWWE1gpluit4rYPdCK+YMkisGTyLS0DqUO4OgobAaQkoIKKpPF1IzW1rs8ePeYprlllZavTIlcnVsGvvGC6sBJIXVy6nf9s+BpjAQEOOVM+n7QxpaB2hiaWE1Apg1wgG2UIsqIUD4f6XjNh9swZYSOWAbjAVcXjPFrepIdTPw1c5LmJczcs2qqkdmEILYvLXVBF5/BQQkRBAz3QQdmLb+tSWGyJZljSmRA7rJmDiSvDEgylq4EBDMYorZXuUlRh1QIgdkCwIQM+3EuiyknnhYyqhqQAjLKwYBxQx4KZEDuj8QQI5HJhCzYAE0tQQBJXIAMBdedxtAScEUEdvY1CmnYKDctxQpFyiRA7CEK8gbE9CcPhwRgFHrKIKA/lHHZS25RIkcAMwEWHpTQwDFNVcE4XfNFaC5o4iAEjkAq0nqH2tYHYBBI1iEErlJo0nqH3OoN6dhdZMG9ZMdwXuE0E+WsK4Ng8hh6SqyXEn9YwAU02eDLkhIKGZdvRK52RuO5PwqxzCmo9XN2jOi+ZXIzRrOwtKbDJstqsn8y7oIpEkEfWYnJBm2R1xVIkPjyfsHbVLWVyOIWWUE3ZIIRITWbj6/pEQGX2nHxW6vK+MXmbUinXZiFFq3Xbu5/fbK1tVYuyYlcm18an9Lcojc82BDPXJtawX6rQU4FGiBTRTWA1vqkZvAD0jOQpBlnXZqxpL+85KgqadEclD7yP5N+GMORJDxq6z9Y2h9QhEPyRDAEnCyWHRrAIGp3MohdskyiOxCEPPHDaDQnVlu3rw/xLYXMT5i8Yi1sYIS2aDQgDy01SPCkEb1WOFX2RyrhI+AC3kR3ti0lIi8H3ElskGjAXEBxRA59aT3etYGWqFZGkIAUc5LJFzQ0BqaSz9pLntguXW0OjAo9y8onV45RILeXR4DS4m8v9mqX8GDDFI8smfI6prqNwAQGAi9Bw5MBlZYkwXxPbiaSG6/0slqsqyuzY4AMohMIOb9ytANCemkmGaWzVYokRuwijdiLeQ/SpBF+pK9BmzYSJZrN9bNvwOSMVPBDcCyp92UyAyI361H0Ij1u08MaB/ZrwEbvB4R5XhjbkM+75Zsr0RmQPxuaKGUX2X1xn6N1+D122urScy0Ezdj9WjSm63gQ9D3Wnso+PyDLimRfWIW+cvRSgtrw45nz9UjN2AdQhQx9YSC3uLYAIyRyXL1pmNGqmUMbhZQ2217JXIBGJ87ER6ZCFd96q2X+0QgnVk5xH1jad4YrPzOd5crkX0atnC5iF9nQtI55IJBwtrFHvROc9mHWCRtc+aJp3KFOpTI5U0M5ViEYXugRwe7QjHvdqHXbzsjCDi1/UnOXw6r97y7XIns0z6nc/dFhNVGbX1Hl0EhHDEhtetiJpzSmyp1dXdYbUpTIhsUfMjW1pYIIhOAemMILxVCahFdqF2t3BNWm++VyAYFH2KhJSKsRiWyD6v5u/Tax2YFF075y9Waq908fVipJqvSST1XA4G2v6eroBuSjlgXoAhyl+Z+MRFIDKkBEJbKF4FAWVIil4ERqUN9WCJwc5l+cc92v1hE1LW7gUSVvbG5TolsUPAhJOilaz7U1kv3QcAj8UbfPNtXYr+YnTEsH33RzlZrhhK5GjJVz6OUX+vSgvmqquoXdSOAD/rSJOXR1Apau0AzFU6XTimRS1DoQfsRaI8Gs7fWM4hglmGC0LTau2sl1249lci7Edn/s4gnYHiOUwe79rfVvldEgMTcBpzZvZKLT+7YlMg74IjOh/P6wr2mjGX6xFdv/zAv3BMD67d85MWDs/s1Vom8H0L6fcchYEiMZmCLSER0VQtg163dNy7mVSIXkahj/8o3Qv5xF4KG1dBYMvPEuNl3j3O3eHSaa/S5EeDC0Roj1eXFKZHL0YjKMYE+9QT+U/rOD1MIuMg5pcw8sCrVN4R8zZHq8pxK5HI09LgjETChdPr2eg6JxD1XXBVwhOyRE/W/j02JXBXJvV9IWWe9VzM9Uw2BtFk3vR1KmzdgVrtM2vnV3s2NpB+llMh+0BKyzpoA9MknqJ3SN+8Pk8EacgAAEABJREFUGS8MCDm+MhKhNOu5vREl95tu2r7wx7/tJfKPeuiRDwQQ6J8+Lu+qS00YfeXOeop63EUmcZS8cMFOWPcAVyGDt1MiezDon05A4MptZ5LyfYsIMM3tiZYXZoU50lrNb2GCD31vSmTfkGkGaQhc+dSZvPLJ+j1EzACBiBc/QGMpcSy5/b+c/GZXIvtAjIS8BteHyh17qRdCf/rDlCEwUOQJDNwNmHvuRP8cNJiUyP6Aq//X3l+5/q4mq2vnkS/ddkYuf7Keyef77sH2dJIMm/iz4O6rl/s2NhoKqYsFWcUD3deBgAtJIoobsYDiu4UHoeIlQYojC1QSl8uoIBafs7j8ovC8Z7wkXB8UpOfBRlc9wmi87/vsfZnAi5aFi2wp86RS5PrArHfFje+TiURysKnVekrkitBWPvn+r+2ly48PLBi5yPuG5YmBhYsVxPxDtnoklWjO6JVbJ+usIe8l7vte+nQtt+X2rfCPWJrDT/HLKv2iyCROHD1uNx1hKZH9Iq/Xh4bApYwz8t6na6lLf3QWN93eFR59ziBgBKeQ6oYoyyTO1n11jQuVyDXA0a+qIBDQ6W3iOlNM3tx7f3RWgGCRR56nufiO87zcpt3b0vMv9DfVLy4vUIlcjoYeh4bAhcz9ofcy6+MXMmupixlnnoV43nSRw2UOmT2v2zF93jpAXDqwuRGv47q6L1Ei1w2VXlgPAuc4PGayjp1jwl7IOhmWeRbmbP4eAeUQ0Hhc8c8B19PWBq9ZtZASzQ5u7a5bibwbEf1cFYEL7FXf+XxtzMi7nzlT5+6upc4xWc9/5syfu+vcO3/XIURY5D/ziB5hzehyN5N2N5arZqaD+8VND27tLliJzIhM5e4PmZcG+JHT36yNNSxfcd4K8gafa0ZSnL8kTLjUPvL2F87UzOdrqXJ5+zMn/fbnzryRd3jPhL33zmcOGcnH8veQcB5ZgCANxrsiTBKBIWsnzOcCQHiJXHciDBIbjTuayFO5lUOv5NbGXs6tj7/07VrKSPKvzryRl//qLL78rUNGYi6HfRbOw25BNJ6loriA87uF+FxJ+GYnFqgkXA9WEJfPuVxnUYxnKwmXDbuEw1SPVMh1GHF5XxIui3aJ1z4uHwpCAGk+nvaEScnl8TFMAYAhpid8zRBoCgABShzz8Xyx3wojT2RD1ikm61TOmXopt5ZK5pioOWeR94TQu2JubCLKeTcrh3sIMGYEBL/DmHXTraMQYBIftwOZZqoGS6SIPMUh8BR7VyZuamrOmWdZAexdAc9TQZrYqwATlaUbpi+4mbrJRyB8EhsMRBN5KueMTH3vTJ2cW8udnHNWCDkERsoRe1ZW3oR+3TRlwU3WLUIIrAK0hsQGk7qIbC5shZgw+cT3ziSTNvPid86Ka8EibQ+qmNU9StpWGEHrCAKBVSKKHws5nC5XtO1ELpL3BHtd1+pdQYIM8UgoK6nEZRB0ixwCHomPB7B+2k/L20bkF/62Pn7i+7VcPtbLfVzI8GCU8bp+dNdrFQFRCBDA0oMHG8OtJrEBoaVENt73he/WUhw+30MzktzZC+INvirdggBCduPBRjzZ5OOIjcLVEiKb0ebj3zuZLeN9tweqhhpVOOh8Wp4i0DQCBDPHj/Un2kVio3+oRDYe+Ph/M4F78vd47tYs1zN1qigCnYEAwqoLbvz48f5UuxsUGpFf+NtaarOnl0NoUAKDps5DABc27m8MnzhW/3+DCBODwInMBB5jL3yPthdn6MhzmNbTstuCAAHMvHDsYDzZpv5wpUYHRmQvjP7eSZNZZUWgfWBof1INAkYAYQldGj1xrP2hNOxKgRD5D//jjGz09s4DgllwD5oUgY5DgNgLP98/2o6ppXqwbJrITOJJIJjnynR9M4OgW6chgAuWJdMLQ1lqish/4AEtIMhwedoXZhB06ygEVokoceL5g/HjR+3AXwQQNFINE/kPPK0EiNNBK6TlKQL1IBDmNUQwkz+wMfziMTsbZj1Blt0QkT0SA+i0EmjqKAQIsnnXGj7Jg1nJiL073DeRnzeeWEncUfdvtzeGPXDWZQK/+Hx/InmssX+i1m4MfRHZkFhXaLXbZFp/UAgUCTwVYQIXsaibyGZ0WklchE33EUaAB7FghtgDSyVwI9jWReTn/7Y2RuCNTjdSh+ZRBCQgsExACerdGE4+15+KaghdDch9iWxWbKGFuWoF6HlFQDACq6xbFtCNJ4/2DyeP2tmoDWKx/nVt+xL5QV+PzhPXBaVeJAcBXDBzwNDD3vdofyJ5RMaDDWHiU5PIx/53fRz04X/QJB8B7votEWASt6zhl44cjL/cwd63kjWqEtmE1C6R8caV8rX6nNanCOxBAAEXADFpxazhV470j7585OBsp/V99zS6yomqRL5/oHcaAXTpJWgShMAy65JFpEQstjH40rPseQ8zeRPRnPvltgS2VSTy83+/P4QE+iQTaGozAqs80jwHgEmyaPSVw/3Drzzbn3j5cOcOWkGDqSKRwc3rGuoGAdVsTSGwRAizQJDIW7HhU4ftwVcPD0ycYq/7asIW/+ACtDHtIbLxxqyPrqNmEFq0dWM1ZlpogRtuSJt0keKv/d7GV39vj76WsJOvssc9o+Eyw1P/tofIRPmT9WfXKxWB6gjwGIvxogtANEMASQ6T4wdgc/B0wjYSN6R97bA9eybR+dND1VEK5psdRDYj1RzWqDcOBttOLmUVEBaQhe+XLADNGEGX4kgU36DNwbOTNp6etEfPTNpxJmrqbGKbsJ26IAPanHYQ+V99veP8K9pNI9XL5oYsCcAsFG5Kb8+ehG/MmUrifV9+LR9juRTyAoAJIXeKIUAFIT7HnmuhKFApb41zxXzenssqtav8uCw/23rBEyQeUDJe80fhvEluYxw47DWSz8eG33jaxoIM8j5+9mk7/vqknXj9mYGUkTPsWY2kIvYIIOMc+W0HkflG6rSw2oR1cya04xszYfFN6SKMfvBLG68Yecwe5n28KJcfs5OXHxtIleTxgdQlH3KRry3Jfw6kLhr5tR2/WEEu8LmK8hs7fqEg53hfkifs+Lu75B3+/M5v7Xg1meHvyiXFn1O/s+NFeYuPPXlyYGL6qYFUufD52TefGlgoSqqxPmvkCRKVBpSIbAa5+Nd5JCqKV9BziQBmuQ0J3o+mJ2xkiX/w2MAES+qDCTt7eWJgYXZCRz9BU8chUCKyS/nx6LWO2NtCAngAhQk6ypI0hOW9GWSJXnNUY0WgQQRKRGZP9kyDZbQ62xISk5cHVGbHByaYtNnZicHVViuh9SkCkhDwiDyZWzEDXNLD6gUedIp/OG4bz6vklXQXdacuolrtEfmhh3rFhtUEsIyEE0zg+Cz3cUGTIqAI7EHAIzK58NM93wg4gQRZy91kD9zP0yMCFFIVFAGhCHhEBgRxYTVPhSXZCyek9H9P/cXJsFBRXv3God3yGp8rydcOvcZyupL82aEzFeQsnzv7Xw4V5XU+LslXDr3hyVoKNCkCuxDYJjKAKCIbEl/7hT0LspL+YzpZ9lBtyhCwnv/72ljZ5yYPm89uwmmBJDYNE/FjR4Q6Qm+sobIDAcslFHGDFrTiga3NZOFYzO507r7xxmZkv+06IZLOkbfdCvIUsCwiETeogYZD6hkpfWKjT1HcvCvmx851UT1y0TC6LyFgEaKUEetlDqmzJc0kHZAcIp9/0laPLOneEKJLcbCr/eogfNh+JSprsP1jV/m7lp5FUG8MmiohYIgsYrArlo9JnisWgREQqDcGTZUQMESudL6l54hv0NkJmW9CfPUv5t3eLYWjamWIoEQGTZUQEEFk0TcokZQxBHBd+GclI+o5RUAGkYnE3qCEIGYdenhTT6Ap4giIILJUDE997ZhpJzOHLELFd5/Ql9SJMIRAJZTINYzC3ljOM9raP65hKf1KiVzrHkCYBCmJBwSlqKJ6yENABJEJ8SfSoDn1rWNILGfVG8A/pGEUDX26Q0sZRCYwfVGQlIjgpCR9XIiZV+pKUkl1EYSACCLz9NOI93J8IcC88s3aGMh6Rnv54hMy59mFmKzr1TBEFrHIIB8T9LohxLSwO0O9sTCDSFPHEFnG+l2CaQngeH1jWd4YOMzX/rGEm0OcDj8qZAHBMshIQy/kOKRtoy4mvCeAdBtVqFh130ObktehV9RZT7YWAQuBxKyqsqz2hrS9bk+G4RczUs26mG0ppe/tNjio1EDActES0Ucu6Dhy4ntnqnDc0t1LPN1EgGKWY5Y1/m7ZsR4qAhURYCcoisiA3FeeyjktnY46xfUhgPHGFUFq58k8xTSsbqcBIlK3devfvWkNGQNe26Adci3Imf7q9keff31ebkjsujDvM1urLl/SaadWQR3teqxt9Wlhey/m75Br9c6HTeYyEkvrF3uG4NFqsW9N8RTUP2IQ8IhMgBKnN0aYzIthhdkv5ZzJgicWSWJzh+hotUFBpR4EtolMIM0jQyENkQVM5rXA/ruC8fIvfbuW4754husQS2LWLauj1YyCbnUh4BH5zs+8NzNK6ifvUJ4Qp0/OOffYO0/u+MLHhwKBUxb13gNEiaPTO1pjEd3dccJ8UFEEqiDgEdn7jkD66OgQIWQMoU9+56Sn6lg8MpW7P2RCaOOBmcArTGCzekyyF4ZCWtKXCBSQ0F1dCJSITIjf1ZWj/RcNAcEUk3J+as4hFg69HR4Yc+aTuR2ygpC/x9dm+FrxHhjKE4EOcpXjocf7IlAi8u3/6J8jALHhNVRPZs55jL/eLVHwvKz2nm35/BN2ds9ZPaEI1ECgROTCNXoDFYBo245gpm11t7NirbspBHYQGTGmIV1TcDadWb1x0xB2ZwE7iOyt8kKQOhUFHZ8Q1Bt3vJHDaeAOIpsqEFC9sgGi9bJ0/tfaN2497J1R4x4i3+RBL26alGeUWZXu2Mglcf8XujuQb0ErW1DFHiIX6tQQrwBEa3Y0d1FfPt8aqDu0lopEvvUzO8tTUZKeU+5Q+L1mrR7o20p4R/pHEWgQgYpENmWhhnoGhtAFEZK6pjp0mDu+gqpEvvXIwAIBSV+2GXED0ZwOcEXchELUr0pkox9aPWYAJpTVXqb8LhcNqbv8Bgiy+TWJ7M0r60qjIPEulcWj1BMaUpfg0IMmEahJZFP2zZ/bs4Cgi0QguIQESR2lDg5PLQlgXyIbkAhjCd5riM0gBLBlL/yGfxwDKEiLUASKCNRFZBNiI4DpLxfz6b4GAtW+IoClh3o3FcdqAOn5hhGoi8im9Bs8t8z7WRbdGkDAkPjh3s249osbAE+z7ItA3UQ2JXF/Ock3pD7qaMDwIYzZkpLYB2B6qW8EfBHZlH7r57bpLyuZDRh1iJK4DpD0kqYR8E1kU+MNJbOBoR5ZetBh4XQ9jdZrWo9AQ0Q2aiqZDQo1xSPx7MSgjvbXhEm/DAKBholsKjdk5tBRB8AMGOWCkDWeWElcDooeh4lAU0Q2ipkBMEAw/WbzsesFgWbe+4fsYSQAAAHUSURBVJWdUBJ3/a3QUgCaJrLR1puaQhgFhG5+IcEqkzh+8fGBFGiKJAJRVjoQIhsAmMxLvZubo9SFT0xx92Jho2dzmEmsS1nNzaDScgQCI7LR3ISTNx4ZmEDACf7cDYM8po3J9x+346bt3GbdFIG2IBAokYst+OiR/rnerc3hTvbOiJA1XvjS47puumh33bcPgVCIbJpjPJTxzgAU58+dFHIuEFFcB7TYqrqJQWA/Ijet6EePDCx89IgdR4AE9yWjPBjmEfj9X9nxy48PdNIPU9M21gLaj0DoRC428dov7Oz1X9jDhtB8LjJE4B8fJTAbTDfZCLSMyEUYDKFZ4rEYjPI5s2bbDBjxoajN6DTbE4sNX1YPLMowqkxlBFpO5KIasz+zl5jQCZZBPpcAIvOiP0Mg/tiWbZkAskQ4cfkxe5AleXHi4Sh3BdoColbaHgTaRuTy5jKZs9fGByauPmoPWq4ZHKMZQgg7/OYfDZrjUD9pWTB65TF7mCVx5Vf95gcFNCkCUUJABJHLAZudGFi4+uhAiskdv/qojcjERoIEEpn/fmHIbYRJWJ6r+jETdYkAFoAgy15/xkKKuxgbvvJLe/DKYwPG+86+P2Hry/hBU5QR+H8AAAD//8F2pawAAAAGSURBVAMATWmxwP6gRmgAAAAASUVORK5CYII=" alt="Path Logo" class="cover-logo-img">
+        <div class="brand-title-box">
+          <div class="brand-main">E-Commerce Ready Edit</div>
+          <div class="brand-sub">A Product By Path</div>
+        </div>
+      </div>
+      <div class="cover-badge">Photoshop UXP Panel v1.0</div>
+    </div>
+
+    <div class="cover-center">
+      <div class="cover-tagline">অফিসিয়াল ইউজার গাইডলাইন ও ম্যানুয়াল</div>
+      <h1 class="cover-title">ই-কমার্স ফটো এডিটিং এর জন্য<br>পূর্ণাঙ্গ প্লাগইন ব্যবহার নির্দেশিকা</h1>
+      <p class="cover-subtitle">
+        Amazon, eBay, Etsy, Shopify, Walmart, Zalando সহ যেকোনো মার্কেটপ্লেসের ছবি এডিটিং, 
+        অটো-রিসাইজ, স্মার্ট মার্জিন, ব্যাকগ্রাউন্ড ও শ্যাডো তৈরির নির্ভরযোগ্য সহায়ক।
+      </p>
+
+      <div class="cover-features-pills">
+        <div class="feature-pill">⚡ ১-ক্লিক অটো ইনস্টলার</div>
+        <div class="feature-pill">📐 মার্কেটপ্লেস প্রিসেট ও স্মার্ট অ্যাঙ্কর</div>
+        <div class="feature-pill">✂️ AI ব্যাকগ্রাউন্ড রিমুভ ও কাস্টম কালার</div>
+        <div class="feature-pill">👔 জামার ভাঁজ ও ফ্রিকোয়েন্সি সেপারেশন</div>
+        <div class="feature-pill">🌑 ৪ ধরনের ড্রপ ও কাস্ট শ্যাডো</div>
+        <div class="feature-pill">🎯 SCSM প্রোডাক্ট ও মডেল মার্জিন</div>
+        <div class="feature-pill">📦 ব্যাচ প্রসেসিং ও অটো ডেলিভারি এক্সপোর্ট</div>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <div class="cover-footer-left">
+        <h4>E-Commerce Ready Edit Panel</h4>
+        <div>তৈরি করেছেন: <strong>Path Development Team</strong></div>
+        <div>প্ল্যাটফর্ম: <strong>Adobe Photoshop 2022+ (UXP v5)</strong></div>
+      </div>
+      <div style="text-align: right;">
+        <div>সংস্করণ: <strong>v1.0.0 (অক্টোবর ২০২৬)</strong></div>
+        <div>ভাষা: <strong>বাংলা (Bangla Edition)</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PAGE 1: সূচিপত্র ও পরিচিতি ================= -->
+  <div class="page">
+    <div class="page-header">
+      <span>E-Commerce Ready Edit — ব্যবহারকারী নির্দেশিকা</span>
+      <span class="page-header-title">অধ্যায় ১ ও সূচিপত্র</span>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc-container">
+      <div class="toc-title">📑 সূচিপত্র (Table of Contents)</div>
+      <ul class="toc-list">
+        <li class="toc-item">
+          <span class="toc-item-title">১. ভূমিকা ও মূল উদ্দেশ্য</span>
+          <span class="toc-page">পৃষ্ঠা ২</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-item-title">২. সিস্টেম প্রয়োজনীয়তা ও ইনস্টলেশন</span>
+          <span class="toc-page">পৃষ্ঠা ৩</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-item-title">৩. প্যানেল ইন্টারফেস ও ব্যাচ কন্ট্রোল</span>
+          <span class="toc-page">পৃষ্ঠা ৪</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-item-title">৪. Resize ও মার্কেটপ্লেস প্রিসেট</span>
+          <span class="toc-page">পৃষ্ঠা ৫</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-item-title">৫. Backgrounds ও কালার অটোমেশন</span>
+          <span class="toc-page">পৃষ্ঠা ৬</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-item-title">৬. Editing Adjustments ও শ্যাডো</span>
+          <span class="toc-page">পৃষ্ঠা ৭</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-item-title">৭. SCSM স্মার্ট মার্জিন ও অ্যালাইনমেন্ট</span>
+          <span class="toc-page">পৃষ্ঠা ৮</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-item-title">৮. Export ও মার্কেটপ্লেস ডেলিভারি</span>
+          <span class="toc-page">পৃষ্ঠা ৯</span>
+        </li>
+        <li class="toc-item">
+          <span class="toc-item-title">৯. প্রো-ওয়ার্কফ্লো ও সাধারণ সমস্যা সমাধান</span>
+          <span class="toc-page">পৃষ্ঠা ১০</span>
+        </li>
+      </ul>
+    </div>
+
+    <h1>১. ভূমিকা ও প্লাগইনের মূল উদ্দেশ্য</h1>
+    <p>
+      <strong>E-Commerce Ready Edit</strong> হলো ফটোশপের জন্য তৈরি একটি অত্যাধুনিক <strong>Adobe UXP Panel</strong>। ই-কমার্স প্ল্যাটফর্মগুলোতে (যেমন Amazon, eBay, Shopify, Walmart ইত্যাদি) প্রোডাক্ট ইমেজ আপলোড করার জন্য বিভিন্ন কঠোর নিয়মকানুন ও স্পেসিফিকেশন মেনে চলতে হয়—যেমন নির্দিষ্ট রেজোলিউশন, সঠিক ব্যাকগ্রাউন্ড, রঙের মান (sRGB), সর্বোচ্চ ফাইল সাইজ এবং অবজেক্টের মার্জিন বা প্যাডিং।
+    </p>
+    <p>
+      প্রতিটি ছবির পেছনে এই কাজগুলো ম্যানুয়ালি করতে গেলে প্রচুর সময় নষ্ট হয় এবং ভুলের সম্ভাবনা থাকে। এই প্লাগইনটি পেশাদার ইমেজ এডিটরদের কাজের গতি কয়েক গুণ বাড়িয়ে দেওয়ার জন্য তৈরি করা হয়েছে, যাতে জটিল কাজগুলো মাত্র এক ক্লিকে নির্ভুলভাবে সম্পন্ন করা যায়।
+    </p>
+
+    <h2>প্লাগইনের প্রধান বৈশিষ্ট্যসমূহ (Key Highlights)</h2>
+    <div class="grid-3">
+      <div class="card card-highlight">
+        <div class="card-title">⚡ এক ক্লিকে রিসাইজ</div>
+        <p style="font-size: 12px; margin: 0;">৭টি বড় মার্কেটপ্লেসের জন্য আদর্শ সাইজ, DPI এবং রেশিও স্বয়ংক্রিয়ভাবে সেট হয়ে যায়।</p>
+      </div>
+      <div class="card card-highlight">
+        <div class="card-title">🤖 AI সাবজেক্ট ও ব্যাকগ্রাউন্ড</div>
+        <p style="font-size: 12px; margin: 0;">অ্যাডোবির নেটিভ এআই দিয়ে ১-ক্লিকে ব্যাকগ্রাউন্ড ক্লিন, হোয়াইট বা হেক্স কালার যুক্ত করা।</p>
+      </div>
+      <div class="card card-highlight">
+        <div class="card-title">👔 রিটাচিং ও ভাঁজ দূর</div>
+        <p style="font-size: 12px; margin: 0;">Frequency Separation, Dodge & Burn এবং Evoto AI রেডি এক্সপোর্টের অটোমেশন।</p>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card card-highlight">
+        <div class="card-title">🌑 ৪ ধরনের রিয়েল শ্যাডো</div>
+        <p style="font-size: 12px; margin: 0;">Drop, Natural, Existing এবং Cast শ্যাডো তৈরি এবং শ্যাডো ডাস্ট ক্লিনিং সুবিধা।</p>
+      </div>
+      <div class="card card-highlight">
+        <div class="card-title">🎯 SCSM স্মার্ট মার্জিন</div>
+        <p style="font-size: 12px; margin: 0;">প্রোডাক্ট (১০%) ও মডেলের (৫%) জন্য ক্যানভাসে নির্ভুল মার্জিন ও সেন্টারিং।</p>
+      </div>
+      <div class="card card-highlight">
+        <div class="card-title">📦 অল-ইন-ওয়ান ব্যাচ মোড</div>
+        <p style="font-size: 12px; margin: 0;"><code>ALL</code> সুইচের মাধ্যমে ফটোশপে ওপেন থাকা ১০০+ ফাইল একসাথে প্রসেস করা যায়।</p>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <div class="alert-title">💡 আধুনিক Apple Minimal Dark ডিজাইন</div>
+      প্যানেলটিতে ব্যবহার করা হয়েছে চোখের আরামদায়ক অ্যাপল স্টুডিও ডার্ক থিম, প্রিমিয়াম অ্যাকসেন্ট কালার এবং দ্রুত রেসপন্সশীল নেভিগেশন ড্রয়ার।
+    </div>
+  </div>
+
+  <!-- ================= PAGE 2: ইনস্টলেশন নির্দেশিকা ================= -->
+  <div class="page">
+    <div class="page-header">
+      <span>E-Commerce Ready Edit — ব্যবহারকারী নির্দেশিকা</span>
+      <span class="page-header-title">অধ্যায় ২: ইনস্টলেশন নির্দেশিকা</span>
+    </div>
+
+    <h1>২. সিস্টেম প্রয়োজনীয়তা ও ইনস্টলেশন</h1>
+
+    <h2>সিস্টেমের প্রয়োজনীয়তা (System Requirements)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>উপাদান</th>
+          <th>ন্যূনতম চাহিদা (Minimum)</th>
+          <th>প্রস্তাবিত চাহিদা (Recommended)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ফটোশপ সংস্করণ</strong></td>
+          <td>Adobe Photoshop 2022 (v23.0.0+)</td>
+          <td>Adobe Photoshop 2024 / 2025 বা সর্বশেষ সংস্করণ</td>
+        </tr>
+        <tr>
+          <td><strong>অপারেটিং সিস্টেম</strong></td>
+          <td>Windows 10 (64-bit) / macOS Monterey</td>
+          <td>Windows 11 / macOS Ventura or Sonoma</td>
+        </tr>
+        <tr>
+          <td><strong>UXP সাপোর্ট</strong></td>
+          <td>UXP Runtime v5.0+</td>
+          <td>UXP Runtime v7.0+</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>ইনস্টলেশন পদ্ধতি (Installation Methods)</h2>
+    <p>প্লাগইনটি খুব সহজেই ইনস্টল করার জন্য দুটি সহজ পদ্ধতি রয়েছে:</p>
+
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card-title" style="color: #0284c7;">
+        <span>পদ্ধতি ১: ১-ক্লিক অটো ইনস্টলার (সবচেয়ে সহজ ও প্রস্তাবিত)</span>
+        <span class="badge badge-blue">Quick Install</span>
+      </div>
+      <p>যদি আপনার কাছে ইনস্টলার জিপ ফোল্ডারটি থাকে, তবে অতিরিক্ত কোনো সফটওয়্যার ছাড়াই সরাসরি রেজিস্টার করা সম্ভব:</p>
+
+      <div class="step-box">
+        <div class="step-number">১</div>
+        <div class="step-content">
+          <h4>ফটোশপ বন্ধ রাখুন</h4>
+          <p>আপনার কম্পিউটারে যদি ফটোশপ চালু থাকে, তবে সেটি সেভ করে বন্ধ করে দিন।</p>
+        </div>
+      </div>
+
+      <div class="step-box">
+        <div class="step-number">২</div>
+        <div class="step-content">
+          <h4>install.bat ফাইলটি রান করুন</h4>
+          <p>ইনস্টলার ফোল্ডারে থাকা <code class="code-pill">install.bat</code> ফাইলের ওপর ডাবল-ক্লিক করুন। একটি কালো উইন্ডো ওপেন হয়ে স্বয়ংক্রিয়ভাবে ফটোশপে প্লাগইনটি রেজিস্টার করবে এবং ফটোশপ ওপেন করে দেবে।</p>
+        </div>
+      </div>
+
+      <div class="step-box">
+        <div class="step-number">৩</div>
+        <div class="step-content">
+          <h4>প্লাগইন ওপেন করুন</h4>
+          <p>ফটোশপ ওপেন হলে উপরের মেনুবার থেকে যান: <kbd>Plugins</kbd> ➔ <kbd>E-Commerce Ready Edit</kbd>।</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card-title" style="color: #16a34a;">
+        <span>পদ্ধতি ২: .ccx প্যাকেজের মাধ্যমে ইনস্টলেশন (Adobe Creative Cloud)</span>
+        <span class="badge badge-green">Creative Cloud</span>
+      </div>
+      <div class="step-box">
+        <div class="step-number">১</div>
+        <div class="step-content">
+          <h4>CCX ফাইলে ডাবল ক্লিক</h4>
+          <p><code class="code-pill">E-Commerce-Ready-Edit.ccx</code> ফাইলে ডাবল-ক্লিক করুন।</p>
+        </div>
+      </div>
+      <div class="step-box">
+        <div class="step-number">২</div>
+        <div class="step-content">
+          <h4>Creative Cloud প্রম্পটে সম্মতি দিন</h4>
+          <p>Adobe Creative Cloud একটি পপ-আপ মেসেজ দেখাবে। সেখানে <strong>Install</strong> বা <strong>Install Locally</strong> বাটনে ক্লিক করলেই ইনস্টল সম্পন্ন হবে।</p>
+        </div>
+      </div>
+    </div>
+
+    <h2>প্যানেল ডকিং (Docking the Panel)</h2>
+    <p>
+      প্যানেলটি ওপেন হওয়ার পর আপনি এটিকে ফটোশপের ডানপাশে বা বামপাশে যেকোনো টুলবারের সাথে টেনে নিয়ে (Drag & Drop) ডক বা পিন করে রাখতে পারবেন।
+    </p>
+
+    <div class="alert alert-warning">
+      <div class="alert-title">⚠️ আনইনস্টল করতে চাইলে:</div>
+      কখনো প্যানেলটি কম্পিউটার থেকে সরাতে চাইলে ইনস্টলার ফোল্ডারে থাকা <code class="code-pill">uninstall.bat</code> ফাইলে ডাবল-ক্লিক করুন। এটি আপনার সিস্টেম থেকে প্লাগইনটি নিরাপদে রিমুভ করে দেবে।
+    </div>
+  </div>
+
+  <!-- ================= PAGE 3: প্যানেল ওভারভিউ ও ব্যাচ মোড ================= -->
+  <div class="page">
+    <div class="page-header">
+      <span>E-Commerce Ready Edit — ব্যবহারকারী নির্দেশিকা</span>
+      <span class="page-header-title">অধ্যায় ৩: প্যানেল ইন্টারফেস ও ব্যাচ কন্ট্রোল</span>
+    </div>
+
+    <h1>৩. প্যানেল ইন্টারফেস ও ব্যাচ কন্ট্রোল</h1>
+    <p>
+      প্যানেলটির ডিজাইন অত্যন্ত পরিষ্কার এবং মডার্ন। প্রয়োজনীয় টুলগুলো পাঁচটি প্রধান ড্রয়ারে (Accordion) সাজানো রয়েছে, যাতে এডিটররা কাজের সময় কোনো বাড়তি ঝামেলা ছাড়াই সঠিক ফিচারটি খুঁজে পান।
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">📁 ৫টি মূল সেকশন</div>
+        <ul style="padding-left: 18px; margin: 0; font-size: 13px;">
+          <li><strong>RESIZE:</strong> ক্যানভাস ও ইমেজ মাপ নিয়ন্ত্রণ।</li>
+          <li><strong>BACKGROUNDS:</strong> সাবজেক্ট ও ব্যাকগ্রাউন্ড সিলেকশন।</li>
+          <li><strong>EDITING ADJUSTMENT:</strong> পোশাকের ভাঁজ, ডাস্ট ও শ্যাডো।</li>
+          <li><strong>SCSM:</strong> প্রোডাক্ট ও মডেলের স্মার্ট ক্যানভাস মার্জিন।</li>
+          <li><strong>EXPORT:</strong> ক্লায়েন্ট রেডি ডেলিভারি ও PSD এক্সপোর্ট।</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚙️ ফুটার ও স্ট্যাটাস বার</div>
+        <ul style="padding-left: 18px; margin: 0; font-size: 13px;">
+          <li><strong>Status Dot & Text:</strong> বর্তমান কাজের অবস্থা (Ready, Working, Success, Error)।</li>
+          <li><strong>Update Button:</strong> ক্লাউড থেকে নতুন আপডেট চেক করা।</li>
+          <li><strong>Undo / Redo:</strong> কাজের যেকোনো ভুল ১-ক্লিকে আগের অবস্থায় ফিরিয়ে নেওয়া (<kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>)।</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>ব্যাচ প্রসেসিং: জাদুকরী "ALL" সুইচ</h2>
+    <p>
+      এই প্লাগইনের সবচেয়ে শক্তিশালী ফিচারগুলোর একটি হলো প্রতিটি সেকশনের ডানপাশে থাকা <strong>"ALL" টগল সুইচ</strong>।
+    </p>
+
+    <div class="card card-highlight">
+      <div class="card-title">
+        <span>🔄 ALL টগল কীভাবে কাজ করে?</span>
+        <span class="badge badge-purple">Batch Automation</span>
+      </div>
+      <table style="margin-top: 8px;">
+        <thead>
+          <tr>
+            <th style="width: 20%;">টগল মোড</th>
+            <th style="width: 30%;">প্রভাব</th>
+            <th>ব্যবহারের ক্ষেত্র</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>OFF (সাধারণ মোড)</strong></td>
+            <td>কেবলমাত্র বর্তমানে সক্রিয় (Active) ছবিটিতে কাজটি সম্পন্ন হবে।</td>
+            <td>একটি নির্দিষ্ট প্রোডাক্টে নিখুঁত অ্যাডজাস্টমেন্ট করার সময়।</td>
+          </tr>
+          <tr>
+            <td><strong>ON (ব্যাচ মোড)</strong></td>
+            <td>ফটোশপে বর্তমানে ওপেন থাকা <strong>সবগুলো ডকুমেন্টে</strong> ক্রমান্বয়ে স্বয়ংক্রিয়ভাবে কাজটি সম্পন্ন হবে।</td>
+            <td>একসাথে ৫০ বা ১০০টি ছবির ব্যাকগ্রাউন্ড রিমুভ, রিসাইজ, মার্জিন বা এক্সপোর্ট করার জন্য।</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-tip">
+      <div class="alert-title">🚀 ব্যাচ প্রো-টিপ (Batch Pro Tip)</div>
+      আপনি ফটোশপে ২০-৩০টি ছবি ওপেন করে নিন। এরপর <strong>ALL</strong> সুইচ অন করে <strong>BG Remove</strong> বাটনে চাপ দিন—ফটোশপ একে একে সবগুলো ছবির ব্যাকগ্রাউন্ড ক্লিন করে দেবে। আপনাকে প্রতিটি ছবির জন্য আলাদা করে ক্লিক করতে হবে না!
+    </div>
+
+    <h2>প্যানেলের স্ট্যাটাস মেসেজ বুঝতে পারা</h2>
+    <p>প্যানেলের নিচে বাম কোণায় একটি লাইভ স্ট্যাটাস ইন্ডিকেটর রয়েছে:</p>
+    <ul>
+      <li><span style="color: #22c55e; font-weight: bold;">● Ready (সবুজ):</span> প্লাগইন প্রস্তুত, নতুন কমান্ড দেওয়ার জন্য তৈরি।</li>
+      <li><span style="color: #3b82f6; font-weight: bold;">● Working (নীল):</span> ফটোশপে স্ক্রিপ্ট বা প্রসেস চলছে। এই সময় অন্য বাটনে ক্লিক করবেন না।</li>
+      <li><span style="color: #ef4444; font-weight: bold;">● Error (লাল):</span> কোনো সমস্যা হলে (যেমন ছবি ওপেন না থাকলে) কারণটি জানিয়ে মেসেজ দেওয়া হবে।</li>
+    </ul>
+  </div>
+
+  <!-- ================= PAGE 4: রিসাইজ ও মার্কেটপ্লেস প্রিসেট ================= -->
+  <div class="page">
+    <div class="page-header">
+      <span>E-Commerce Ready Edit — ব্যবহারকারী নির্দেশিকা</span>
+      <span class="page-header-title">অধ্যায় ৪: Resize ও মার্কেটপ্লেস প্রিসেট</span>
+    </div>
+
+    <h1>৪. Resize ও মার্কেটপ্লেস প্রিসেট</h1>
+    <p>
+      ই-কমার্স মার্কেটপ্লেসগুলোর রেজোলিউশন নীতি ভিন্ন ভিন্ন। যেমন Amazon স্কয়ার সাইজ এবং ৭২ DPI পছন্দ করে, আবার Walmart চায় ৩০০ DPI। এই প্লাগইনে প্রতিটি মার্কেটপ্লেসের সঠিক সেটিংস আগে থেকেই প্রি-কনফিগার করা আছে।
+    </p>
+
+    <h2>সমর্থিত মার্কেটপ্লেস ও প্রিসেটের তালিকা</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>মার্কেটপ্লেস</th>
+          <th>প্রিসেট সাইজ (Width × Height)</th>
+          <th>DPI</th>
+          <th>অনুপাত (Aspect Ratio)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Amazon</strong></td>
+          <td>2000 × 2000 px</td>
+          <td>72 DPI</td>
+          <td>1:1 (Square)</td>
+        </tr>
+        <tr>
+          <td><strong>eBay</strong></td>
+          <td>1600 × 1600 px</td>
+          <td>72 DPI</td>
+          <td>1:1 (Square)</td>
+        </tr>
+        <tr>
+          <td><strong>Shopify</strong></td>
+          <td>2048 × 2048 px</td>
+          <td>72 DPI</td>
+          <td>1:1 (Square)</td>
+        </tr>
+        <tr>
+          <td><strong>Walmart</strong></td>
+          <td>2200 × 2200 px</td>
+          <td>300 DPI</td>
+          <td>1:1 (High Res)</td>
+        </tr>
+        <tr>
+          <td><strong>Etsy</strong></td>
+          <td>2000 × 2000 px</td>
+          <td>72 DPI</td>
+          <td>1:1 (Square)</td>
+        </tr>
+        <tr>
+          <td><strong>WooCommerce</strong></td>
+          <td>2000 × 2000 px</td>
+          <td>72 DPI</td>
+          <td>1:1 (Square)</td>
+        </tr>
+        <tr>
+          <td><strong>Zalando</strong></td>
+          <td>1800 × 2600 px</td>
+          <td>72 DPI</td>
+          <td>Vertical Fashion</td>
+        </tr>
+        <tr>
+          <td><strong>Custom</strong></td>
+          <td>ব্যবহারকারীর পছন্দমতো</td>
+          <td>পছন্দমতো</td>
+          <td>কাস্টম</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>রিসাইজ করার ধাপসমূহ:</h2>
+    <div class="step-box">
+      <div class="step-number">১</div>
+      <div class="step-content">
+        <h4>মার্কেটপ্লেস নির্বাচন করুন</h4>
+        <p>ড্রপডাউন মেনু থেকে কাঙ্ক্ষিত মার্কেটপ্লেসটি সিলেক্ট করুন (যেমন Amazon বা Shopify)। সাথে সাথে সাইজ বক্স ও বোতাম দৃশ্যমান হবে।</p>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-number">২</div>
+      <div class="step-content">
+        <h4>রেশিও লিঙ্ক ও কাস্টম এডিট (ঐচ্ছিক)</h4>
+        <p>Width ও Height এর মাঝের লিংক আইকনটি স্বয়ংক্রিয়ভাবে সক্রিয় থাকে। ফলে একটি মান পরিবর্তন করলে অন্যটি আনুপাতিক হারে অ্যাডজাস্ট হয়। প্রয়োজন হলে <strong>Edit</strong> বাটনে ক্লিক করে সংখ্যাগুলো ম্যানুয়ালি পরিবর্তন করতে পারবেন।</p>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-number">৩</div>
+      <div class="step-content">
+        <h4>Smart Edge Anchor (স্মার্ট কিনার অ্যাঙ্কর)</h4>
+        <p>যদি আপনার প্রোডাক্টটি ক্যানভাসের একদম নিচে বা পাশে লাগানো থাকে (যেমন জুতো বা টেবিল), তবে <strong>Smart Edge Anchor</strong> টগলটি অন করুন। এটি ক্যানভাস বড় বা ছোট করার সময় অবজেক্টকে নিচের কিনারায় শক্তভাবে ধরে রেখে ক্যানভাস রিসাইজ করবে!</p>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-number">৪</div>
+      <div class="step-content">
+        <h4>Apply Resize বাটনে ক্লিক করুন</h4>
+        <p>বাটনে ক্লিক করার সাথে সাথে ছবি চোখের পলকে সঠিক সাইজে কনভার্ট হয়ে যাবে। <code>ALL</code> সুইচ অন থাকলে সবগুলো ছবি এক ক্লিকে রিসাইজ হবে।</p>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <div class="alert-title">🔍 Smart Edge Anchor এর সুবিধা</div>
+      সাধারণ রিসাইজে ছবি মাঝখানে চলে যায়, ফলে মেঝের সাথে লাগানো জুতা বা বড় ফার্নিচারের অবস্থান নষ্ট হয়। Smart Edge Anchor ব্যবহারে অবজেক্টের বটম অ্যাঙ্কর নিখুঁত থাকে।
+    </div>
+  </div>
+
+  <!-- ================= PAGE 5: ব্যাকগ্রাউন্ডস ও কালার ================= -->
+  <div class="page">
+    <div class="page-header">
+      <span>E-Commerce Ready Edit — ব্যবহারকারী নির্দেশিকা</span>
+      <span class="page-header-title">অধ্যায় ৫: Backgrounds ও কালার অটোমেশন</span>
+    </div>
+
+    <h1>৫. Backgrounds ও কালার অটোমেশন</h1>
+    <p>
+      ই-কমার্স প্রোডাক্ট ছবির জন্য ব্যাকগ্রাউন্ড রিমুভ ও সঠিক ব্যাকগ্রাউন্ড কালার দেওয়া অন্যতম প্রধান কাজ। এই প্লাগইনটিতে ব্যাকগ্রাউন্ড সংক্রান্ত যাবতীয় কাজ খুব সুচারুভাবে সাজানো হয়েছে।
+    </p>
+
+    <h2>১. AI Background Remove (১-ক্লিক ব্যাকগ্রাউন্ড রিমুভ)</h2>
+    <div class="card card-highlight">
+      <div class="card-title">✂️ এক ক্লিকে নিখুঁত সাবজেক্ট ডিটেকশন</div>
+      <p>
+        প্যানেলের <strong>BG Remove</strong> বাটনে ক্লিক করলে ফটোশপের নেটিভ AI আর্কিটেকচার স্বয়ংক্রিয়ভাবে মূল প্রোডাক্ট বা মডেলকে শনাক্ত করে একটি পরিষ্কার <strong>Layer Mask</strong> তৈরি করে। এর ফলে মূল ছবি সুরক্ষিত থাকে (Non-destructive editing)।
+      </p>
+      <div class="alert alert-tip" style="margin: 6px 0 0 0;">
+        <strong>টিপ:</strong> <code>ALL</code> সুইচ অন রেখে <strong>BG Remove</strong> দিলে ওপেন থাকা সব ছবির সাবজেক্ট একসাথে আলাদা হয়ে যাবে।
+      </div>
+    </div>
+
+    <h2>২. Background Option ড্রয়ার ও ব্যাকগ্রাউন্ড সংযোজন</h2>
+    <p><strong>Background Option</strong> বাটনে ক্লিক করলে একটি সাব-ড্রয়ার খুলবে। এখান থেকে আপনি ৩ ধরণের ব্যাকগ্রাউন্ড যোগ করতে পারেন:</p>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title" style="color: #0f172a;">⚪ White</div>
+        <p style="font-size: 12px; margin: 0;">
+          এক ক্লিকে পিওর হোয়াইট (<code>#FFFFFF</code>) ব্যাকগ্রাউন্ড লেয়ার যুক্ত করে। এটি Amazon বা অধিকাংশ ই-কমার্স সাইটের প্রধানতম রিকোয়ারমেন্ট।
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="color: #0284c7;">🎨 Custom (Hex Color)</div>
+        <p style="font-size: 12px; margin: 0;">
+          ক্লিক করলে হেক্স কোড লেখার বক্স খুলবে। যেকোনো কালার কোড (যেমন: <code>#F4F4F4</code>, <code>#E5E5E5</code> বা ব্র্যান্ড কালার) লিখে <strong>Apply</strong> চাপুন।
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="color: #9333ea;">🖼️ Upload Image</div>
+        <p style="font-size: 12px; margin: 0;">
+          বাইরের কোনো ব্যাকগ্রাউন্ড ছবি বা টেক্সচার ক্যানভাসে বসাতে চাইলে এই বাটনে ক্লিক করে ফাইল সিলেক্ট করুন। ব্যাকগ্রাউন্ড স্বয়ংক্রিয়ভাবে ফিট হয়ে যাবে।
+        </p>
+      </div>
+    </div>
+
+    <h2>কালার হেক্স কোড ইনপুটের নিয়ম:</h2>
+    <ul>
+      <li>হেক্স বক্সে শুধু ৬ ডিজিট লিখলেই হবে (যেমন: <code>F4F4F4</code> বা <code>#E0E0E0</code>)।</li>
+      <li>কীবোর্ডের <kbd>Enter</kbd> প্রেস করলেও কালারটি সরাসরি ক্যানভাসে অ্যাপ্লাই হবে।</li>
+      <li>কালার লেয়ারটি সবসময় মূল প্রোডাক্ট লেয়ারের ঠিক নিচে সুন্দরভাবে সজ্জিত হবে।</li>
+    </ul>
+
+    <div class="alert alert-info">
+      <div class="alert-title">🛡️ নন-ডিস্ট্রাক্টিভ লেয়ার স্ট্রাকচার (Non-Destructive)</div>
+      প্লাগইনটি কোনো অরিজিনাল পিক্সেল ডিলিট করে না। এটি একটি আলাদা <strong>Solid Color Fill</strong> লেয়ার তৈরি করে, যাতে আপনি পরবর্তীতে যেকোনো সময় কালার পরিবর্তন করতে পারেন।
+    </div>
+  </div>
+
+  <!-- ================= PAGE 6: এডিটিং এডজাস্টমেন্ট ও শ্যাডো ================= -->
+  <div class="page">
+    <div class="page-header">
+      <span>E-Commerce Ready Edit — ব্যবহারকারী নির্দেশিকা</span>
+      <span class="page-header-title">অধ্যায় ৬: Editing Adjustments ও শ্যাডো</span>
+    </div>
+
+    <h1>৬. Editing Adjustments ও শ্যাডো</h1>
+    <p>
+      পোশাক ও মডেল এডিটিংয়ের ক্ষেত্রে কাপড়ের ভাঁজ দূর করা, ডাস্ট পরিষ্কার করা এবং প্রাকৃতিক ছায়া (Shadow) তৈরি করা অত্যন্ত জটিল কাজ। প্লাগইনটি এই কাজগুলোকে সম্পূর্ণ অটোমেট করেছে।
+    </p>
+
+    <h2>১. Wrinkle on Clothing (কাপড়ের ভাঁজ মোছা)</h2>
+    <p><strong>Wrinkle on clothing</strong> ড্রয়ারে তিনটি বিশেষ মেথড রয়েছে:</p>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">Frequency Separation</div>
+        <p style="font-size: 12px; margin: 0;">
+          স্বয়ংক্রিয়ভাবে ছবিকে <strong>Low Frequency</strong> (কালার ও টোন) এবং <strong>High Frequency</strong> (টেক্সচার) লেয়ারে বিভক্ত করে। জামার টেক্সচার ঠিক রেখে ভাঁজ মোছার আদর্শ পদ্ধতি।
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Dodge and Burn (D&B)</div>
+        <p style="font-size: 12px; margin: 0;">
+          একটি ৫০% গ্রে <strong>Soft Light</strong> লেয়ার তৈরি করে এবং ব্রাশ টুলের ফ্লো ৫% (Flow 5%) এ সেট করে দেয়, যাতে সহজে আলো ও ছায়ার মাধ্যমে ভাঁজ মসৃণ করা যায়।
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Save for Evoto (JPG)</div>
+        <p style="font-size: 12px; margin: 0;">
+          যারা Evoto AI ব্যবহার করে জামার ভাঁজ ও স্কিন রিটাচ করেন, তাদের জন্য এক ক্লিকে হাই-কোয়ালিটি JPG ফাইল এক্সপোর্ট করে দেয়।
+        </p>
+      </div>
+    </div>
+
+    <h2>২. Dust & Scratches (ডাস্ট ও স্ক্র্যাচ ক্লিনিং)</h2>
+    <p>
+      প্রোডাক্টের সারফেসে থাকা ধুলাবালি বা দাগ পরিষ্কার করার জন্য <strong>Dust & Scratches</strong> ড্রয়ার খুলে <strong>Apply</strong> ক্লিক করুন। এটি একটি অ্যাডজাস্টেবল উইন্ডো খুলে দেবে যেখানে Radius ও Threshold প্রিভিউ দেখে নিখুঁতভাবে রিটাচ মাস্ক তৈরি করা যায়।
+    </p>
+
+    <h2>৩. Shadow Generation (ছায়া তৈরি ও ক্লিনআপ)</h2>
+    <p>প্রোডাক্টের বাস্তবানুগ রূপ ফুটিয়ে তুলতে ৪ ধরনের শ্যাডো তৈরি করা সম্ভব:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>শ্যাডো মেথড</th>
+          <th>কার্যপ্রণালী</th>
+          <th>ব্যবহার</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Drop Shadow</strong></td>
+          <td>প্রোডাক্টের পেছনে হালকা সফট ড্রপ শ্যাডো তৈরি করে।</td>
+          <td>প্যাকশট, বক্স ও কসমেটিকস আইটেম।</td>
+        </tr>
+        <tr>
+          <td><strong>Natural Shadow</strong></td>
+          <td>প্রোডাক্টের গোড়ায় মাটির সাথে লেগে থাকা হালকা বাস্তব ছায়া।</td>
+          <td>জুতো, ব্যাগ ও টেবিলে রাখা অবজেক্ট।</td>
+        </tr>
+        <tr>
+          <td><strong>Existing Shadow</strong></td>
+          <td>অরিজিনাল ছবিতে থাকা আসল ছায়াকে অক্ষত রেখে বাকি ব্যাকগ্রাউন্ড ক্লিন করে।</td>
+          <td>মডেল শুট ও স্টুডিও লাইটিং শুট।</td>
+        </tr>
+        <tr>
+          <td><strong>Cast Shadow</strong></td>
+          <td>আলোর কোণ অনুযায়ী একদিকে ছড়িয়ে পড়া লম্বা প্রাকৃতিক ছায়া।</td>
+          <td>ফ্যাশন, জুয়েলারি ও ফার্নিচার শুট।</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="card card-highlight">
+      <div class="card-title" style="color: #0284c7;">
+        🧹 Cleanup Shadow বাটন (শ্যাডো মাস্ক রিটাচিং)
+      </div>
+      <p style="margin: 0; font-size: 12.5px;">
+        শ্যাডো তৈরি করার পর অনেক সময় শ্যাডোর পাশে অনাকাঙ্ক্ষিত দাগ বা ডাস্ট থেকে যায়। Natural, Existing বা Cast শ্যাডো সিলেক্ট করলে ড্রয়ারের নিচে একটি বিশেষ <strong>Cleanup Shadow</strong> বোতাম দৃশ্যমান হবে। এটিতে ক্লিক করলে শ্যাডোর নয়েজ ফিল্টার হয়ে যাবে এবং স্বয়ংক্রিয়ভাবে ব্রাশ টুল সিলেক্ট হবে, যাতে আপনি শ্যাডো মাস্কে ব্রাশ বুলিয়ে যেকোনো বাড়তি ছায়া নিমেষেই মুছে ফেলতে পারেন!
+      </p>
+    </div>
+  </div>
+
+  <!-- ================= PAGE 7: SCSM স্মার্ট মার্জিন ================= -->
+  <div class="page">
+    <div class="page-header">
+      <span>E-Commerce Ready Edit — ব্যবহারকারী নির্দেশিকা</span>
+      <span class="page-header-title">অধ্যায় ৭: SCSM স্মার্ট মার্জিন ও প্যাডিং</span>
+    </div>
+
+    <h1>৭. SCSM - স্মার্ট মার্জিন ও অ্যালাইনমেন্ট</h1>
+    <p>
+      <strong>SCSM (Subject Centering & Sizing Margin)</strong> হলো এই প্লাগইনের একটি অনন্য উদ্ভাবনী ফিচার। মার্কেটপ্লেসে ছবি আপলোড করার সময় প্রধান শর্ত থাকে যে প্রোডাক্টকে ক্যানভাসের একদম কিনারায় ঠেকিয়ে রাখা যাবে না—নির্দিষ্ট পরিমাণ ফাঁকা জায়গা (Margin/Padding) থাকতে হবে।
+    </p>
+
+    <h2>SCSM এর তিনটি অপশন:</h2>
+    <div class="grid-3">
+      <div class="card card-highlight">
+        <div class="card-title">📦 Product (10% Margin)</div>
+        <p style="font-size: 12px; margin: 0;">
+          সাধারণ প্রোডাক্ট (জুতো, ব্যাগ, গ্যাজেট ইত্যাদি) এর জন্য চারপাশের ক্যানভাস থেকে ১০% নিখুঁত মার্জিন বজায় রেখে অবজেক্টকে ঠিক কেন্দ্রে (Center) স্থাপন করে।
+        </p>
+      </div>
+
+      <div class="card card-highlight">
+        <div class="card-title">💃 Model (5% Margin)</div>
+        <p style="font-size: 12px; margin: 0;">
+          ফুল বডি বা হাফ বডি ফ্যাশন মডেলের ক্ষেত্রে ৫% মার্জিন দেয়, যাতে মডেল ক্যানভাসে চমৎকারভাবে দৃশ্যমান থাকে এবং মাথা বা পা কেটে না যায়।
+        </p>
+      </div>
+
+      <div class="card card-highlight">
+        <div class="card-title">⚙️ Custom Margin (1% - 45%)</div>
+        <p style="font-size: 12px; margin: 0;">
+          ক্লায়েন্টের বিশেষ রিকোয়ারমেন্ট থাকলে ১% থেকে ৪৫% পর্যন্ত যেকোনো মার্জিন লিখে <strong>Apply</strong> ক্লিক করলে মুহূর্তেই অবজেক্ট রিসাইজ হয়ে যাবে।
+        </p>
+      </div>
+    </div>
+
+    <h2>মার্জিন ক্যালকুলেশন চিত্র (Visual Margin Reference):</h2>
+    <table style="text-align: center;">
+      <thead>
+        <tr>
+          <th>মার্জিন সেটিং</th>
+          <th>অবজেক্ট কভারেজ</th>
+          <th>ফাঁকা সীমানা (Padding)</th>
+          <th>কোথায় প্রযোজ্য</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Model (5%)</strong></td>
+          <td>৯০% ক্যানভাস জুড়েই অবজেক্ট</td>
+          <td>উপরে ও নিচে ৫% মার্জিন</td>
+          <td>পোশাকের মডেল, বড় অবজেক্ট</td>
+        </tr>
+        <tr>
+          <td><strong>Product (10%)</strong></td>
+          <td>৮০% ক্যানভাস জুড়েই অবজেক্ট</td>
+          <td>চারপাশে ১০% সুষম মার্জিন</td>
+          <td>Amazon ও Shopify প্রধান ইমেজ</td>
+        </tr>
+        <tr>
+          <td><strong>Custom (15% - 20%)</strong></td>
+          <td>৬০% - ৭০% ক্যানভাস জুড়েই অবজেক্ট</td>
+          <td>১৫% থেকে ২০% মার্জিন</td>
+          <td>জুয়েলারি, ওয়াচ ও স্মল এক্সেসরিজ</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert alert-tip">
+      <div class="alert-title">💡 কীভাবে ব্যবহার করবেন?</div>
+      <ol style="margin: 4px 0 0 0; padding-left: 20px;">
+        <li>আপনার ছবিটি ওপেন করুন (ব্যাকগ্রাউন্ড রিমুভ করা থাকলে সবচেয়ে ভালো ফল পাওয়া যায়)।</li>
+        <li>প্যানেল থেকে <strong>SCSM</strong> সেকশনে যান।</li>
+        <li>সব ওপেন ছবির জন্য করতে চাইলে উপরে <strong>ALL</strong> সুইচ অন করুন।</li>
+        <li><strong>Product</strong> বা <strong>Model</strong> বাটনে একটি ক্লিক করুন।</li>
+        <li>ফটোশপ স্বয়ংক্রিয়ভাবে অবজেক্টকে সিলেক্ট করে পারফেক্ট সাইজ ও সেন্টারিং করে দেবে!</li>
+      </ol>
+    </div>
+
+    <div class="alert alert-info">
+      <div class="alert-title">🎯 অ্যালাইনমেন্ট গ্যারান্টি</div>
+      ম্যানুয়ালি ট্রান্সফর্ম ও স্কেল করার সময় অনেক সময় প্রোডাক্ট ক্যানভাসের বামে বা ডানে হেলে থাকে। SCSM অ্যালগরিদম পিক্সেল পারফেক্ট সেন্টারিং নিশ্চিত করে।
+    </div>
+  </div>
+
+  <!-- ================= PAGE 8: এক্সপোর্ট ও ডেলিভারি ================= -->
+  <div class="page">
+    <div class="page-header">
+      <span>E-Commerce Ready Edit — ব্যবহারকারী নির্দেশিকা</span>
+      <span class="page-header-title">অধ্যায় ৮: Export ও মার্কেটপ্লেস ডেলিভারি</span>
+    </div>
+
+    <h1>৮. Export ও মার্কেটপ্লেস ডেলিভারি</h1>
+    <p>
+      এডিটিং শেষ হওয়ার পর কাজ ডেলিভারি দেওয়ার জন্য এই প্লাগইনে রয়েছে শক্তিশালী <strong>Export</strong> মডিউল। ভুল কালার প্রোফাইল বা অতিরিক্ত বড় ফাইল সাইজের কারণে ক্লায়েন্টের মার্কেটপ্লেসে ছবি রিজেক্ট হওয়ার কোনো সুযোগ এতে নেই।
+    </p>
+
+    <h2>১. Ready For Delivery (মার্কেটপ্লেস ডেলিভারি এক্সপোর্ট)</h2>
+    <p>
+      <strong>Ready For Delivery</strong> ড্রয়ার ওপেন করলে সংশ্লিষ্ট মার্কেটপ্লেসের ডেলিভারি স্পেসিফিকেশন স্বয়ংক্রিয়ভাবে লোড হয়:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>মার্কেটপ্লেস</th>
+          <th>সমর্থিত ফরম্যাট</th>
+          <th>সর্বোচ্চ সাইজ (Max Size)</th>
+          <th>কালার প্রোফাইল</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Amazon</strong></td>
+          <td>JPG, PNG</td>
+          <td>10 MB</td>
+          <td>sRGB (অটো কনভার্ট)</td>
+        </tr>
+        <tr>
+          <td><strong>eBay</strong></td>
+          <td>JPG, PNG, WebP</td>
+          <td>12 MB</td>
+          <td>sRGB (অটো কনভার্ট)</td>
+        </tr>
+        <tr>
+          <td><strong>Etsy</strong></td>
+          <td>JPG, PNG</td>
+          <td>1 MB (অপ্টিমাইজড)</td>
+          <td>sRGB (অটো কনভার্ট)</td>
+        </tr>
+        <tr>
+          <td><strong>Shopify</strong></td>
+          <td>JPG, PNG, WebP</td>
+          <td>20 MB</td>
+          <td>sRGB (অটো কনভার্ট)</td>
+        </tr>
+        <tr>
+          <td><strong>Walmart</strong></td>
+          <td>JPG, PNG</td>
+          <td>5 MB</td>
+          <td>sRGB (অটো কনভার্ট)</td>
+        </tr>
+        <tr>
+          <td><strong>WooCommerce</strong></td>
+          <td>JPG, PNG</td>
+          <td>5 MB</td>
+          <td>sRGB (অটো কনভার্ট)</td>
+        </tr>
+        <tr>
+          <td><strong>Zalando</strong></td>
+          <td>JPG, PNG</td>
+          <td>20 MB</td>
+          <td>sRGB (অটো কনভার্ট)</td>
+        </tr>
+        <tr>
+          <td><strong>Custom</strong></td>
+          <td>JPG, PNG, WebP, TIF, PSD</td>
+          <td>ব্যবহারকারী নির্ধারিত (MB)</td>
+          <td>sRGB / RGB নির্বাচনযোগ্য</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>এক্সপোর্ট করার ধাপসমূহ:</h2>
+    <div class="step-box">
+      <div class="step-number">১</div>
+      <div class="step-content">
+        <h4>মার্কেটপ্লেস ও ফরম্যাট নির্বাচন</h4>
+        <p>ড্রপডাউন থেকে মার্কেটপ্লেস সিলেক্ট করুন এবং পছন্দের ফরম্যাট (JPG, PNG বা WebP) বেছে নিন।</p>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-number">২</div>
+      <div class="step-content">
+        <h4>ALL সুইচ (যদি ব্যাচ এক্সপোর্ট চান)</h4>
+        <p>ফটোশপে ওপেন থাকা সব কটি ছবি একবারে এক্সপোর্ট করতে <strong>ALL</strong> টগল সুইচটি অন করুন।</p>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-number">৩</div>
+      <div class="step-content">
+        <h4>Export বোতামে ক্লিক ও ফোল্ডার নির্বাচন</h4>
+        <p><strong>Export</strong> বাটনে ক্লিক করলে কম্পিউটার থেকে একটি ফোল্ডার বেছে নেওয়ার উইন্ডো আসবে। ফোল্ডারটি দেখিয়ে দিলে প্লাগইনটি সব ফাইল সেই ফোল্ডারে সেভ করে দেবে।</p>
+      </div>
+    </div>
+
+    <h2>২. Working File (PSD) এক্সপোর্ট</h2>
+    <p>
+      লেয়ার সম্বলিত মূল ফটোশপ ফাইলটি ব্যাকআপ বা ক্লায়েন্ট ডেলিভারির জন্য সেভ করতে <strong>Working File (PSD)</strong> বাটন ব্যবহার করুন। <code>ALL</code> সুইচ অন থাকলে সবগুলো ফাইলের মাস্টার PSD ফাইল এক ক্লিকে সেভ হয়ে যাবে।
+    </p>
+
+    <div class="alert alert-info">
+      <div class="alert-title">🎨 অটোমেটিক sRGB কালার প্রোফাইল ফিক্স</div>
+      অনেক সময় ক্যামেরা থেকে আসা ছবি Adobe RGB বা ProPhoto RGB তে থাকে, যা ওয়েবে আপলোড করলে রং ফ্যাকাশে দেখায়। প্লাগইনটি এক্সপোর্টের সময় স্বয়ংক্রিয়ভাবে প্রোফাইলকে ওয়েব-স্ট্যান্ডার্ড <strong>sRGB</strong> এ রূপান্তর করে।
+    </div>
+  </div>
+
+  <!-- ================= PAGE 9: প্রো-টিপস ও ট্রাবলশুটিং ================= -->
+  <div class="page">
+    <div class="page-header">
+      <span>E-Commerce Ready Edit — ব্যবহারকারী নির্দেশিকা</span>
+      <span class="page-header-title">অধ্যায় ৯: আদর্শ ওয়ার্কফ্লো ও সাধারণ সমস্যা সমাধান</span>
+    </div>
+
+    <h1>৯. প্রো-ওয়ার্কফ্লো ও সমস্যা সমাধান (Troubleshooting)</h1>
+
+    <h2>সুপারফাস্ট প্রো-এডিটিং ওয়ার্কফ্লো (Recommended Workflow)</h2>
+    <p>আপনার কাজের গতি সর্বোচ্চ করতে নিচের ধারাবাহিকতাটি অনুসরণ করুন:</p>
+
+    <div class="card card-highlight">
+      <div class="step-box" style="margin-bottom: 8px;">
+        <div class="step-number">১</div>
+        <div class="step-content">
+          <strong>Backgrounds:</strong> ছবি ওপেন করে <code>BG Remove</code> করুন এবং ব্যাকগ্রাউন্ড অপশন থেকে <code>White</code> বা কাস্টম কালার দিন।
+        </div>
+      </div>
+      <div class="step-box" style="margin-bottom: 8px;">
+        <div class="step-number">২</div>
+        <div class="step-content">
+          <strong>SCSM Margin:</strong> <code>Product (10%)</code> বা <code>Model (5%)</code> বাটনে ক্লিক করে সঠিক মার্জিন ও সেন্টারিং নিশ্চিত করুন।
+        </div>
+      </div>
+      <div class="step-box" style="margin-bottom: 8px;">
+        <div class="step-number">৩</div>
+        <div class="step-content">
+          <strong>Resize:</strong> মার্কেটপ্লেস প্রিসেট (যেমন Amazon 2000x2000) নির্বাচন করে <code>Apply Resize</code> দিন।
+        </div>
+      </div>
+      <div class="step-box" style="margin-bottom: 8px;">
+        <div class="step-number">৪</div>
+        <div class="step-content">
+          <strong>Editing Adjustment:</strong> প্রয়োজন হলে শ্যাডো (Natural/Drop Shadow) ও জামার ভাঁজ মোছার অ্যাকশন চালান।
+        </div>
+      </div>
+      <div class="step-box" style="margin-bottom: 0;">
+        <div class="step-number">৫</div>
+        <div class="step-content">
+          <strong>Export:</strong> <code>Ready For Delivery</code> থেকে JPG/PNG এক্সপোর্ট করুন এবং <code>Working File (PSD)</code> সেভ করুন।
+        </div>
+      </div>
+    </div>
+
+    <h2>সাধারণ সমস্যা ও সমাধান (FAQ & Troubleshooting)</h2>
+
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title" style="color: #ef4444;">❓ প্রশ্ন: ফটোশপের মেনুতে প্লাগইনটি দেখা যাচ্ছে না?</div>
+      <p style="margin: 0; font-size: 12.5px;">
+        <strong>সমাধান:</strong> নিশ্চিত করুন যে আপনি ফটোশপ বন্ধ করে <code class="code-pill">install.bat</code> রান করেছিলেন। এরপর ফটোশপ চালু করে মেনুবারের <kbd>Plugins</kbd> ➔ <kbd>E-Commerce Ready Edit</kbd> চেক করুন। যদি তাও না আসে, তবে <code class="code-pill">E-Commerce-Ready-Edit.ccx</code> ফাইলে ডাবল-ক্লিক করে Creative Cloud থেকে ইনস্টল করুন।
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title" style="color: #ef4444;">❓ প্রশ্ন: "No active document open" এরর দেখাচ্ছে?</div>
+      <p style="margin: 0; font-size: 12.5px;">
+        <strong>সমাধান:</strong> ফটোশপে কোনো ছবি ওপেন না থাকলে এই এররটি দেখায়। ফটোশপে একটি ছবি ওপেন করে পুনরায় বাটনে ক্লিক করুন।
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title" style="color: #ef4444;">❓ প্রশ্ন: আমি কি একসাথে ৫০+ ছবি প্রসেস করতে পারব?</div>
+      <p style="margin: 0; font-size: 12.5px;">
+        <strong>সমাধান:</strong> হ্যাঁ! ফটোশপে ফাইলগুলো ওপেন করে যে কাজটি করতে চান তার পাশে থাকা <strong>ALL</strong> সুইচ অন করে বাটনে ক্লিক করুন। ফটোশপ স্বয়ংক্রিয়ভাবে সবগুলো ফাইল প্রসেস করবে।
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title" style="color: #ef4444;">❓ প্রশ্ন: প্লাগইনের নতুন আপডেট কীভাবে পাব?</div>
+      <p style="margin: 0; font-size: 12.5px;">
+        <strong>সমাধান:</strong> প্যানেলের নিচের ফুটার বারে <strong>Update</strong> বাটন রয়েছে। সেখানে ক্লিক করলে দূরবর্তী ক্লাউড থেকে নতুন কোনো ভার্সন এসেছে কিনা তা স্বয়ংক্রিয়ভাবে যাচাই করা হবে। নতুন আপডেট থাকলে স্ক্রিনে <strong>Update Now</strong> ব্যানার ভেসে উঠবে।
+      </p>
+    </div>
+
+    <div class="page-footer">
+      <div>E-Commerce Ready Edit — অফিসিয়াল ব্যবহারকারী ম্যানুয়াল</div>
+      <div>সার্বিক সহযোগিতায়: <strong>Path Development Team</strong></div>
+    </div>
+  </div>
+
+</body>
+</html>
+
