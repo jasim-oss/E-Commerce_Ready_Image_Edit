@@ -22,6 +22,19 @@ $targetDir = Join-Path $appData "Adobe\UXP\Plugins\External\$folderName"
 $ccxFile = Join-Path $PSScriptRoot "E-Commerce-Ready-Edit.ccx"
 $sourceDir = Join-Path $PSScriptRoot "uxp_plugin"
 
+
+# Clean up legacy duplicate folders
+$legacyDirs = @(
+    (Join-Path $appData "Adobe\UXP\Plugins\External\$pluginId"),
+    (Join-Path $appData "Adobe\UXP\PluginsExternal\$pluginId"),
+    (Join-Path $appData "Adobe\UXP\Plugins\External\E-Commerce-Ready-Edit")
+)
+foreach ($ld in $legacyDirs) {
+    if (Test-Path $ld) {
+        Remove-Item -Path $ld -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # 2. Ensure target directory exists
 if (!(Test-Path $targetDir)) {
     New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
@@ -62,7 +75,7 @@ if (Test-Path $psJsonPath) {
 }
 
 $entry = [ordered]@{
-    hostMinVersion = "23.0.0"
+    hostMinVersion = "23.3"
     name = "E-Commerce Ready Edit"
     path = "`$localPlugins\External\$folderName"
     pluginId = $pluginId
