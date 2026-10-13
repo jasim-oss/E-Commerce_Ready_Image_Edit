@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 title Uninstalling E-Commerce Ready Edit Plugin...
 echo ======================================================
 echo    E-Commerce Ready Edit - Uninstaller
@@ -15,6 +15,11 @@ if "%ERRORLEVEL%"=="0" (
 echo [*] Removing plugin files and unregistering...
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "
+$upia = 'C:\Program Files\Common Files\Adobe\Adobe Desktop Common\RemoteComponents\UPI\UnifiedPluginInstallerAgent\UnifiedPluginInstallerAgent.exe';
+if (Test-Path $upia) {
+    & $upia /remove 'E-Commerce Ready Edit' | Out-Null;
+}
+
 $appData = $env:APPDATA;
 $targetDir = Join-Path $appData 'Adobe\UXP\Plugins\External\com.ecommerce.photoshop.panel_1.0.0';
 if (Test-Path $targetDir) { Remove-Item -Path $targetDir -Recurse -Force -ErrorAction SilentlyContinue };
