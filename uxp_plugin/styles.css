@@ -1072,6 +1072,35 @@ input:checked+.slider:before {
   width: 100% !important;
 }
 
+.color-swatch-input {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  padding: 0 !important;
+  margin: 0 8px 0 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.color-swatch-input:hover {
+  border-color: var(--brand-accent) !important;
+  transform: scale(1.05) !important;
+}
+
+.color-swatch-input::-webkit-color-swatch-wrapper {
+  padding: 0 !important;
+  border-radius: 5px !important;
+}
+
+.color-swatch-input::-webkit-color-swatch {
+  border: none !important;
+  border-radius: 5px !important;
+}
+
 .hex-color-input {
   width: 90px !important;
   min-width: 82px !important;

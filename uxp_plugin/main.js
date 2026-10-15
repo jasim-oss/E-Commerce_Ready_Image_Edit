@@ -271,6 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnBgUpload = document.getElementById("btnBgUpload");
   const customColorBox = document.getElementById("customColorBox");
   const hexBgCustom = document.getElementById("hexBgCustom");
+  const pickerBgCustom = document.getElementById("pickerBgCustom");
   const btnApplyCustomColor = document.getElementById("btnApplyCustomColor");
 
   // BG Remove
@@ -314,7 +315,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const customColorChevron = document.getElementById("customColorChevron");
     if (btnBgWhite) {
       btnBgWhite.addEventListener("click", async () => {
-        if (customColorBox) customColorBox.style.display = "none";
+        if (customColorBox) {
+          customColorBox.classList.remove("open");
+          customColorBox.style.display = "none";
+        }
         if (btnBgCustom) btnBgCustom.classList.remove("active");
         if (customColorChevron) customColorChevron.classList.remove("up");
         const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
@@ -332,12 +336,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnBgCustom) {
       btnBgCustom.addEventListener("click", () => {
         if (!customColorBox) return;
-        const isOpen = customColorBox.style.display !== "none";
+        const isOpen = customColorBox.classList.contains("open") || (customColorBox.style.display && customColorBox.style.display !== "none");
         if (isOpen) {
+          customColorBox.classList.remove("open");
           customColorBox.style.display = "none";
           btnBgCustom.classList.remove("active");
           if (customColorChevron) customColorChevron.classList.remove("up");
         } else {
+          customColorBox.classList.add("open");
           customColorBox.style.display = "block";
           btnBgCustom.classList.add("active");
           if (customColorChevron) customColorChevron.classList.add("up");
@@ -349,7 +355,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // 3) Upload Background Image
     if (btnBgUpload) {
       btnBgUpload.addEventListener("click", async () => {
-        if (customColorBox) customColorBox.style.display = "none";
+        if (customColorBox) {
+          customColorBox.classList.remove("open");
+          customColorBox.style.display = "none";
+        }
         if (btnBgCustom) btnBgCustom.classList.remove("active");
         if (customColorChevron) customColorChevron.classList.remove("up");
         const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
@@ -367,12 +376,22 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Auto uppercase hex input & enter key support
+    // Auto uppercase hex input, sync swatch & enter key support
+    if (pickerBgCustom) {
+      pickerBgCustom.addEventListener('input', (e) => {
+        if (hexBgCustom) {
+          hexBgCustom.value = e.target.value.toUpperCase();
+        }
+      });
+    }
     if (hexBgCustom) {
       hexBgCustom.addEventListener('input', (e) => {
         let val = e.target.value;
         if (val && !val.startsWith('#')) val = '#' + val;
         hexBgCustom.value = val.toUpperCase();
+        if (/^#[0-9A-F]{6}$/i.test(val) && pickerBgCustom) {
+          pickerBgCustom.value = val.toUpperCase();
+        }
       });
       hexBgCustom.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && btnApplyCustomColor) {
@@ -400,10 +419,16 @@ document.addEventListener("DOMContentLoaded", () => {
       btnApplyCustomColor.addEventListener("click", async () => {
         let hex = hexBgCustom ? hexBgCustom.value : "#FFFFFF";
         if (!hex.startsWith("#")) hex = "#" + hex;
+        if (/^#[0-9A-Fa-f]{3}$/.test(hex)) {
+          hex = "#" + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+        }
         if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
           setStatus("Please enter a valid 6-char hex color (e.g. #F4F4F4)", "error");
           return;
         }
+        hex = hex.toUpperCase();
+        if (hexBgCustom) hexBgCustom.value = hex;
+        if (pickerBgCustom) pickerBgCustom.value = hex;
         const { r, g, b } = hexToRgb(hex);
         const applyAll = toggleBgRemoveAll ? toggleBgRemoveAll.checked : false;
         try {
@@ -1111,7 +1136,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 7. AUTO-UPDATE CHECKER
-  const CURRENT_VERSION = "26.0.0.1";
+  const CURRENT_VERSION = "26.0.0.2";
   const GITHUB_VERSION_URL = "https://raw.githubusercontent.com/jasim-oss/E-Commerce_Ready_Image_Edit/main/version.json";
   const DEFAULT_DOWNLOAD_URL = "https://github.com/jasim-oss/E-Commerce_Ready_Image_Edit/releases/latest";
 
