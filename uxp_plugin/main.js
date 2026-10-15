@@ -1136,7 +1136,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 7. AUTO-UPDATE CHECKER
-  const CURRENT_VERSION = "26.0.0.2";
+  const CURRENT_VERSION = "26.0.0.3";
   const GITHUB_VERSION_URL = "https://raw.githubusercontent.com/jasim-oss/E-Commerce_Ready_Image_Edit/main/version.json";
   const DEFAULT_DOWNLOAD_URL = "https://github.com/jasim-oss/E-Commerce_Ready_Image_Edit/releases/latest";
 
@@ -1165,6 +1165,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   let latestDownloadUrl = DEFAULT_DOWNLOAD_URL;
+  let latestRemoteVersion = null;
 
   async function checkRemoteUpdate(isManual = false) {
     if (updateSpinIcon) updateSpinIcon.classList.add("spinning");
@@ -1176,6 +1177,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
 
       const remoteVer = data.version || "1.0.0";
+      latestRemoteVersion = remoteVer;
       latestDownloadUrl = data.downloadUrl || DEFAULT_DOWNLOAD_URL;
 
       if (compareVersions(remoteVer, CURRENT_VERSION) > 0) {
@@ -1206,12 +1208,111 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  if (btnCheckUpdate) {
-    btnCheckUpdate.addEventListener("click", () => checkRemoteUpdate(true));
-  }
+  // Seamless In-Place Auto-Update Function
+  async function performAutoUpdate() {
+    const targetVer = latestRemoteVersion || "latest";
+    if (btnUpdateNow) {
+      btnUpdateNow.textContent = "Updating...";
+      btnUpdateNow.style.pointerEvents = "none";
+      btnUpdateNow.style.opacity = "0.7";
+    }
+    if (updateBannerText) {
+      updateBannerText.textContent = `Downloading v${targetVer}...`;
+    }
+    setStatus(`Downloading update v${targetVer} from GitHub...`, "working");
 
-  if (btnUpdateNow) {
-    btnUpdateNow.addEventListener("click", async () => {
+    const BASE_RAW_URL = "https://raw.githubusercontent.com/jasim-oss/E-Commerce_Ready_Image_Edit/main/uxp_plugin/";
+    const fileList = [
+      "index.html",
+      "styles.css",
+      "main.js",
+      "manifest.json",
+      "modules/ps_automation.js",
+      "modules/adjustment.js",
+      "modules/ai_bridge.js",
+      "modules/amazon.js"
+    ];
+
+    try {
+      const uxp = window.require ? window.require("uxp") : null;
+      let nodeFs = null;
+      let nodePath = null;
+      try {
+        nodeFs = window.require("fs");
+        nodePath = window.require("path");
+      } catch (e) {}
+
+      const lfs = uxp && uxp.storage ? uxp.storage.localFileSystem : null;
+      const pluginFolder = lfs ? await lfs.getPluginFolder() : null;
+      const nativeDir = pluginFolder ? pluginFolder.nativePath : null;
+
+      // Mode 1: Node.js fs if available
+      if (nodeFs && nativeDir && nodePath) {
+        setStatus(`Installing update v${targetVer}...`, "working");
+        for (const rel of fileList) {
+          const res = await fetch(`${BASE_RAW_URL}${rel}?t=${Date.now()}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status} for ${rel}`);
+          const content = await res.text();
+          const targetPath = nodePath.join(nativeDir, rel);
+          const dir = nodePath.dirname(targetPath);
+          if (!nodeFs.existsSync(dir)) {
+            nodeFs.mkdirSync(dir, { recursive: true });
+          }
+          nodeFs.writeFileSync(targetPath, content, "utf8");
+        }
+      } else if (lfs && pluginFolder) {
+        // Mode 2: UXP storage localFileSystem
+        let targetRoot = pluginFolder;
+        if (nativeDir) {
+          try {
+            const url = "file:///" + nativeDir.replace(/\\/g, "/");
+            const resolved = await lfs.getEntryWithUrl(url);
+            if (resolved) targetRoot = resolved;
+          } catch (e) {}
+        }
+
+        async function ensureFolder(parent, name) {
+          try {
+            const existing = await parent.getEntry(name);
+            if (existing && existing.isFolder) return existing;
+          } catch (e) {}
+          return await parent.createFolder(name);
+        }
+
+        for (const rel of fileList) {
+          const res = await fetch(`${BASE_RAW_URL}${rel}?t=${Date.now()}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status} for ${rel}`);
+          const content = await res.text();
+
+          const parts = rel.split("/");
+          let cur = targetRoot;
+          for (let i = 0; i < parts.length - 1; i++) {
+            cur = await ensureFolder(cur, parts[i]);
+          }
+          const fname = parts[parts.length - 1];
+          const fileEntry = await cur.createFile(fname, { overwrite: true });
+          await fileEntry.write(content, { format: uxp.storage.formats.utf8 });
+        }
+      } else {
+        throw new Error("Local file system is unavailable.");
+      }
+
+      setStatus(`Updated to v${targetVer}! Refreshing...`, "online");
+      if (updateBannerText) {
+        updateBannerText.textContent = `Updated! Reloading...`;
+      }
+      setTimeout(() => {
+        window.location.reload();
+      }, 700);
+
+    } catch (err) {
+      console.error("Direct auto-update failed:", err);
+      setStatus(`Direct update error: ${err.message}. Opening download...`, "error");
+      if (btnUpdateNow) {
+        btnUpdateNow.textContent = "Download ZIP";
+        btnUpdateNow.style.pointerEvents = "auto";
+        btnUpdateNow.style.opacity = "1";
+      }
       try {
         const uxp = window.require ? window.require("uxp") : null;
         if (uxp && uxp.shell && typeof uxp.shell.openExternal === "function") {
@@ -1219,10 +1320,22 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           window.open(latestDownloadUrl, "_blank");
         }
-      } catch (e) {
-        console.error("Open update URL error:", e);
+      } catch (e2) {}
+    }
+  }
+
+  if (btnCheckUpdate) {
+    btnCheckUpdate.addEventListener("click", () => {
+      if (latestRemoteVersion && compareVersions(latestRemoteVersion, CURRENT_VERSION) > 0) {
+        performAutoUpdate();
+      } else {
+        checkRemoteUpdate(true);
       }
     });
+  }
+
+  if (btnUpdateNow) {
+    btnUpdateNow.addEventListener("click", performAutoUpdate);
   }
 
   // Auto-check once silently 3 seconds after loading

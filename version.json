@@ -1,7 +1,7 @@
 {
-  "version": "26.0.0.2",
+  "version": "26.0.0.3",
   "name": "E-Commerce Ready Edit",
   "releaseDate": "2026-10-15",
   "downloadUrl": "https://github.com/jasim-oss/E-Commerce_Ready_Image_Edit/raw/main/E-Commerce-Ready-Edit-Installer.zip",
-  "notes": "Fixed Background Custom color picker drawer toggle and added visual color picker swatch."
+  "notes": "Added seamless in-place automatic update in Photoshop without manual re-installation."
 }
